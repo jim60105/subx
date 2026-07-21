@@ -1,0 +1,105 @@
+/*
+ * Theme tokens — the "neon gradient" visual identity.
+ *
+ * Every colour, radius, shadow and motion value the UI uses is declared here as
+ * a CSS custom property. Components must never hard-code a colour: the theme
+ * controller only flips `data-theme` on the root element, so anything that
+ * bypasses these tokens will not follow the theme.
+ */
+
+:root {
+  /* Brand gradient — identical in both themes. */
+  --accent-from: #7c3aed;
+  --accent-to: #06b6d4;
+  --accent-gradient: linear-gradient(135deg, var(--accent-from), var(--accent-to));
+  --accent-gradient-soft: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent-from) 18%, transparent),
+    color-mix(in srgb, var(--accent-to) 18%, transparent)
+  );
+
+  /* Typography */
+  --font-sans:
+    "Inter", "Noto Sans TC", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, "SFMono-Regular", monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.875rem;
+
+  /* Spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  /* Shape */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* Motion — respected unless the user asks for reduced motion. */
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Dark theme: deep-navy base with glassmorphism panels. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg-base: #0d1021;
+  --bg-gradient:
+    radial-gradient(ellipse 80% 60% at 15% -10%, rgba(124, 58, 237, 0.22), transparent 60%),
+    radial-gradient(ellipse 70% 55% at 90% 0%, rgba(6, 182, 212, 0.16), transparent 60%);
+
+  --surface: rgba(255, 255, 255, 0.045);
+  --surface-hover: rgba(255, 255, 255, 0.075);
+  --surface-border: rgba(255, 255, 255, 0.1);
+  --surface-blur: blur(18px);
+
+  --text-primary: #e9ebf7;
+  --text-secondary: #a7adcd;
+  --text-muted: #7d83a6;
+  --text-on-accent: #ffffff;
+
+  /* Accent tuned for legible text/icons against the dark base. */
+  --accent-text: #a78bfa;
+  --focus-ring: #22d3ee;
+
+  --shadow-panel: 0 18px 44px rgba(0, 0, 0, 0.45);
+  --shadow-raised: 0 12px 30px rgba(124, 58, 237, 0.28);
+}
+
+/* Light theme: same gradient identity on light neutrals. */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-base: #f5f6fb;
+  --bg-gradient:
+    radial-gradient(ellipse 80% 60% at 15% -10%, rgba(124, 58, 237, 0.12), transparent 60%),
+    radial-gradient(ellipse 70% 55% at 90% 0%, rgba(6, 182, 212, 0.1), transparent 60%);
+
+  --surface: rgba(255, 255, 255, 0.85);
+  --surface-hover: #ffffff;
+  --surface-border: rgba(13, 16, 33, 0.1);
+  --surface-blur: blur(14px);
+
+  --text-primary: #14162b;
+  --text-secondary: #4a5070;
+  --text-muted: #6b7192;
+  --text-on-accent: #ffffff;
+
+  /* Cyan is too low-contrast for text on white; violet carries accent text. */
+  --accent-text: #6d28d9;
+  --focus-ring: #7c3aed;
+
+  --shadow-panel: 0 14px 34px rgba(13, 16, 33, 0.1);
+  --shadow-raised: 0 12px 26px rgba(124, 58, 237, 0.18);
+}

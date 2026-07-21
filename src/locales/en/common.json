@@ -1,0 +1,28 @@
+{
+  "appName": "SubX",
+  "tagline": "AI-powered subtitle tooling",
+  "actions": {
+    "back": "Back",
+    "next": "Next",
+    "cancel": "Cancel",
+    "retry": "Retry"
+  },
+  "status": {
+    "comingSoon": "Coming soon"
+  },
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "Follow system"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "zh-TW": "正體中文"
+  },
+  "featurePlaceholder": {
+    "title": "Not implemented yet",
+    "description": "This feature arrives in a later release."
+  }
+}

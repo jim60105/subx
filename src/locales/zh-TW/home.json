@@ -1,0 +1,22 @@
+{
+  "heading": "你想做什麼？",
+  "subheading": "選擇一項任務開始。SubX 全程在本機透過 subx 引擎執行。",
+  "tasks": {
+    "match": {
+      "name": "配對字幕",
+      "description": "用 AI 把字幕檔配對到正確的影片，再重新命名、複製或搬移。"
+    },
+    "convert": {
+      "name": "轉換格式",
+      "description": "在 SRT、ASS、VTT、SUB 之間轉換字幕格式。"
+    },
+    "sync": {
+      "name": "校正時間軸",
+      "description": "自動將字幕時間軸對齊音軌。"
+    },
+    "translate": {
+      "name": "翻譯",
+      "description": "用 AI 將字幕翻譯成其他語言。"
+    }
+  }
+}

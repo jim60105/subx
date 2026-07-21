@@ -1,0 +1,40 @@
+{
+  "generic": "發生錯誤。",
+  "detailLabel": "技術細節",
+  "codes": {
+    "core.internal": "發生未預期的內部錯誤。",
+    "core.io": "無法讀取或寫入檔案。",
+    "core.config": "設定不正確。",
+    "core.subtitle_format": "無法解析這個字幕檔。",
+    "core.ai_service": "無法連線到 AI 服務。",
+    "core.api": "AI 服務供應商拒絕了這個請求。",
+    "core.audio_processing": "無法處理音軌。",
+    "core.file_matching": "檔案配對失敗。",
+    "core.file_already_exists": "目標檔名已經存在。",
+    "core.file_not_found": "找不到這個檔案。",
+    "core.invalid_file_name": "檔名不合法。",
+    "core.file_operation_failed": "檔案操作失敗。",
+    "core.command_execution": "無法完成這項操作。",
+    "core.no_input_specified": "尚未選擇來源。",
+    "core.invalid_path": "路徑不合法。",
+    "core.path_not_found": "找不到這個路徑。",
+    "core.directory_read_error": "無法讀取這個資料夾。",
+    "core.invalid_sync_configuration": "校正設定不完整。",
+    "core.unsupported_file_type": "不支援這種檔案類型。",
+    "core.other": "發生未預期的錯誤。"
+  },
+  "hints": {
+    "core.retry": "請再試一次。如果持續失敗，請查看技術細節。",
+    "core.config.hint": "請檢查 AI 設定後再試一次。",
+    "core.ai_service.hint": "請檢查網路連線以及設定的 API key。",
+    "core.api.hint": "請檢查網路連線以及設定的 API key。",
+    "core.subtitle_format.hint": "請檢查字幕檔的格式與編碼。",
+    "core.audio_processing.hint": "請確認媒體檔完整且使用支援的編碼格式。",
+    "core.file_matching.hint": "請確認選取的檔案後再試一次。",
+    "core.no_input_specified.hint": "請至少加入一個來源再繼續。",
+    "core.invalid_sync_configuration.hint": "請同時選擇影片與字幕檔。",
+    "core.path_not_found.hint": "請確認路徑存在且可存取。",
+    "core.file_not_found.hint": "請確認檔案存在且可存取。",
+    "core.command_execution.hint": "請檢查選取的選項後再試一次。"
+  }
+}

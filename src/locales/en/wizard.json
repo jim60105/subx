@@ -1,0 +1,9 @@
+{
+  "progressLabel": "Progress",
+  "stepCounter": "Step {{current}} of {{total}}",
+  "stepState": {
+    "completed": "Completed",
+    "active": "Current step",
+    "upcoming": "Upcoming"
+  }
+}

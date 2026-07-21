@@ -1,0 +1,9 @@
+{
+  "progressLabel": "進度",
+  "stepCounter": "第 {{current}} 步，共 {{total}} 步",
+  "stepState": {
+    "completed": "已完成",
+    "active": "目前步驟",
+    "upcoming": "尚未開始"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "heading": "What would you like to do?",
+  "subheading": "Pick a task to start. SubX runs everything locally through the subx engine.",
+  "tasks": {
+    "match": {
+      "name": "Match subtitles",
+      "description": "Pair subtitle files with the right videos using AI, then rename, copy, or move them."
+    },
+    "convert": {
+      "name": "Convert format",
+      "description": "Convert subtitles between SRT, ASS, VTT, and SUB."
+    },
+    "sync": {
+      "name": "Sync timing",
+      "description": "Align subtitle timing with the audio track automatically."
+    },
+    "translate": {
+      "name": "Translate",
+      "description": "Translate subtitles into another language with AI."
+    }
+  }
+}

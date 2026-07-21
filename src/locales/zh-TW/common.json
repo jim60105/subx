@@ -1,0 +1,28 @@
+{
+  "appName": "SubX",
+  "tagline": "AI 字幕工具",
+  "actions": {
+    "back": "上一步",
+    "next": "下一步",
+    "cancel": "取消",
+    "retry": "重試"
+  },
+  "status": {
+    "comingSoon": "即將推出"
+  },
+  "theme": {
+    "label": "主題",
+    "light": "淺色",
+    "dark": "深色",
+    "system": "跟隨系統"
+  },
+  "language": {
+    "label": "語言",
+    "en": "English",
+    "zh-TW": "正體中文"
+  },
+  "featurePlaceholder": {
+    "title": "尚未實作",
+    "description": "這項功能會在後續版本推出。"
+  }
+}

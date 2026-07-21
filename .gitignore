@@ -21,3 +21,9 @@ target
 #.idea/
 tmp/
 .superpowers/
+
+# Frontend
+node_modules
+dist
+*.local
+*.log

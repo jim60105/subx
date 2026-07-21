@@ -1,0 +1,40 @@
+{
+  "generic": "Something went wrong.",
+  "detailLabel": "Technical details",
+  "codes": {
+    "core.internal": "An unexpected internal error occurred.",
+    "core.io": "A file could not be read or written.",
+    "core.config": "The configuration is invalid.",
+    "core.subtitle_format": "The subtitle file could not be parsed.",
+    "core.ai_service": "The AI service could not be reached.",
+    "core.api": "The AI provider rejected the request.",
+    "core.audio_processing": "The audio track could not be processed.",
+    "core.file_matching": "Matching the files failed.",
+    "core.file_already_exists": "A file with the target name already exists.",
+    "core.file_not_found": "The file could not be found.",
+    "core.invalid_file_name": "The file name is not valid.",
+    "core.file_operation_failed": "The file operation failed.",
+    "core.command_execution": "The operation could not be completed.",
+    "core.no_input_specified": "No input was selected.",
+    "core.invalid_path": "The path is not valid.",
+    "core.path_not_found": "The path could not be found.",
+    "core.directory_read_error": "The folder could not be read.",
+    "core.invalid_sync_configuration": "The sync settings are incomplete.",
+    "core.unsupported_file_type": "This file type is not supported.",
+    "core.other": "An unexpected error occurred."
+  },
+  "hints": {
+    "core.retry": "Try the action again. If it keeps failing, check the technical details.",
+    "core.config.hint": "Review the AI settings and try again.",
+    "core.ai_service.hint": "Check your network connection and the configured API key.",
+    "core.api.hint": "Check your network connection and the configured API key.",
+    "core.subtitle_format.hint": "Check the subtitle file's format and encoding.",
+    "core.audio_processing.hint": "Verify the media file is intact and uses a supported codec.",
+    "core.file_matching.hint": "Verify the selected files and try again.",
+    "core.no_input_specified.hint": "Add at least one source before continuing.",
+    "core.invalid_sync_configuration.hint": "Select both a video and a subtitle file.",
+    "core.path_not_found.hint": "Verify the path exists and is accessible.",
+    "core.file_not_found.hint": "Verify the file exists and is accessible.",
+    "core.command_execution.hint": "Review the selected options and try again."
+  }
+}
