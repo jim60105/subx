@@ -40,4 +40,20 @@
 .app-header__controls {
   display: flex;
   gap: var(--space-2);
+  align-items: center;
+}
+
+.app-header__settings {
+  display: inline-flex;
+  padding: var(--space-2);
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.app-header__settings:hover {
+  color: var(--accent-text);
+  background: var(--surface-hover);
 }

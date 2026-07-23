@@ -5,7 +5,8 @@
     "back": "Back",
     "next": "Next",
     "cancel": "Cancel",
-    "retry": "Retry"
+    "retry": "Retry",
+    "settings": "Settings"
   },
   "status": {
     "comingSoon": "Coming soon"

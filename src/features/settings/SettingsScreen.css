@@ -1,0 +1,195 @@
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 44rem;
+}
+
+.settings__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.settings__heading {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.settings__subheading {
+  color: var(--text-secondary);
+}
+
+.settings__loading {
+  color: var(--text-muted);
+}
+
+/* Glassmorphism panel, matching the home hub's cards. */
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--surface);
+  backdrop-filter: var(--surface-blur);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+}
+
+.settings-section__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.settings-section__title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.settings-section__description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.settings-section__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.settings-section__fields--inline {
+  flex-flow: row wrap;
+  gap: var(--space-5);
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.settings-field__label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.settings-field__hint,
+.settings-field__error-hint,
+.settings-field__error-detail {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.settings-field__error {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-field__error-message {
+  font-size: var(--text-sm);
+  color: var(--danger);
+}
+
+.settings-field__error-detail {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.settings-control {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  background: var(--surface-hover);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.settings-control:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.settings-control[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.settings-button {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--surface-hover);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.settings-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.settings-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.settings-button--primary {
+  color: var(--text-on-accent);
+  background: var(--accent-gradient);
+  border-color: transparent;
+  box-shadow: var(--shadow-raised);
+}
+
+.settings__actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.settings__dirty {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.settings-test {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--surface-border);
+}
+
+.settings-test__action {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.settings-test__description {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.settings-test__success {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--success);
+  background: var(--success-surface);
+  border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
+  border-radius: var(--radius-md);
+}
+
+@media (width <= 30rem) {
+  .settings-test__action {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

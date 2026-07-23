@@ -73,6 +73,12 @@
   --accent-text: #a78bfa;
   --focus-ring: #22d3ee;
 
+  /* Outcome colours; the surfaces are tinted panels behind them. */
+  --danger: #fb7185;
+  --danger-surface: rgba(251, 113, 133, 0.12);
+  --success: #34d399;
+  --success-surface: rgba(52, 211, 153, 0.12);
+
   --shadow-panel: 0 18px 44px rgba(0, 0, 0, 0.45);
   --shadow-raised: 0 12px 30px rgba(124, 58, 237, 0.28);
 }
@@ -99,6 +105,12 @@
   /* Cyan is too low-contrast for text on white; violet carries accent text. */
   --accent-text: #6d28d9;
   --focus-ring: #7c3aed;
+
+  /* Darkened against white so the text keeps its contrast ratio. */
+  --danger: #be123c;
+  --danger-surface: rgba(190, 18, 60, 0.08);
+  --success: #047857;
+  --success-surface: rgba(4, 120, 87, 0.08);
 
   --shadow-panel: 0 14px 34px rgba(13, 16, 33, 0.1);
   --shadow-raised: 0 12px 26px rgba(124, 58, 237, 0.18);

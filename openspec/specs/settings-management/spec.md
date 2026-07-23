@@ -1,10 +1,14 @@
 # settings-management Specification
 
-## ADDED Requirements
+## Purpose
+
+The Settings screen through which the GUI reads and writes the shared `subx-cli` configuration (AI provider, model, base URL, and API key) via the crate's `ConfigService`, validates writes with field-level errors, keeps the API key masked and write-only, offers an explicit AI connection test, and manages GUI-local language and theme preferences.
+
+## Requirements
 
 ### Requirement: Settings screen edits the shared CLI configuration
 
-The GUI SHALL provide a Settings screen, reachable from the app shell, that reads and writes the same configuration store the CLI uses (`~/.config/subx/config.toml`) exclusively through the `subx-cli` crate's `ConfigService`. Editable fields SHALL include: AI provider (openai / openrouter / azure / local), model, base URL, and API key.
+The GUI SHALL provide a Settings screen, reachable from the app shell, that reads and writes the same configuration store the CLI uses (`~/.config/subx/config.toml`) exclusively through the `subx-cli` crate's `ConfigService`. Editable fields SHALL include: AI provider, model, base URL, and API key. The offered providers SHALL be exactly those the crate's provider factory can construct: `openai`, `openrouter`, `azure-openai`, and `local`.
 
 #### Scenario: CLI and GUI stay in sync
 

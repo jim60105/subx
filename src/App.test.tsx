@@ -41,6 +41,35 @@ describe("app shell", () => {
     expect(screen.getByRole("heading", { name: "What would you like to do?" })).toBeInTheDocument();
   });
 
+  it("opens settings from the header and returns to the hub", async () => {
+    mockIPC((command) => {
+      if (command === "get_config") {
+        return {
+          ai: {
+            provider: "openai",
+            model: "gpt-4.1-mini",
+            baseUrl: "https://api.openai.com/v1",
+            apiKeyMasked: "",
+            apiKeySet: false,
+          },
+        };
+      }
+      throw new Error(`unexpected command: ${command}`);
+    });
+
+    renderWithI18n(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expect(await screen.findByRole("heading", { name: "Settings" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Back/ }));
+    expect(screen.getByRole("heading", { name: "What would you like to do?" })).toBeInTheDocument();
+  });
+
   it("round-trips the ping command over mocked IPC", async () => {
     mockIPC((command) => {
       if (command === "ping") {

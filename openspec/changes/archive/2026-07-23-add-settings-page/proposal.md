@@ -10,7 +10,7 @@ The match wizard (and every future AI-backed feature) needs a configured AI prov
 
 - Add Tauri commands `get_config`, `set_config_value`, and `test_ai_connection` in the thin command layer, delegating to the `subx-cli` crate's `ConfigService` (shared `~/.config/subx/config.toml`).
 - API keys are returned masked (reusing the crate's masking module) and are write-only from the GUI: users can set or replace a key but never read the stored value back in cleartext.
-- Add a Settings screen reachable from the app shell: AI provider selection (openai / openrouter / azure / local), model, base URL, API key entry, and a connection-test button with clear success/failure feedback.
+- Add a Settings screen reachable from the app shell: AI provider selection (`openai` / `openrouter` / `azure-openai` / `local` — the four the crate's provider factory can actually build), model, base URL, API key entry, and a connection-test button with clear success/failure feedback.
 - Setting values are validated by the crate's existing `ConfigService` validation; validation failures surface as localized field-level errors via the established `ErrorDto` code mapping.
 - Add GUI preference controls (language, theme) to the same Settings screen, persisted in GUI-local storage per the shell's conventions — never written to the CLI config file.
 

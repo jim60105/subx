@@ -7,10 +7,10 @@ import { renderWithI18n, setupI18n } from "../../test/renderWithI18n";
 import { ThemeProvider } from "../../theme/ThemeProvider";
 import { AppHeader } from "./AppHeader";
 
-function renderHeader(onBack?: () => void) {
+function renderHeader(onBack?: () => void, onOpenSettings?: () => void) {
   return renderWithI18n(
     <ThemeProvider>
-      <AppHeader onBack={onBack} />
+      <AppHeader onBack={onBack} onOpenSettings={onOpenSettings} />
     </ThemeProvider>,
   );
 }
@@ -44,6 +44,17 @@ describe("AppHeader", () => {
     // ThemeSelect's own tests; this only checks the header wires them in.
     expect(screen.getByLabelText("Language")).toBeInTheDocument();
     expect(screen.getByLabelText("Theme")).toBeInTheDocument();
+  });
+
+  it("offers the settings entry everywhere except on settings itself", async () => {
+    renderHeader();
+    expect(screen.queryByRole("button", { name: "Settings" })).not.toBeInTheDocument();
+
+    const onOpenSettings = vi.fn();
+    renderHeader(undefined, onOpenSettings);
+    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+
+    expect(onOpenSettings).toHaveBeenCalledOnce();
   });
 
   it("renders its own strings in Traditional Chinese after a language switch", async () => {

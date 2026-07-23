@@ -21,7 +21,12 @@
     "core.directory_read_error": "The folder could not be read.",
     "core.invalid_sync_configuration": "The sync settings are incomplete.",
     "core.unsupported_file_type": "This file type is not supported.",
-    "core.other": "An unexpected error occurred."
+    "core.other": "An unexpected error occurred.",
+    "config.invalid_provider": "That AI provider is not supported.",
+    "config.invalid_model": "That model name is not valid.",
+    "config.invalid_url": "That base URL is not valid.",
+    "config.invalid_api_key": "That API key is not valid.",
+    "config.invalid_value": "That value is not valid."
   },
   "hints": {
     "core.retry": "Try the action again. If it keeps failing, check the technical details.",
@@ -35,6 +40,12 @@
     "core.invalid_sync_configuration.hint": "Select both a video and a subtitle file.",
     "core.path_not_found.hint": "Verify the path exists and is accessible.",
     "core.file_not_found.hint": "Verify the file exists and is accessible.",
-    "core.command_execution.hint": "Review the selected options and try again."
+    "core.command_execution.hint": "Review the selected options and try again.",
+    "config.invalid_provider.hint": "Pick one of the listed providers.",
+    "config.invalid_model.hint": "Enter the model id exactly as your provider spells it.",
+    "config.invalid_url.hint": "Use a full http:// or https:// address.",
+    "config.invalid_api_key.hint": "Paste the key from your provider's dashboard.",
+    "config.invalid_value.hint": "Check the value and try again.",
+    "config.connection_test.hint": "Check the provider, base URL and API key, then test again."
   }
 }

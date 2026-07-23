@@ -19,6 +19,38 @@ export interface PingResponse {
   appVersion: string;
 }
 
+/** AI section of the shared CLI configuration, as the GUI is allowed to see it. */
+export interface AiConfigDto {
+  /** Canonical provider id. */
+  provider: string;
+  model: string;
+  baseUrl: string;
+  /** Masked key (e.g. `****abcd`); empty when none is configured. */
+  apiKeyMasked: string;
+  /** Whether a key is configured at all. The cleartext value never crosses IPC. */
+  apiKeySet: boolean;
+}
+
+export interface ConfigDto {
+  ai: AiConfigDto;
+}
+
+/** One `key = value` write against the shared configuration. */
+export interface SetConfigRequest {
+  /** Dotted config key, e.g. `ai.provider`. */
+  key: string;
+  value: string;
+}
+
+/** Outcome of an explicit AI connection test; a rejection resolves, not throws. */
+export interface ConnectionTestResult {
+  ok: boolean;
+  /** Round-trip time of the probe request; present only on success. */
+  latencyMs?: number;
+  /** Why the test failed; present only on failure. */
+  error?: ErrorDto;
+}
+
 /** Narrows an unknown rejection to an `ErrorDto`. */
 export function isErrorDto(value: unknown): value is ErrorDto {
   return (

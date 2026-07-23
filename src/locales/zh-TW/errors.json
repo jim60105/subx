@@ -21,7 +21,12 @@
     "core.directory_read_error": "無法讀取這個資料夾。",
     "core.invalid_sync_configuration": "校正設定不完整。",
     "core.unsupported_file_type": "不支援這種檔案類型。",
-    "core.other": "發生未預期的錯誤。"
+    "core.other": "發生未預期的錯誤。",
+    "config.invalid_provider": "不支援這個 AI 服務供應商。",
+    "config.invalid_model": "模型名稱不合法。",
+    "config.invalid_url": "服務網址不合法。",
+    "config.invalid_api_key": "API 金鑰不合法。",
+    "config.invalid_value": "這個值不合法。"
   },
   "hints": {
     "core.retry": "請再試一次。如果持續失敗，請查看技術細節。",
@@ -35,6 +40,12 @@
     "core.invalid_sync_configuration.hint": "請同時選擇影片與字幕檔。",
     "core.path_not_found.hint": "請確認路徑存在且可存取。",
     "core.file_not_found.hint": "請確認檔案存在且可存取。",
-    "core.command_execution.hint": "請檢查選取的選項後再試一次。"
+    "core.command_execution.hint": "請檢查選取的選項後再試一次。",
+    "config.invalid_provider.hint": "請從清單中挑選一個服務供應商。",
+    "config.invalid_model.hint": "請完全依照服務供應商的寫法輸入模型代號。",
+    "config.invalid_url.hint": "請輸入完整的 http:// 或 https:// 網址。",
+    "config.invalid_api_key.hint": "請從服務供應商的主控台複製金鑰貼上。",
+    "config.invalid_value.hint": "請檢查這個值後再試一次。",
+    "config.connection_test.hint": "請檢查服務供應商、服務網址與 API 金鑰後再測試一次。"
   }
 }

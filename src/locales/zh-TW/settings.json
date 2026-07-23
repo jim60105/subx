@@ -1,0 +1,46 @@
+{
+  "title": "設定",
+  "subtitle": "AI 設定與 SubX 命令列共用；以下的其餘選項只會留在這個應用程式中。",
+  "loading": "正在載入設定……",
+  "unsavedChanges": "尚有未儲存的變更",
+  "actions": {
+    "save": "儲存變更",
+    "saving": "儲存中……"
+  },
+  "ai": {
+    "title": "AI 服務供應商",
+    "description": "會寫入命令列讀取的同一份設定檔，兩邊隨時保持一致。",
+    "provider": {
+      "label": "服務供應商",
+      "options": {
+        "openai": "OpenAI",
+        "openrouter": "OpenRouter",
+        "azure-openai": "Azure OpenAI",
+        "local": "本機（Ollama、LM Studio……）"
+      }
+    },
+    "model": {
+      "label": "模型",
+      "placeholder": "gpt-4.1-mini"
+    },
+    "baseUrl": {
+      "label": "服務網址",
+      "placeholder": "https://api.openai.com/v1"
+    },
+    "apiKey": {
+      "label": "API 金鑰",
+      "hint": "已儲存的金鑰不會顯示出來。留空即維持現有金鑰，輸入新的金鑰則會取代它。",
+      "unsetPlaceholder": "尚未設定金鑰"
+    }
+  },
+  "test": {
+    "action": "測試連線",
+    "running": "測試中……",
+    "description": "會先儲存你的變更，再向服務供應商送出一則簡短的請求。",
+    "success": "連線成功，耗時 {{latency}} 毫秒。"
+  },
+  "preferences": {
+    "title": "外觀與語言",
+    "description": "只會儲存在這個應用程式中，不會寫入共用的設定檔。"
+  }
+}
