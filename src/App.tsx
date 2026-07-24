@@ -17,7 +17,7 @@ export default function App() {
       />
       <main className="app__main">
         {screen === "home" && <HomeScreen onOpenTask={setScreen} />}
-        {screen === "match" && <MatchScreen />}
+        {screen === "match" && <MatchScreen onOpenSettings={() => setScreen("settings")} />}
         {screen === "settings" && <SettingsScreen />}
       </main>
     </div>

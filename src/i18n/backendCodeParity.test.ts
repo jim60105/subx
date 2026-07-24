@@ -94,9 +94,10 @@ describe("the crate stays behind the command layer", () => {
 /**
  * Every stable code the Rust sources can emit.
  *
- * Two shapes exist and both are scanned: `core.<category>` codes, built in
- * `error.rs` from the crate's own `category()`, and `config.<field>` codes,
- * built in `commands/config.rs` from the key being written.
+ * Three shapes exist and all are scanned: `core.<category>` codes, built in
+ * `error.rs` from the crate's own `category()`; `config.<field>` codes, built
+ * in `commands/config.rs` from the key being written; and `match.<reason>`
+ * codes, the literal constants in `commands/match.rs`.
  */
 function backendErrorCodes(): { codes: Set<string>; hints: Set<string> } {
   const codes = new Set<string>();
@@ -107,7 +108,7 @@ function backendErrorCodes(): { codes: Set<string>; hints: Set<string> } {
 
     // Literal codes and hint codes written out in full, e.g.
     // `const CONNECTION_TEST_HINT: &str = "config.connection_test.hint";`
-    for (const match of source.matchAll(/"((?:core|config)\.[a-z_]+(?:\.hint)?)"/g)) {
+    for (const match of source.matchAll(/"((?:core|config|match)\.[a-z_]+(?:\.hint)?)"/g)) {
       (match[1].endsWith(".hint") ? hints : codes).add(match[1]);
     }
 

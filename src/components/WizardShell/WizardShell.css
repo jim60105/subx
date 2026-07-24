@@ -72,6 +72,10 @@
   flex: 1;
   min-height: 0;
   padding: var(--space-5);
+  /* Scroll the step body inside the panel so the step indicator and the
+     navigation actions stay put instead of being overrun by tall content. */
+  overflow-y: auto;
+  overflow-x: hidden;
   background: var(--surface);
   backdrop-filter: var(--surface-blur);
   border: 1px solid var(--surface-border);

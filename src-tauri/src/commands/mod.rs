@@ -4,4 +4,6 @@
 //! APIs, emit progress events. No business logic lives here.
 
 pub mod config;
+// `match` is a keyword; the file is `match.rs` and the module is `r#match`.
+pub mod r#match;
 pub mod system;

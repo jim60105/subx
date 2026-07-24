@@ -27,6 +27,9 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        // The match wizard's Step 1 "Browse" action opens a native file/folder
+        // picker through this plugin.
+        .plugin(tauri_plugin_dialog::init())
         .manage(AppState::new(Arc::new(config_service)))
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {

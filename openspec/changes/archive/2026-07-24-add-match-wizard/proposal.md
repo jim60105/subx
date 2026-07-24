@@ -10,7 +10,7 @@ AI subtitle matching is SubX's core value, and it is exactly the feature that in
 
 - Add Tauri commands `list_source_files`, `analyze_sources`, `cancel_analysis`, and `execute_selected` in the thin command layer, delegating to the `subx-cli` crate: `InputPathHandler`/`CollectedFiles` for source expansion (folders, files, archives), `MatchEngine::match_file_list_with_audit()` for analysis, and `MatchEngine::execute_operations_audit()` for execution that continues past per-item failures.
 - Analysis results (`Vec<MatchOperation>` plus audit data) are held canonically in Tauri managed state keyed by a plan ID; the frontend receives display DTOs and refers back to operations by ID only.
-- Stage-level progress (`scanning` / `ai_request` / `finalizing`) is emitted as Tauri events during analysis; analysis is cancellable.
+- Stage-level progress (`scanning` / `analyzing` / `finalizing`) is emitted as Tauri events during analysis; analysis is cancellable.
 - Add the Match wizard UI on top of `WizardShell`:
   - **Step 1 — Sources**: drag-and-drop or browse for multiple sources (folders, individual files, archives); scan preview showing counted videos and subtitles; relocation mode choice (rename in place / copy / move, default rename) — chosen here because the crate bakes relocation into each operation at analysis time, which also lets the review step show exact target paths.
   - **Step 2 — Analysis**: staged progress display, cancellable.

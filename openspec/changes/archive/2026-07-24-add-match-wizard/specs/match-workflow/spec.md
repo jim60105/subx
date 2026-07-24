@@ -23,12 +23,12 @@ Step 1 of the match wizard SHALL accept multiple sources via drag-and-drop or fi
 
 ### Requirement: Cancellable AI analysis with staged progress
 
-Step 2 SHALL run the AI analysis without blocking the UI, presenting staged progress (scanning → analyzing → finalizing) driven by backend events. The analysis MAY resolve from the crate's persistent match cache without a live AI request; the staged display SHALL remain accurate in that case (no claim of an AI request is made). The user SHALL be able to cancel; cancellation discards the pending analysis and returns to Step 1 without any filesystem changes. Only one analysis SHALL run at a time.
+Step 2 SHALL run the AI analysis without blocking the UI, presenting staged progress (scanning → analyzing → finalizing) driven by backend progress messages. The analysis MAY resolve from the crate's persistent match cache without a live AI request; the staged display SHALL remain accurate in that case (no claim of an AI request is made). The user SHALL be able to cancel; cancellation discards the pending analysis and returns to Step 1 without any filesystem changes. Only one analysis SHALL run at a time.
 
 #### Scenario: Stages are reflected
 
 - **WHEN** the analysis progresses through its stages
-- **THEN** the UI updates the staged indicator as each backend progress event arrives
+- **THEN** the UI updates the staged indicator as each backend progress message arrives
 
 #### Scenario: User cancels analysis
 

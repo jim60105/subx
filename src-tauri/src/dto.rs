@@ -80,3 +80,124 @@ pub struct ConnectionTestResult {
     /// Why the test failed; present only on failure.
     pub error: Option<ErrorDto>,
 }
+
+/// Relocation mode chosen in Step 1 of the match wizard.
+///
+/// Maps onto `subx_cli`'s `FileRelocationMode`: `Rename` is the crate's `None`
+/// (rename the subtitle in place) and is the wizard's default. The mode is
+/// baked into every operation at analysis time (design D4), so it is picked
+/// before analysis and echoed back on the plan for the Step 4 summary.
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub enum RelocationModeDto {
+    Rename,
+    Copy,
+    Move,
+}
+
+/// Scan preview returned by `list_source_files` before any AI call.
+///
+/// Counts are enough for the Step 1 preview and the insufficient-sources gate;
+/// the canonical file lists never leave the backend (they include temporary
+/// archive-extraction paths that must not become the frontend's concern).
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceScanResult {
+    pub video_count: u32,
+    pub subtitle_count: u32,
+}
+
+/// One proposed match operation, referenced by the frontend via `id` only.
+///
+/// `id` is the operation's index in the backend-held plan; the canonical
+/// `MatchOperation` never crosses IPC (design D1). `confidence` is a whole
+/// percentage `0..=100` rather than the crate's `0.0..=1.0` `f32`, so the
+/// review UI has nothing to round.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchOperationDto {
+    pub id: u32,
+    pub subtitle_name: String,
+    pub target_path: String,
+    pub confidence: u32,
+    /// The AI's reasoning, shown verbatim (design D7).
+    pub reasoning: Vec<String>,
+}
+
+/// A video with at least one matched subtitle (design D7).
+///
+/// Videos with no match appear only in `MatchPlanDto::unmatched_videos`, never
+/// here.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchedVideoDto {
+    pub video_name: String,
+    pub matches: Vec<MatchOperationDto>,
+}
+
+/// The reviewable plan the frontend renders in Step 3.
+///
+/// `plan_id` ties a later `execute_selected` back to this exact analysis; a
+/// newer analysis replaces it and the old id becomes stale (design D1).
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchPlanDto {
+    pub plan_id: String,
+    pub relocation_mode: RelocationModeDto,
+    pub videos: Vec<MatchedVideoDto>,
+    /// Videos in the scan referenced by no operation (design D6).
+    pub unmatched_videos: Vec<String>,
+    /// Subtitles in the scan referenced by no operation (design D6).
+    pub unmatched_subtitles: Vec<String>,
+}
+
+/// One executed operation's outcome in the Step 4 report.
+///
+/// `error` carries a localizable `ErrorDto` (its `code` reuses the shared
+/// `core.<category>` keys) so a per-item failure renders the same way as any
+/// other error, without aborting the run (design D8).
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionOutcomeDto {
+    pub subtitle_name: String,
+    pub target_path: String,
+    pub applied: bool,
+    pub error: Option<ErrorDto>,
+}
+
+/// The final execution report returned by `execute_selected`.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionReportDto {
+    pub outcomes: Vec<ExecutionOutcomeDto>,
+    pub success_count: u32,
+    pub failure_count: u32,
+}
+
+/// Analysis stage reported to the UI's staged indicator (design D2).
+///
+/// `Analyzing` is deliberately neutral: `match_file_list_with_audit` may
+/// resolve from the crate's cache with no AI request, and the label must not
+/// claim one happened.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub enum MatchStage {
+    Scanning,
+    Analyzing,
+    Finalizing,
+}
+
+/// A progress message pushed over the analysis `Channel` (design D2).
+///
+/// The wizard reports progress through a per-invocation `tauri::ipc::Channel`
+/// rather than a `tauri_specta::Event`. A command that emits an `Event` must
+/// hold a runtime-generic `AppHandle<R>`, and a generic command cannot be
+/// registered in the single runtime-generic `specta_builder` that
+/// `add-typed-ipc-bindings` locked in — the macro cannot infer `R`. A `Channel`
+/// is runtime-agnostic, keeps the command non-generic, and scopes progress to
+/// the one analysis that owns it. See design D2.
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchProgress {
+    pub stage: MatchStage,
+}

@@ -21,6 +21,16 @@ const FRONTEND = path.join(REPO, "src");
 /** The generated module is the one place allowed to name commands. */
 const GENERATED = path.join(FRONTEND, "types", "bindings.ts");
 
+/**
+ * The one place allowed to re-export the `Channel` transport from core.
+ *
+ * A generated streaming command (`analyze_sources`) takes a `Channel<T>`
+ * parameter, and constructing one needs the class from `@tauri-apps/api/core`.
+ * That is not reaching the backend by name, so this single bare re-export file
+ * is excepted — mirroring how `GENERATED` is the single command-naming site.
+ */
+const CHANNEL_REEXPORT = path.join(FRONTEND, "types", "channel.ts");
+
 // Assembled at runtime so this file does not match its own detector.
 const INVOKE = ["invoke", "__TAURI_INVOKE"].join("|");
 const RAW_INVOCATION = new RegExp(`\\b(?:${INVOKE})\\s*(?:<[^>(]*>)?\\s*\\(\\s*["'\`]`);
@@ -70,6 +80,8 @@ describe("the frontend reaches the backend only through the generated bindings",
 
     for (const file of walk(FRONTEND)) {
       if (file === GENERATED) continue;
+      // The single controlled re-export of the `Channel` transport class.
+      if (file === CHANNEL_REEXPORT) continue;
       // This file quotes the very patterns it forbids, in fixtures above.
       if (file === __filename) continue;
 

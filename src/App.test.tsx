@@ -1,7 +1,15 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// The match wizard subscribes to window file drops on mount and opens native
+// pickers; neither is exercised here, so the platform modules are stubbed.
+vi.mock("@tauri-apps/api/webview", () => ({
+  getCurrentWebview: () => ({ onDragDropEvent: () => Promise.resolve(() => {}) }),
+}));
+vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn() }));
+
 import App from "./App";
 import { commands } from "./types/bindings";
 import { renderWithI18n, setupI18n } from "./test/renderWithI18n";
@@ -37,7 +45,8 @@ describe("app shell", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: /Match subtitles/ }));
-    expect(screen.getByRole("heading", { name: "Match subtitles" })).toBeInTheDocument();
+    // The Match feature now opens the wizard's first step.
+    expect(screen.getByRole("heading", { name: "Choose your sources" })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: /Back/ }));
     expect(screen.getByRole("heading", { name: "What would you like to do?" })).toBeInTheDocument();

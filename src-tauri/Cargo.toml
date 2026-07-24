@@ -21,13 +21,22 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-subx-cli = "1.7"
+subx-cli = "1.8"
 # Pinned to exact versions, not caret ranges: these are pre-1.0 and load-bearing
 # for every command path, so an RC bump must be a deliberate act with its own
 # diff rather than something a `cargo update` performs silently.
 specta = { version = "=2.0.0-rc.25", features = ["derive"] }
 specta-typescript = "=0.0.12"
 tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
+# Native file/folder picker for the match wizard's Step 1 "Browse" action.
+tauri-plugin-dialog = "2"
+
+[dependencies.tokio]
+# The wizard's analysis runs in a spawned task whose plan state is guarded by a
+# `tokio::sync::Mutex` (writers hold it across `.await`), so `sync` must be an
+# explicit feature here — it is otherwise only a transitive dependency of tauri.
+version = "1"
+features = ["sync", "rt"]
 
 [dev-dependencies]
 # The `test` feature unlocks `tauri::test`'s mock runtime, which is the only way
@@ -35,5 +44,14 @@ tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
 # cannot exist without a running app.
 tauri = { version = "2", features = ["test"] }
 tempfile = "3"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
 wiremock = "0.6"
+# Implements the crate's `#[async_trait]` `AIProvider` for the tests' scripted
+# provider, the seam that drives `analyze_sources` end to end without a live AI:
+# the crate assigns file IDs at scan time, so a static HTTP mock cannot echo the
+# IDs a match must reference — a provider that reads them off the request can.
+async-trait = "0.1"
+# Writes a real `.zip` so the archive-source scenario is tested through the
+# crate's actual extraction path, not mocked. Pinned to the same major the crate
+# resolves, so no second copy of `zip` enters the tree.
+zip = "8"

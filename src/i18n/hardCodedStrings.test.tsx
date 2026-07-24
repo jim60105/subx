@@ -15,11 +15,14 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import App from "../App";
 import { HomeScreen } from "../features/home/HomeScreen";
-import { MatchScreen } from "../features/match/MatchScreen";
+import { AnalysisStep } from "../features/match/AnalysisStep";
+import { ExecuteStep } from "../features/match/ExecuteStep";
+import { ReviewStep } from "../features/match/ReviewStep";
+import { SourcesStep } from "../features/match/SourcesStep";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
 import { ThemeProvider } from "../theme/ThemeProvider";
 import { i18n, renderWithI18n, setupI18n } from "../test/renderWithI18n";
-import type { ConfigDto } from "../types/ipc";
+import type { ConfigDto, MatchPlanDto } from "../types/ipc";
 
 const CONFIG: ConfigDto = {
   ai: {
@@ -123,12 +126,77 @@ afterEach(async () => {
 });
 
 /**
- * Every screen that exists today. `add-match-wizard` must extend this list with
- * its step components — see `docs/verification.md`.
+ * A plan with no matches: renders every Review string (title, description, the
+ * empty-state) without any file-name data that would read as untranslated prose.
+ */
+const EMPTY_PLAN: MatchPlanDto = {
+  planId: "plan-1",
+  relocationMode: "rename",
+  videos: [],
+  unmatchedVideos: [],
+  unmatchedSubtitles: [],
+};
+
+/**
+ * Every screen that exists today. `add-match-wizard` extends this list with its
+ * four step components — the wizard host itself has window/dialog side effects
+ * on mount, so the presentational steps are registered instead (each rendered
+ * with empty data so only translated chrome reaches the DOM).
  */
 const SCREENS = [
   { name: "HomeScreen", render: () => renderWithI18n(<HomeScreen onOpenTask={() => {}} />) },
-  { name: "MatchScreen", render: () => renderWithI18n(<MatchScreen />) },
+  {
+    name: "SourcesStep",
+    render: () =>
+      renderWithI18n(
+        <SourcesStep
+          sources={[]}
+          scan={null}
+          isScanning={false}
+          scanError={undefined}
+          mode="rename"
+          onBrowseFiles={() => {}}
+          onBrowseFolder={() => {}}
+          onRemoveSource={() => {}}
+          onModeChange={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "AnalysisStep",
+    render: () =>
+      renderWithI18n(
+        <AnalysisStep
+          stage="analyzing"
+          error={undefined}
+          onCancel={() => {}}
+          onRetry={() => {}}
+          onOpenSettings={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "ReviewStep",
+    render: () =>
+      renderWithI18n(
+        <ReviewStep plan={EMPTY_PLAN} selectedIds={new Set()} onToggle={() => {}} />,
+      ),
+  },
+  {
+    name: "ExecuteStep",
+    render: () =>
+      renderWithI18n(
+        <ExecuteStep
+          mode="rename"
+          selectedCount={0}
+          isExecuting={false}
+          report={null}
+          executeError={undefined}
+          onExecute={() => {}}
+          onRestart={() => {}}
+        />,
+      ),
+  },
   {
     name: "SettingsScreen",
     render: () =>

@@ -1,22 +1,16 @@
-import { useTranslation } from "react-i18next";
-import "./MatchScreen.css";
+import { MatchWizard } from "./MatchWizard";
+
+interface MatchScreenProps {
+  /** Opens the Settings screen — the recovery route when no AI is configured. */
+  onOpenSettings: () => void;
+}
 
 /**
- * Placeholder for the match feature.
+ * The Match feature screen: the four-step wizard built on `WizardShell`.
  *
- * The shell foundation only establishes the route; the four-step wizard that
- * fills it (built on `WizardShell`) arrives with the `add-match-wizard` change.
+ * The screen itself is a thin host; all of the flow lives in `MatchWizard` and
+ * its `useMatchWizard` state machine.
  */
-export function MatchScreen() {
-  const { t } = useTranslation(["home", "common"]);
-
-  return (
-    <section className="feature-placeholder">
-      <h1 className="feature-placeholder__title">{t("tasks.match.name")}</h1>
-      <p className="feature-placeholder__status">{t("common:featurePlaceholder.title")}</p>
-      <p className="feature-placeholder__description">
-        {t("common:featurePlaceholder.description")}
-      </p>
-    </section>
-  );
+export function MatchScreen({ onOpenSettings }: MatchScreenProps) {
+  return <MatchWizard onOpenSettings={onOpenSettings} />;
 }

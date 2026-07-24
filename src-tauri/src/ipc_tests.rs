@@ -28,7 +28,16 @@ use crate::state::AppState;
 /// `mock_context` starts with an empty ACL, so every command under test has to
 /// be allowed explicitly. `the_allowlist_matches_the_declaration` keeps this
 /// list from drifting away from the builder.
-const COMMANDS: [&str; 4] = ["ping", "get_config", "set_config_value", "test_ai_connection"];
+const COMMANDS: [&str; 8] = [
+    "ping",
+    "get_config",
+    "set_config_value",
+    "test_ai_connection",
+    "list_source_files",
+    "analyze_sources",
+    "cancel_analysis",
+    "execute_selected",
+];
 
 /// A mock app carrying the real command registration over the given service.
 fn app_with(service: Arc<dyn ConfigService>) -> App<MockRuntime> {
@@ -215,6 +224,49 @@ fn the_async_connection_test_answers_over_ipc() {
     );
     assert_eq!(response["error"]["code"], "core.config");
     assert_eq!(response["error"]["hintCode"], "config.connection_test.hint");
+}
+
+/// `list_source_files` crosses the boundary and deserializes its `paths`
+/// argument into the counts DTO. Empty sources are a valid `(0, 0)` result.
+#[test]
+fn list_source_files_answers_over_ipc_with_camel_cased_counts() {
+    let app = app_with(service_with_key());
+
+    let response = invoke(&webview(&app), "list_source_files", json!({ "paths": [] }))
+        .expect("list_source_files must succeed on empty sources");
+
+    assert_eq!(response["videoCount"], 0);
+    assert_eq!(response["subtitleCount"], 0);
+}
+
+/// `cancel_analysis` reaches the webview and resolves with no payload even when
+/// nothing is running — cancelling twice must be harmless.
+#[test]
+fn cancel_analysis_answers_over_ipc() {
+    let app = app_with(service_with_key());
+
+    let response =
+        invoke(&webview(&app), "cancel_analysis", json!({})).expect("cancel must succeed");
+
+    assert_eq!(response, Value::Null);
+}
+
+/// `execute_selected` deserializes its `planId`/`operationIds` and, with no plan
+/// stored, crosses back the stale-plan error as an `ErrorDto`.
+// @covers match-workflow/execution-with-per-item-report#stale-plan-is-rejected
+#[test]
+fn execute_selected_rejects_an_unknown_plan_over_ipc() {
+    let app = app_with(service_with_key());
+
+    let error = invoke(
+        &webview(&app),
+        "execute_selected",
+        json!({ "planId": "plan-does-not-exist", "operationIds": [] }),
+    )
+    .expect_err("an unknown plan id must be rejected");
+
+    assert_eq!(error["code"], "match.stale_plan");
+    assert_eq!(error["hintCode"], "match.stale_plan.hint");
 }
 
 /// An unregistered command must be rejected, which is what makes the

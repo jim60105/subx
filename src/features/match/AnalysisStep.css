@@ -1,0 +1,71 @@
+.analysis-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.analysis-step__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.analysis-step__title {
+  margin: 0;
+  font-size: var(--text-xl);
+  color: var(--text-primary);
+}
+
+.analysis-step__description {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.analysis-step__stages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.analysis-step__stage {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.analysis-step__stage[data-state="active"] {
+  color: var(--text-on-accent);
+  background: var(--accent-gradient-strong);
+}
+
+.analysis-step__stage[data-state="done"] {
+  color: var(--accent-text);
+}
+
+.analysis-step__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.analysis-step__button {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--surface-hover);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.analysis-step__button--primary {
+  color: var(--text-on-accent);
+  background: var(--accent-gradient-strong);
+  border-color: transparent;
+}

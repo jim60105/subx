@@ -33,10 +33,17 @@ pub fn specta_builder<R: Runtime>() -> Builder<R> {
             crate::commands::config::get_config,
             crate::commands::config::set_config_value,
             crate::commands::config::test_ai_connection,
+            crate::commands::r#match::list_source_files,
+            crate::commands::r#match::analyze_sources,
+            crate::commands::r#match::cancel_analysis,
+            crate::commands::r#match::execute_selected,
         ])
-        // Wired while empty on purpose: `add-match-wizard` adds `match-progress`
-        // by declaring an event here, rather than by first working out how
-        // events are typed while also designing a wizard.
+        // Still empty. The match wizard reports progress over a per-invocation
+        // `tauri::ipc::Channel` (`MatchProgress`), not a `tauri_specta::Event`:
+        // emitting an event needs a runtime-generic `AppHandle<R>`, and a
+        // generic command cannot be registered in this one generic builder
+        // (the macro cannot infer `R`). The collection stays wired for a future
+        // event that a non-command site emits.
         .events(collect_events![])
         // Commands reject; they do not resolve with a tagged result. The
         // alternative (`ErrorHandlingMode::Result`) types the error in the
@@ -322,7 +329,16 @@ mod tests {
     // @covers typed-ipc/command-signatures-come-from-the-same-source-as-the-handler-registration#a-new-command-is-reachable-only-once-it-is-declared
     #[test]
     fn every_declared_command_appears_in_the_generated_contract() {
-        for command in ["ping", "getConfig", "setConfigValue", "testAiConnection"] {
+        for command in [
+            "ping",
+            "getConfig",
+            "setConfigValue",
+            "testAiConnection",
+            "listSourceFiles",
+            "analyzeSources",
+            "cancelAnalysis",
+            "executeSelected",
+        ] {
             assert!(
                 COMMITTED.contains(&format!("{command}:")),
                 "the declared command `{command}` is missing from the bindings"

@@ -1,0 +1,79 @@
+{
+  "steps": {
+    "sources": "Sources",
+    "analysis": "Analysis",
+    "review": "Review",
+    "execute": "Execute"
+  },
+  "sources": {
+    "title": "Choose your sources",
+    "description": "Add the videos and subtitles you want to match. Folders, individual files, and archives all work.",
+    "dropzone": "Drag files or folders here",
+    "dropHint": "or use the buttons below",
+    "browseFiles": "Browse files",
+    "browseFolder": "Browse folder",
+    "listLabel": "Selected sources",
+    "empty": "No sources added yet.",
+    "remove": "Remove {{name}}",
+    "relocation": {
+      "label": "When a match is found",
+      "rename": "Rename in place",
+      "renameHint": "Rename the subtitle where it already sits.",
+      "copy": "Copy to the video",
+      "copyHint": "Keep the original and place a renamed copy beside the video.",
+      "move": "Move to the video",
+      "moveHint": "Move the subtitle next to the video."
+    },
+    "scan": {
+      "scanning": "Scanning sources…",
+      "counts": "{{videos}} videos · {{subtitles}} subtitles",
+      "insufficient": "Add at least one video and one subtitle to continue."
+    },
+    "analyze": "Analyze"
+  },
+  "analysis": {
+    "title": "Analyzing your files",
+    "description": "This can take a moment while the AI reviews your subtitles.",
+    "stages": {
+      "scanning": "Scanning sources",
+      "analyzing": "Matching with AI",
+      "finalizing": "Preparing results"
+    },
+    "cancel": "Cancel",
+    "retry": "Try again",
+    "openSettings": "Open settings"
+  },
+  "review": {
+    "title": "Review the matches",
+    "description": "Uncheck anything you don't want to apply.",
+    "confidence": "{{value}}% match",
+    "targetLabel": "Will become",
+    "reasoningToggle": "Why this match?",
+    "unmatchedVideos": "Videos with no match",
+    "unmatchedSubtitles": "Subtitles with no match",
+    "selection": "Include {{name}}",
+    "selectedCount": "{{count}} of {{total}} selected",
+    "empty": "The analysis found no matches.",
+    "back": "Back",
+    "execute": "Continue"
+  },
+  "execute": {
+    "title": "Apply the changes",
+    "summary": "{{count}} operations · {{mode}}",
+    "modes": {
+      "rename": "rename in place",
+      "copy": "copy to the video",
+      "move": "move to the video"
+    },
+    "run": "Apply now",
+    "running": "Applying…",
+    "back": "Back",
+    "report": {
+      "title": "Results",
+      "summary": "{{success}} succeeded · {{failure}} failed",
+      "succeeded": "Done",
+      "failed": "Failed",
+      "finish": "Finish"
+    }
+  }
+}

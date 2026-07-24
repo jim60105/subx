@@ -17,8 +17,17 @@ export type {
   ConfigDto,
   ConnectionTestResult,
   ErrorDto,
+  ExecutionOutcomeDto,
+  ExecutionReportDto,
+  MatchOperationDto,
+  MatchPlanDto,
+  MatchProgress,
+  MatchStage,
+  MatchedVideoDto,
   PingResponse,
+  RelocationModeDto,
   SetConfigRequest,
+  SourceScanResult,
 } from "./bindings";
 
 /**

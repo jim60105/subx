@@ -26,7 +26,14 @@
     "config.invalid_model": "模型名稱不合法。",
     "config.invalid_url": "服務網址不合法。",
     "config.invalid_api_key": "API 金鑰不合法。",
-    "config.invalid_value": "這個值不合法。"
+    "config.invalid_value": "這個值不合法。",
+    "match.ai_not_configured": "尚未設定 AI 服務供應商。",
+    "match.ai_unavailable": "無法連線到 AI 服務。",
+    "match.sources_insufficient": "選取的來源至少需要一個影片與一個字幕。",
+    "match.analysis_in_progress": "已經有一個分析正在執行。",
+    "match.analysis_cancelled": "分析已取消。",
+    "match.stale_plan": "這份配對計畫已經過期。",
+    "match.execution_locked": "目前有另一項 SubX 操作正在執行。"
   },
   "hints": {
     "core.retry": "請再試一次。如果持續失敗，請查看技術細節。",
@@ -46,6 +53,11 @@
     "config.invalid_url.hint": "請輸入完整的 http:// 或 https:// 網址。",
     "config.invalid_api_key.hint": "請從服務供應商的主控台複製金鑰貼上。",
     "config.invalid_value.hint": "請檢查這個值後再試一次。",
-    "config.connection_test.hint": "請檢查服務供應商、服務網址與 API 金鑰後再測試一次。"
+    "config.connection_test.hint": "請檢查服務供應商、服務網址與 API 金鑰後再測試一次。",
+    "match.ai_not_configured.hint": "請開啟設定選擇 AI 服務供應商並填入金鑰。",
+    "match.ai_unavailable.hint": "請檢查網路連線後再重新分析。",
+    "match.sources_insufficient.hint": "請同時加入影片與字幕再進行分析。",
+    "match.stale_plan.hint": "請重新執行分析以建立新的配對計畫。",
+    "match.execution_locked.hint": "請等待另一項操作結束後再試一次。"
   }
 }

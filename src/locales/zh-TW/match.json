@@ -1,0 +1,79 @@
+{
+  "steps": {
+    "sources": "來源",
+    "analysis": "分析",
+    "review": "檢視",
+    "execute": "執行"
+  },
+  "sources": {
+    "title": "選擇你的來源",
+    "description": "加入你想配對的影片與字幕。資料夾、個別檔案與壓縮檔都可以。",
+    "dropzone": "把檔案或資料夾拖曳到這裡",
+    "dropHint": "或使用下方的按鈕",
+    "browseFiles": "瀏覽檔案",
+    "browseFolder": "瀏覽資料夾",
+    "listLabel": "已選來源",
+    "empty": "尚未加入任何來源。",
+    "remove": "移除 {{name}}",
+    "relocation": {
+      "label": "找到配對時",
+      "rename": "原地重新命名",
+      "renameHint": "在字幕原本的位置重新命名。",
+      "copy": "複製到影片旁",
+      "copyHint": "保留原檔，並在影片旁放置一份重新命名的副本。",
+      "move": "移動到影片旁",
+      "moveHint": "把字幕移動到影片旁邊。"
+    },
+    "scan": {
+      "scanning": "正在掃描來源…",
+      "counts": "{{videos}} 個影片 · {{subtitles}} 個字幕",
+      "insufficient": "請至少加入一個影片與一個字幕才能繼續。"
+    },
+    "analyze": "開始分析"
+  },
+  "analysis": {
+    "title": "正在分析你的檔案",
+    "description": "AI 檢視字幕時可能需要一點時間。",
+    "stages": {
+      "scanning": "掃描來源",
+      "analyzing": "以 AI 配對",
+      "finalizing": "整理結果"
+    },
+    "cancel": "取消",
+    "retry": "再試一次",
+    "openSettings": "開啟設定"
+  },
+  "review": {
+    "title": "檢視配對結果",
+    "description": "取消勾選任何你不想套用的項目。",
+    "confidence": "{{value}}% 相符",
+    "targetLabel": "將變成",
+    "reasoningToggle": "為什麼這樣配對？",
+    "unmatchedVideos": "沒有配對的影片",
+    "unmatchedSubtitles": "沒有配對的字幕",
+    "selection": "包含 {{name}}",
+    "selectedCount": "已選取 {{total}} 中的 {{count}} 個",
+    "empty": "分析沒有找到任何配對。",
+    "back": "上一步",
+    "execute": "繼續"
+  },
+  "execute": {
+    "title": "套用變更",
+    "summary": "{{count}} 個操作 · {{mode}}",
+    "modes": {
+      "rename": "原地重新命名",
+      "copy": "複製到影片旁",
+      "move": "移動到影片旁"
+    },
+    "run": "立即套用",
+    "running": "正在套用…",
+    "back": "上一步",
+    "report": {
+      "title": "結果",
+      "summary": "{{success}} 個成功 · {{failure}} 個失敗",
+      "succeeded": "完成",
+      "failed": "失敗",
+      "finish": "結束"
+    }
+  }
+}

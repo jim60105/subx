@@ -4,11 +4,13 @@ import { initReactI18next } from "react-i18next";
 import enCommon from "../locales/en/common.json";
 import enErrors from "../locales/en/errors.json";
 import enHome from "../locales/en/home.json";
+import enMatch from "../locales/en/match.json";
 import enSettings from "../locales/en/settings.json";
 import enWizard from "../locales/en/wizard.json";
 import zhTWCommon from "../locales/zh-TW/common.json";
 import zhTWErrors from "../locales/zh-TW/errors.json";
 import zhTWHome from "../locales/zh-TW/home.json";
+import zhTWMatch from "../locales/zh-TW/match.json";
 import zhTWSettings from "../locales/zh-TW/settings.json";
 import zhTWWizard from "../locales/zh-TW/wizard.json";
 
@@ -24,6 +26,7 @@ export const resources = {
     common: enCommon,
     errors: enErrors,
     home: enHome,
+    match: enMatch,
     settings: enSettings,
     wizard: enWizard,
   },
@@ -31,6 +34,7 @@ export const resources = {
     common: zhTWCommon,
     errors: zhTWErrors,
     home: zhTWHome,
+    match: zhTWMatch,
     settings: zhTWSettings,
     wizard: zhTWWizard,
   },
@@ -43,7 +47,7 @@ export function initI18n(language: SupportedLanguage = resolveInitialLanguage())
       lng: language,
       fallbackLng: DEFAULT_LANGUAGE,
       defaultNS: "common",
-      ns: ["common", "errors", "home", "settings", "wizard"],
+      ns: ["common", "errors", "home", "match", "settings", "wizard"],
       interpolation: { escapeValue: false },
     });
   }

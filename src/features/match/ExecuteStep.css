@@ -1,0 +1,106 @@
+.execute-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.execute-step__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.execute-step__title {
+  margin: 0;
+  font-size: var(--text-xl);
+  color: var(--text-primary);
+}
+
+.execute-step__summary {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.execute-step__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.execute-step__button {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--surface-hover);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.execute-step__button--primary {
+  color: var(--text-on-accent);
+  background: var(--accent-gradient-strong);
+  border-color: transparent;
+}
+
+.execute-step__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.execute-step__report {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.execute-step__report-title {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--text-primary);
+}
+
+.execute-step__report-summary {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.execute-step__outcomes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.execute-step__outcome {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-left: 3px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.execute-step__outcome[data-status="ok"] {
+  border-left-color: var(--success);
+}
+
+.execute-step__outcome[data-status="failed"] {
+  border-left-color: var(--danger);
+}
+
+.execute-step__outcome-name {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.execute-step__outcome-status {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
