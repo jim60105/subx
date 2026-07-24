@@ -31,3 +31,4 @@ dist
 # Coverage reports
 coverage
 lcov.info
+.agents/
