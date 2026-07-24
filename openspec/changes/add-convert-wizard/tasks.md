@@ -1,0 +1,31 @@
+# Tasks: add-convert-wizard
+
+## 1. Backend — State & DTOs
+
+- [ ] 1.1 Add `ConvertState` to `state.rs` mirroring `MatchState` (single active plan under a `tokio::sync::Mutex`, slot reserved before spawn, epoch bumped by cancel — design D1/D5). The plan holds the resolved items and the step-1 `CollectedFiles`; the `CollectedFiles` owns archive-extraction temp dirs, so execution takes ownership and holds it across every `convert_file().await`. Wire `AppState::convert_state()`
+- [ ] 1.2 Define DTOs in `dto.rs`: `ConvertScanResult` (counted subtitle files per source), `ConvertPlanDto` (plan ID + items: id, input path, resolved output path, detected source format, `outputExists`, skip reason), `ConvertProgress` (index, total, file name, terminal stage), `ConversionReportDto` (per-item outcomes incl. overwrite records and removal-failure warnings). All `specta::Type`; remember the two generator constraints: no `u64`/`i64` crosses IPC (use `u32`), and absent optionals travel as explicit `null`
+- [ ] 1.3 Extend error mapping with `convert.no_subtitles`, `convert.stale_plan`, `convert.conversion_in_progress`, and item-level reason codes `convert.already_target_format`, `convert.output_collision`; add `codes.`/`hints.` locale entries in **both** `en` and `zh-TW` `errors` namespaces
+
+## 2. Backend — Commands
+
+- [ ] 2.1 Implement `list_convert_inputs(paths)` using `InputPathHandler`/`CollectedFiles` (folders, files, archives) returning `ConvertScanResult`; empty scan is a `convert.no_subtitles` error surfaced at step 1
+- [ ] 2.2 Implement `preview_conversion(paths, options)`: collect once, resolve each output path mirroring `convert_command.rs` inline logic (`input.with_extension(fmt)`; archive-origin outputs land beside the archive — cite the CLI source in a comment, design Context #1); evaluate the skip condition **first** as `resolved_output == input` (`convert.already_target_format`, design D2 — a skipped item is never also flagged as an overwrite), then flag `outputExists` (design D3) and intra-plan output collisions (`convert.output_collision`, all but the first per output path excluded); store the plan + `CollectedFiles` in `ConvertState`, return `ConvertPlanDto`
+- [ ] 2.3 Implement `execute_conversion(plan_id, item_ids, channel)`: reject unknown/stale IDs with `convert.stale_plan`; reserve the executor slot first (`convert.conversion_in_progress` on contention); per item build `ConversionConfig` (`preserve_styling` from config via `service.reload()` first; `validate_output: true`), call `FormatConverter::convert_file()` targeting a **temporary sibling path renamed over the real output only on `success: true`** — `convert_file` writes before validating, so direct-to-target writes would clobber an existing output on a failed conversion (design D3); discard the temp file on failure; collect per-item failures without aborting; when keep-original is off remove the input via `FileManager::remove_file()` **only after that item succeeded**, surfacing a removal failure as a per-item warning instead of discarding the `Result` as the CLI does (design D4); emit `ConvertProgress` per file over the channel behind a `ProgressReporter`-style seam; check the cancel flag before each file (design D5); defensively refuse skipped items
+- [ ] 2.4 Implement `cancel_conversion()` bumping the epoch and setting the cooperative cancel flag; the in-flight file finishes, subsequent files do not start
+- [ ] 2.5 Register all four commands in `bindings.rs`'s single `collect_commands![…]` and add each to `ipc_tests.rs`'s `COMMANDS` allowlist (the mock runtime starts with an empty ACL)
+- [ ] 2.6 Backend tests with `TestConfigService` + `tempfile` (+ `zip` for the archive case): scan → preview → execute flow, archive output beside archive, same-format auto-skip (not doubly flagged as overwrite), overwrite flag, output collision, a failed conversion leaving a pre-existing output's content intact (temp-sibling path), per-item failure isolation, delete-original-only-after-success incl. the removal-failure warning, cancellation between files, stale plan, concurrent-execution rejection, GBK-encoded input converting to UTF-8 output
+
+## 3. Frontend — Wizard
+
+- [ ] 3.1 Add `"convert"` to `ScreenId`, wire the home hub's Convert card (enabled; update `HomeScreen.test.tsx` expectations), and implement the wizard state machine hook (`useConvertWizard`) with back-navigation past the preview invalidating the plan
+- [ ] 3.2 Step 1 Sources: drag-and-drop + browse (reuse the match wizard's source-list interaction patterns), scan preview via `list_convert_inputs`, `convert.no_subtitles` blocking state
+- [ ] 3.3 Step 2 Options & preview: target-format select preselected from `formats.default_output`, keep-original toggle defaulting ON, per-item list with output paths, overwrite/skip/collision flags and checkboxes (skipped items unselectable), empty selection disables next; the encoding note (auto-detect in, UTF-8 out) is stated copy, not a control
+- [ ] 3.4 Step 3 Convert & report: progress driven by the `ConvertProgress` channel, cancel button, per-item outcome report with success/failure/overwritten styling
+- [ ] 3.5 Add the `convert` locale namespace with complete `en` and `zh-TW` strings; register every new screen component in `hardCodedStrings.test.tsx`'s `SCREENS`
+
+## 4. Tests & Verification
+
+- [ ] 4.1 Component tests (IPC mocked via `mockIPC`): state machine transitions, option defaults, selection logic incl. auto-excluded items, progress rendering, cancellation, stale-plan recovery, report rendering
+- [ ] 4.2 Annotate each new `#### Scenario:` with `// @covers <id>` copied verbatim from `npm run spec:trace -- --report` (never hand-built) directly above the verifying test; every scenario in this change is automatable, so no new waivers
+- [ ] 4.3 Sync the `convert-workflow` delta into `openspec/specs/convert-workflow/spec.md` during implementation (the traceability checker reads `openspec/specs` only); archive later with `--skip-specs`
+- [ ] 4.4 `npm run bindings:generate` and commit `src/types/bindings.ts`; `npm run verify` clean end to end (tsc, both 85 % coverage gates — close gaps with tests, never exclusions — spec:trace, bindings:check); `cargo clippy` clean
