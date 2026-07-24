@@ -17,11 +17,12 @@ const WORKFLOW = fs.readFileSync(
 
 describe("continuous integration runs every gate", () => {
   // @covers verification-gates/continuous-integration-runs-every-gate#all-gates-run-on-every-push
-  it("invokes the three gate commands", () => {
-    // Frontend coverage, backend coverage, traceability.
+  it("invokes the four gate commands", () => {
+    // Frontend coverage, backend coverage, traceability, bindings drift.
     expect(WORKFLOW).toMatch(/npm run test:coverage/);
     expect(WORKFLOW).toMatch(/cargo cov/);
     expect(WORKFLOW).toMatch(/node scripts\/check-spec-coverage\.mjs/);
+    expect(WORKFLOW).toMatch(/npm run bindings:check/);
   });
 
   it("triggers on push and not on pull_request", () => {

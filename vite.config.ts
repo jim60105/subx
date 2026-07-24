@@ -53,6 +53,9 @@ export default defineConfig(async () => ({
         // Ambient declarations.
         "src/vite-env.d.ts",
         "scripts/**/*.d.mts",
+        // Generated from the Rust definitions and protected by its own drift
+        // gate; a bug in it fails `tsc --noEmit`, not a coverage percentage.
+        "src/types/bindings.ts",
         // Tests and test helpers are not first-party source.
         "src/**/*.{test,spec}.{ts,tsx}",
         "src/test/**",

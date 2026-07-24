@@ -16,7 +16,9 @@
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:rust:coverage": "cd src-tauri && cargo cov",
     "spec:trace": "node scripts/check-spec-coverage.mjs",
-    "verify": "tsc --noEmit && npm run test:coverage && npm run test:rust:coverage && npm run spec:trace"
+    "bindings:generate": "cargo test --manifest-path src-tauri/Cargo.toml export_bindings",
+    "bindings:check": "npm run bindings:generate && git ls-files --error-unmatch src/types/bindings.ts && git diff --exit-code src/types/bindings.ts",
+    "verify": "tsc --noEmit && npm run test:coverage && npm run test:rust:coverage && npm run spec:trace && npm run bindings:check"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

@@ -16,24 +16,27 @@ npm run tauri dev          # run the app
 npm run verify             # all four gates — always run before pushing
 ```
 
-`npm run verify` = `tsc --noEmit` → `npm run test:coverage` → `npm run test:rust:coverage` → `npm run spec:trace`. Narrower runs:
+`npm run verify` = `tsc --noEmit` → `npm run test:coverage` → `npm run test:rust:coverage` → `npm run spec:trace` → `npm run bindings:check`. Narrower runs:
 
 ```bash
 npx vitest run src/theme/themeController.test.tsx   # one frontend file
 npx vitest run -t "restores a persisted override"   # one test by name
 cargo test --manifest-path src-tauri/Cargo.toml     # backend tests, no coverage
 npm run spec:trace -- --report                      # scenario IDs and their status
+npm run bindings:generate                           # rewrite src/types/bindings.ts
 ```
 
 The backend coverage gate is `cargo cov` and **must run from `src-tauri/`** — it is a cargo alias in `src-tauri/.cargo/config.toml` that cargo only picks up there (`npm run test:rust:coverage` does the `cd`). It needs `cargo-llvm-cov` plus the `llvm-tools-preview` component, and is by far the slowest gate: the first run cold-compiles the whole dependency tree including `subx-cli`, so expect minutes.
 
 **There is no pull-request flow.** CI (`.github/workflows/ci.yml`) runs on `push` only, reporting *after* a bad commit is already on the branch. `npm run verify` is the real defence and runs exactly what CI runs.
 
-### The two gates that fail most often
+### The three gates that fail most often
 
 **Coverage floor: 85 %, both languages.** Frontend thresholds are in `vite.config.ts` (`test.coverage.thresholds`), with `all: true` so a new untested module *lowers* the number instead of vanishing. Stable `llvm-cov` reports no branch data, so the backend gates lines/functions/regions only. **Always close a gap with tests — never by widening a coverage exclusion list.**
 
 **Spec traceability.** Every `#### Scenario:` in `openspec/specs/**/spec.md` needs a test carrying a `// @covers <capability>/<requirement-slug>#<scenario-slug>` line comment directly above it — same syntax in `.ts`, `.tsx`, `.rs`. **Never hand-build these IDs; copy them from `npm run spec:trace -- --report`.** The checker also fails on an annotation matching no scenario, which is what renaming a spec heading produces. A scenario automation cannot reach is waived in `scripts/spec-coverage.config.json` with both a `reason` and a `manualVerification` field; exactly one waiver exists (NVIDIA/Wayland launch).
+
+**IPC bindings drift.** `src/types/bindings.ts` is generated from the Rust definitions and committed; `npm run bindings:check` regenerates it and fails if the result differs from what is in the index. **Never edit it by hand** — change the Rust and run `npm run bindings:generate`.
 
 ## Architecture
 
@@ -42,10 +45,10 @@ The backend coverage gate is `cargo cov` and **must run from `src-tauri/`** — 
 Layering is spec-locked: **Tauri commands contain no business logic.**
 
 - `commands/*.rs` — one module per feature area; translate DTOs, call `subx-cli`, emit events. Each `#[tauri::command]` is a two-line wrapper delegating to a plain function taking `&dyn ConfigService` rather than `State`; that split is what makes the logic testable.
-- `dto.rs` — serde types crossing IPC, all `#[serde(rename_all = "camelCase")]`.
-- `error.rs` — `ErrorDto { code, message, hint_code? }`; **every command returns `Result<T, ErrorDto>`.**
+- `dto.rs` — serde types crossing IPC, all `#[serde(rename_all = "camelCase")]` and `#[derive(specta::Type)]`.
+- `error.rs` — `ErrorDto { code, message, hint_code }`; **every command returns `Result<T, ErrorDto>`.**
 - `state.rs` — `AppState`, holding exactly one `Arc<dyn ConfigService>`.
-- `handlers.rs` — the crate's **single** `generate_handler!`, kept out of `lib.rs` so tests register the real list; two lists that merely happen to agree is the bug this prevents.
+- `bindings.rs` — the crate's **single** command declaration, a `tauri_specta::Builder` that both supplies the invoke handler and generates `src/types/bindings.ts`. Kept out of `lib.rs` so tests register the real list; two lists that merely happen to agree is the bug this prevents. A guard test rejects any `generate_handler!` and any second builder construction.
 - `platform.rs` — Linux NVIDIA/Wayland startup env overrides, a pure decision function plus a thin applier because `main()` is untestable.
 - `lib.rs`, `main.rs` — bootstrap only, excluded from coverage.
 
@@ -63,7 +66,8 @@ Backend tests call the extracted functions with `TestConfigService`. `ipc_tests.
 - `App.tsx` — hub-and-spoke shell; screens switch in React state via `ScreenId` (`navigation/screens.ts`) and the WebView never reloads. **There is no router — do not add one.**
 - `features/<name>/` — one screen per feature plus its own `*Api.ts` wrapping `invoke`, and its form hooks.
 - `components/<Name>/` — shared UI, one folder per component with a co-located `.css`.
-- `types/ipc.ts` — hand-written TypeScript mirrors of the Rust DTOs, matching the camelCase serde renaming one-to-one.
+- `types/bindings.ts` — **generated, committed, never hand-edited**: the DTO types and the typed `commands` object, produced from `src-tauri/src/bindings.rs`.
+- `types/ipc.ts` — re-exports those generated types plus `isErrorDto`, the one runtime narrowing a generator cannot produce. Commands reject rather than resolving a tagged result, so `catch` plus this guard is the error path. **Reach the backend only through `commands`** — a lint rejects any `invoke("name")` outside the generated module.
 - `theme/` — `light | dark | system`, resolved against `prefers-color-scheme`, applied as `data-theme` on `<html>`. GUI-local (`localStorage`, key `subx.theme`) and **never written to the shared CLI config file.**
 - `styles/tokens.css` — every colour, radius, shadow and spacing value in the app.
 - `i18n/` — `en` and `zh-TW`, split by namespace (`common`, `errors`, `home`, `settings`, `wizard`).
@@ -86,6 +90,6 @@ No Prettier, ESLint or `rustfmt.toml` config exists; match the surrounding code 
 
 Spec-driven via OpenSpec: `openspec/specs/<capability>/spec.md` is current truth; a change in flight lives in `openspec/changes/<change-id>/` (`proposal.md`, `design.md`, `tasks.md`, `specs/`) and is archived under `changes/archive/` when done. Per `openspec/config.yaml`, every change's tasks must annotate or justifiably waive each new scenario.
 
-Before adding a DTO, check whether the in-flight `add-typed-ipc-bindings` change has landed — it replaces the hand-written `src/types/ipc.ts` mirrors with `specta`/`tauri-specta`-generated bindings guarded by a drift check.
+A new DTO derives `specta::Type` and appears in TypeScript by regenerating, never by hand. Two constraints follow from the generator: no 64-bit integer may cross the boundary (specta rejects `u64`/`i64` as lossy in JavaScript — use `u32`, or a string when the value is genuinely large), and `#[serde(skip_serializing_if)]` is unavailable, so an absent value travels as an explicit `null` rather than a missing key. `specta`, `tauri-specta` and `specta-typescript` are pinned to exact pre-1.0 versions on purpose: an RC bump should be a deliberate commit of its own.
 
 **Write all code comments, doc comments, documentation and commit messages in English.** Use Conventional Commits. Comments here explain *why*, routinely citing the spec requirement satisfied or the specific bug a decision prevents. Match that register; never add comments that restate what the code already says.

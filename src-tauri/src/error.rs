@@ -5,12 +5,13 @@
 //! `message` carries the raw English detail for diagnostic display.
 
 use serde::Serialize;
+use specta::Type;
 use subx_cli::error::SubXError;
 
 /// Structured error crossing the Tauri IPC boundary.
 ///
 /// Every command returns `Result<T, ErrorDto>`.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ErrorDto {
     /// Stable machine-readable code, used as a localization key (e.g. `config.invalid_provider`).
@@ -18,7 +19,6 @@ pub struct ErrorDto {
     /// Raw English message for detail display; never shown as the primary text.
     pub message: String,
     /// Optional stable code for a recovery hint, also resolved by the frontend.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub hint_code: Option<String>,
 }
 
@@ -63,6 +63,8 @@ impl From<SubXError> for ErrorDto {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::Value;
+
     use super::*;
 
     #[test]
@@ -89,18 +91,24 @@ mod tests {
         assert_eq!(dto.hint_code, None);
     }
 
-    /// `skip_serializing_if` makes an absent hint *missing* on the wire rather
-    /// than `null`. The frontend declares `hintCode?: string`, so `null` would
-    /// be a different contract — and this is the distinction a generated
-    /// binding has to preserve.
+    /// An absent hint travels as an explicit `null`, and the generated
+    /// declaration says `hintCode: string | null` — the same thing.
+    ///
+    /// This used to be the opposite assertion: `skip_serializing_if` omitted the
+    /// key entirely and the hand-written mirror declared `hintCode?: string`.
+    /// Generating the contract forced the choice, because specta's unified mode
+    /// cannot express conditional omission, and a type that disagrees with the
+    /// wire is the defect this capability exists to remove. The wire moved, so
+    /// this pins the wire.
+    // @covers typed-ipc/the-typescript-ipc-contract-is-generated-from-the-rust-definitions#an-optional-field-is-declared-as-the-wire-actually-carries-it
     #[test]
-    fn an_absent_hint_is_missing_from_the_wire_not_null() {
+    fn an_absent_hint_travels_as_an_explicit_null() {
         let json = serde_json::to_value(ErrorDto::new("core.test", "detail")).unwrap();
 
         assert_eq!(json["code"], "core.test");
         assert!(
-            json.get("hintCode").is_none(),
-            "an absent hint must not serialize at all: {json}"
+            json.get("hintCode").is_some_and(Value::is_null),
+            "an absent hint must serialize as null, matching `hintCode: string | null`: {json}"
         );
 
         let hinted = serde_json::to_value(ErrorDto::new("core.test", "d").with_hint("core.test.hint"))

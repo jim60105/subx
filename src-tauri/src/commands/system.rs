@@ -5,6 +5,7 @@ use crate::dto::PingResponse;
 use crate::error::ErrorDto;
 
 #[tauri::command]
+#[specta::specta]
 pub fn ping() -> Result<PingResponse, ErrorDto> {
     Ok(PingResponse {
         message: "pong".to_string(),

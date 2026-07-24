@@ -1,9 +1,9 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { invoke } from "@tauri-apps/api/core";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import App from "./App";
+import { commands } from "./types/bindings";
 import { renderWithI18n, setupI18n } from "./test/renderWithI18n";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import type { PingResponse } from "./types/ipc";
@@ -80,7 +80,7 @@ describe("app shell", () => {
       throw new Error(`unexpected command: ${command}`);
     });
 
-    await expect(invoke<PingResponse>("ping")).resolves.toEqual({
+    await expect(commands.ping()).resolves.toEqual({
       message: "pong",
       appVersion: "0.1.0",
     });

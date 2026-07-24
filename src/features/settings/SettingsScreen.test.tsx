@@ -33,7 +33,7 @@ function mockBackend(initial: Partial<ConfigDto["ai"]> = {}) {
   };
   const writes: SetConfigRequest[] = [];
   const rejections = new Map<string, ErrorDto>();
-  let testResult: ConnectionTestResult = { ok: true, latencyMs: 128 };
+  let testResult: ConnectionTestResult = { ok: true, latencyMs: 128, error: null };
 
   mockIPC((command, payload) => {
     if (command === "get_config") return structuredClone(config);
@@ -179,6 +179,7 @@ describe("settings screen", () => {
     const backend = mockBackend();
     backend.setTestResult({
       ok: false,
+      latencyMs: null,
       error: {
         code: "core.ai_service",
         message: "OpenAI API error 401: invalid_api_key",
@@ -199,7 +200,11 @@ describe("settings screen", () => {
 
   it("saves pending edits before testing, and skips the test when a write is rejected", async () => {
     const backend = mockBackend();
-    backend.reject("ai.model", { code: "config.invalid_model", message: "bad model" });
+    backend.reject("ai.model", {
+      code: "config.invalid_model",
+      message: "bad model",
+      hintCode: null,
+    });
     renderSettings();
     await waitFor(() => expect(model()).toHaveValue("gpt-4.1-mini"));
 

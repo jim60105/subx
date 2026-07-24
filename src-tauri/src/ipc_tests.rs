@@ -5,8 +5,8 @@
 //! cannot exist without a running app. These drive the wrappers through the
 //! real IPC path on `tauri::test`'s mock runtime, which additionally proves
 //! three things nothing else covers: that each command is actually registered
-//! in [`crate::invoke_handler`], that its arguments deserialize from the
-//! JavaScript-shaped payload, and that its success and error DTOs serialize
+//! by [`crate::bindings::specta_builder`], that its arguments deserialize from
+//! the JavaScript-shaped payload, and that its success and error DTOs serialize
 //! into the shape the frontend's TypeScript declares.
 //!
 //! This is the pattern the next feature's `commands/` module reuses.
@@ -26,8 +26,8 @@ use crate::state::AppState;
 /// The commands the mock app is allowed to run.
 ///
 /// `mock_context` starts with an empty ACL, so every command under test has to
-/// be allowed explicitly. `the_allowlist_matches_the_registration` keeps this
-/// list from drifting away from `invoke_handler`.
+/// be allowed explicitly. `the_allowlist_matches_the_declaration` keeps this
+/// list from drifting away from the builder.
 const COMMANDS: [&str; 4] = ["ping", "get_config", "set_config_value", "test_ai_connection"];
 
 /// A mock app carrying the real command registration over the given service.
@@ -41,7 +41,7 @@ fn app_with(service: Arc<dyn ConfigService>) -> App<MockRuntime> {
 
     mock_builder()
         .manage(AppState::new(service))
-        .invoke_handler(crate::handlers::invoke_handler())
+        .invoke_handler(crate::bindings::specta_builder().invoke_handler())
         .build(context)
         .expect("the mock app must build")
 }
@@ -94,16 +94,16 @@ fn service_with_key() -> Arc<dyn ConfigService> {
 
 /// The allowlist above is a second list of command names, and a second list is
 /// exactly how a test suite ends up passing against commands the real app never
-/// exposes. Pin it to the registration itself.
+/// exposes. Pin it to the declaration itself.
 #[test]
-fn the_allowlist_matches_the_registration() {
-    let handlers_rs = include_str!("handlers.rs");
-    let registration = handlers_rs
-        .split_once("tauri::generate_handler![")
-        .expect("invoke_handler must use generate_handler!")
+fn the_allowlist_matches_the_declaration() {
+    let bindings_rs = include_str!("bindings.rs");
+    let registration = bindings_rs
+        .split_once("collect_commands![")
+        .expect("specta_builder must declare its commands with collect_commands!")
         .1
         .split_once(']')
-        .expect("the handler list must be closed")
+        .expect("the command list must be closed")
         .0;
 
     let mut registered: Vec<&str> = registration
@@ -114,7 +114,7 @@ fn the_allowlist_matches_the_registration() {
         .map(|entry| {
             assert!(
                 !entry.contains("//"),
-                "comment inside generate_handler! breaks the registration check: {entry}"
+                "comment inside collect_commands! breaks the registration check: {entry}"
             );
             entry.rsplit("::").next().expect("a command path")
         })
@@ -126,7 +126,7 @@ fn the_allowlist_matches_the_registration() {
 
     assert_eq!(
         registered, allowed,
-        "COMMANDS must list exactly the commands invoke_handler registers"
+        "COMMANDS must list exactly the commands specta_builder declares"
     );
 }
 
@@ -207,12 +207,11 @@ fn the_async_connection_test_answers_over_ipc() {
         .expect("the connection test reports failure as a result, never as an error");
 
     assert_eq!(response["ok"], false);
-    // `latency_ms` and `hint_code` carry `skip_serializing_if`, so an absent
-    // one must arrive with its key missing rather than as `null` — the frontend
-    // declares them optional, not nullable.
+    // The generated contract declares `latencyMs: number | null`, so an absent
+    // latency must arrive as an explicit null rather than as a missing key.
     assert!(
-        response.get("latencyMs").is_none(),
-        "a failed test must not carry a latency: {response}"
+        response.get("latencyMs").is_some_and(Value::is_null),
+        "a failed test must report a null latency, not a missing key: {response}"
     );
     assert_eq!(response["error"]["code"], "core.config");
     assert_eq!(response["error"]["hintCode"], "config.connection_test.hint");

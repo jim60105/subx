@@ -93,12 +93,12 @@ The checker SHALL be able to emit a human-readable matrix listing every requirem
 
 ### Requirement: Continuous integration runs every gate
 
-The repository SHALL define a CI pipeline that runs the frontend tests with coverage, the backend tests with coverage, and the traceability check on every push to the repository. No gate SHALL be advisory: a failing gate SHALL fail the pipeline.
+The repository SHALL define a CI pipeline that runs the frontend tests with coverage, the backend tests with coverage, the traceability check, and the IPC bindings drift check on every push to the repository. No gate SHALL be advisory: a failing gate SHALL fail the pipeline.
 
 #### Scenario: All gates run on every push
 
 - **WHEN** a commit is pushed to any branch
-- **THEN** the pipeline runs the frontend coverage gate, the backend coverage gate and the traceability check
+- **THEN** the pipeline runs the frontend coverage gate, the backend coverage gate, the traceability check and the bindings drift check
 
 #### Scenario: No gate is advisory
 

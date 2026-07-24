@@ -5,11 +5,12 @@
 //! display-oriented DTOs and sends back identifiers.
 
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
 use crate::error::ErrorDto;
 
 /// Response of the `ping` reference command.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PingResponse {
     /// Always `"pong"`.
@@ -22,7 +23,7 @@ pub struct PingResponse {
 ///
 /// The API key never crosses the IPC boundary in cleartext: only its masked
 /// form does, and there is no command that returns the raw value.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AiConfigDto {
     /// Canonical provider id (`openai`, `openrouter`, `azure-openai`, `local`).
@@ -40,7 +41,7 @@ pub struct AiConfigDto {
 ///
 /// Grouped by config-file section so later changes can add sections without
 /// reshaping what the settings screen already reads.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ConfigDto {
     pub ai: AiConfigDto,
@@ -50,7 +51,7 @@ pub struct ConfigDto {
 ///
 /// Writes are per-key, mirroring `subx-cli config set <key> <value>`; the
 /// settings screen sends one request per changed field.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SetConfigRequest {
     /// Dotted config key, e.g. `ai.provider`.
@@ -63,14 +64,19 @@ pub struct SetConfigRequest {
 /// A rejected connection is a result, not a command failure, so the command
 /// resolves with `ok: false` and an embedded `ErrorDto` the frontend localizes
 /// through the same path as any other error.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ConnectionTestResult {
     pub ok: bool,
     /// Round-trip time of the probe request; present only on success.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub latency_ms: Option<u64>,
+    ///
+    /// `u32`, not `u64`: this crosses into JavaScript, whose numbers are f64 and
+    /// exact only to 2^53. Specta refuses to export a 64-bit integer as `number`
+    /// for that reason, and it is right to — the hand-written mirror this
+    /// replaces declared `latencyMs?: number` and quietly claimed a range the
+    /// receiver cannot represent. A probe latency has no use for more than the
+    /// 49 days `u32` milliseconds already covers.
+    pub latency_ms: Option<u32>,
     /// Why the test failed; present only on failure.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<ErrorDto>,
 }

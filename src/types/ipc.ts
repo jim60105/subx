@@ -1,62 +1,49 @@
 /**
- * TypeScript mirrors of the backend DTOs in `src-tauri/src/dto.rs` and
- * `src-tauri/src/error.rs`. The Rust side serializes with `rename_all =
- * "camelCase"`, so field names match one-to-one.
+ * The IPC surface, as the rest of the frontend sees it.
+ *
+ * The types are re-exported from `bindings.ts`, which is generated from the
+ * Rust definitions — nothing here transcribes a payload by hand any more. What
+ * stays is the one thing a type generator cannot produce: a runtime guard.
+ *
+ * Importing through this module rather than from `bindings.ts` directly keeps
+ * the guard next to the types it narrows, and keeps the existing import sites
+ * unchanged.
  */
 
-/** Rejection value of every Tauri command. */
-export interface ErrorDto {
-  /** Stable machine-readable code, used as a localization key. */
-  code: string;
-  /** Raw English detail; shown as supporting detail, never as the primary text. */
-  message: string;
-  /** Optional stable code for a recovery hint. */
-  hintCode?: string;
-}
+import type { ErrorDto } from "./bindings";
 
-export interface PingResponse {
-  message: string;
-  appVersion: string;
-}
+export type {
+  AiConfigDto,
+  ConfigDto,
+  ConnectionTestResult,
+  ErrorDto,
+  PingResponse,
+  SetConfigRequest,
+} from "./bindings";
 
-/** AI section of the shared CLI configuration, as the GUI is allowed to see it. */
-export interface AiConfigDto {
-  /** Canonical provider id. */
-  provider: string;
-  model: string;
-  baseUrl: string;
-  /** Masked key (e.g. `****abcd`); empty when none is configured. */
-  apiKeyMasked: string;
-  /** Whether a key is configured at all. The cleartext value never crosses IPC. */
-  apiKeySet: boolean;
-}
-
-export interface ConfigDto {
-  ai: AiConfigDto;
-}
-
-/** One `key = value` write against the shared configuration. */
-export interface SetConfigRequest {
-  /** Dotted config key, e.g. `ai.provider`. */
-  key: string;
-  value: string;
-}
-
-/** Outcome of an explicit AI connection test; a rejection resolves, not throws. */
-export interface ConnectionTestResult {
-  ok: boolean;
-  /** Round-trip time of the probe request; present only on success. */
-  latencyMs?: number;
-  /** Why the test failed; present only on failure. */
-  error?: ErrorDto;
-}
-
-/** Narrows an unknown rejection to an `ErrorDto`. */
+/**
+ * Narrows an unknown rejection to an `ErrorDto`.
+ *
+ * Commands reject rather than resolving with a tagged result, and TypeScript
+ * types no rejection — `catch` always yields `unknown`. This is the boundary
+ * where that becomes a known shape again. It is defined against the *generated*
+ * `ErrorDto`, so a change to the Rust error breaks it at compile time.
+ *
+ * All three fields are checked, `hintCode` included. The generated type declares
+ * it as `string | null` — present and possibly null, never absent — so accepting
+ * a value without the key would narrow to a type the value does not have, and
+ * `dto.hintCode` would read `undefined` while claiming otherwise. Today both
+ * callers test it for truthiness and cannot tell the difference; the first one
+ * to write `=== null` would get a silently wrong answer.
+ */
 export function isErrorDto(value: unknown): value is ErrorDto {
+  if (typeof value !== "object" || value === null) return false;
+
+  const candidate = value as ErrorDto;
   return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as ErrorDto).code === "string" &&
-    typeof (value as ErrorDto).message === "string"
+    typeof candidate.code === "string" &&
+    typeof candidate.message === "string" &&
+    "hintCode" in candidate &&
+    (candidate.hintCode === null || typeof candidate.hintCode === "string")
   );
 }

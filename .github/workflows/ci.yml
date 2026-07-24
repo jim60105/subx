@@ -37,6 +37,12 @@ jobs:
             librsvg2-dev \
             patchelf \
             libgtk-3-dev
+      # Only so the drift gate below can run the same npm script `npm run
+      # verify` does, rather than a second copy of the command that could drift
+      # from it. No `npm ci`: the script shells out to cargo and git.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: llvm-tools-preview
@@ -47,6 +53,11 @@ jobs:
       - name: Backend coverage gate
         working-directory: src-tauri
         run: cargo cov
+      # A step in this job rather than a job of its own: regenerating the
+      # bindings compiles the `tauri` crate, so a separate job would pay this
+      # job's apt-install and build cost a second time for one `git diff`.
+      - name: IPC bindings drift gate
+        run: npm run bindings:check
 
   traceability:
     name: Spec-to-test traceability

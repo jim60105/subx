@@ -214,7 +214,10 @@ export function useSettingsForm(): SettingsForm {
         // fires on a transport-level failure whose shape we can't assume.
         setTestResult({
           ok: false,
-          error: isErrorDto(error) ? error : { code: "core.internal", message: String(error) },
+          latencyMs: null,
+          error: isErrorDto(error)
+            ? error
+            : { code: "core.internal", message: String(error), hintCode: null },
         });
       }
       setTestStatus("done");

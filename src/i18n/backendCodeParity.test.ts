@@ -52,6 +52,12 @@ describe("the crate stays behind the command layer", () => {
     for (const file of walk(FRONTEND, [".ts", ".tsx", ".css", ".json"])) {
       // Test files legitimately name the crate — this one is scanning for it.
       if (/\.test\.[jt]sx?$/.test(file)) continue;
+      // `bindings.ts` is generated: specta copies the Rust doc comments across,
+      // so a mention here is a mention in `src-tauri` that has been carried
+      // downstream automatically. The invariant still holds — replacing the
+      // crate means editing the Rust and regenerating — and the generated file
+      // cannot import the crate, only quote its documentation.
+      if (file.endsWith(path.join("types", "bindings.ts"))) continue;
       fs.readFileSync(file, "utf8")
         .split("\n")
         .forEach((line, index) => {

@@ -94,11 +94,31 @@ describe("the local verify script is the primary defence, so it is armed too", (
     expect(verify).toMatch(/test:coverage/);
     expect(verify).toMatch(/test:rust:coverage/);
     expect(verify).toMatch(/spec:trace/);
+    expect(verify).toMatch(/bindings:check/);
 
     // Sub-scripts joined with `&&` (fail-fast), and no failure suppression.
     expect(verify).toMatch(/&&/);
     expect(verify).not.toMatch(/\|\|/);
     expect(verify).not.toMatch(/;\s*true/);
+  });
+
+  // @covers typed-ipc/generated-bindings-are-committed-and-protected-against-drift#stale-committed-bindings-fail-the-gate
+  it("checks bindings drift by regenerating and diffing, with no suppression", () => {
+    // The gate is only a gate if the diff's exit status is the script's: a
+    // regeneration whose result nothing compares would pass silently.
+    const check = PACKAGE_JSON.scripts["bindings:check"];
+    expect(check, "package.json must define a bindings:check script").toBeTruthy();
+
+    expect(check).toMatch(/bindings:generate/);
+    expect(check).toMatch(/git diff --exit-code/);
+    expect(check).toContain("src/types/bindings.ts");
+    expect(check).not.toMatch(/\|\|/);
+    // `git diff` says nothing about an untracked file, so without this the gate
+    // would pass vacuously the moment the generated file left the index.
+    expect(check).toMatch(/git ls-files --error-unmatch/);
+
+    // And the regeneration it chains must actually run the export test.
+    expect(PACKAGE_JSON.scripts["bindings:generate"]).toMatch(/export_bindings/);
   });
 
   it("runs the backend gate through the alias that carries the floor", () => {

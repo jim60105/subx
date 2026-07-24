@@ -1,5 +1,5 @@
-import { invoke } from "@tauri-apps/api/core";
-import type { ConfigDto, ConnectionTestResult, SetConfigRequest } from "../../types/ipc";
+import { commands } from "../../types/bindings";
+import type { ConfigDto, ConnectionTestResult } from "../../types/ipc";
 
 /**
  * Editable AI fields, in the order they must be written.
@@ -29,14 +29,13 @@ const CONFIG_KEYS: Record<AiField, string> = {
 export const AI_PROVIDERS = ["openai", "openrouter", "azure-openai", "local"] as const;
 
 export function getConfig(): Promise<ConfigDto> {
-  return invoke<ConfigDto>("get_config");
+  return commands.getConfig();
 }
 
 export function setConfigValue(field: AiField, value: string): Promise<void> {
-  const request: SetConfigRequest = { key: CONFIG_KEYS[field], value };
-  return invoke<void>("set_config_value", { request });
+  return commands.setConfigValue({ key: CONFIG_KEYS[field], value }).then(() => undefined);
 }
 
 export function testAiConnection(): Promise<ConnectionTestResult> {
-  return invoke<ConnectionTestResult>("test_ai_connection");
+  return commands.testAiConnection();
 }

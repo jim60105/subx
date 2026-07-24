@@ -1,8 +1,10 @@
 # Verification gates
 
-This project keeps two promises mechanically: that the code stays covered by
-tests, and that every specification scenario is verified by one. Both are
-enforced locally by `npm run verify` and again in CI on every push.
+This project keeps three promises mechanically: that the code stays covered by
+tests, that every specification scenario is verified by one, and that the
+TypeScript view of the IPC boundary is generated from the Rust rather than
+transcribed. All three are enforced locally by `npm run verify` and again in CI
+on every push.
 
 Because there is **no pull-request flow**, CI reports *after* a commit is already
 on the branch. `npm run verify` is therefore the real defence — run it before you
@@ -23,11 +25,43 @@ Individually:
 | `npm run test:coverage` | Frontend tests, ≥ 85 % on every Vitest metric |
 | `npm run test:rust:coverage` | Backend tests, ≥ 85 % lines / regions / functions |
 | `npm run spec:trace` | Every spec scenario traces to a test or a waiver |
+| `npm run bindings:check` | The committed IPC bindings match the Rust definitions |
 
 The frontend floor is declared in `vite.config.ts` (`test.coverage.thresholds`).
 The backend floor is the `cov` alias in `src-tauri/.cargo/config.toml`; run it
 from `src-tauri/` (`cargo cov`) so cargo picks the alias up. Stable `llvm-cov`
 reports no branch data, so the backend gates three metrics rather than four.
+
+## IPC bindings: generated, committed, gated
+
+`src/types/bindings.ts` is generated from `src-tauri/src/bindings.rs` — a single
+`tauri_specta::Builder` that also supplies the app's invoke handler, so the
+registered commands and the frontend's view of them cannot come from two
+different lists. **Never edit the generated file.** Change the Rust, then:
+
+```bash
+npm run bindings:generate   # rewrites src/types/bindings.ts
+```
+
+`npm run bindings:check` regenerates and then diffs against the index, so a
+forgotten regeneration fails the gate. It also asserts the file is tracked —
+`git diff` says nothing about an untracked file, and a gate that passes when its
+subject is missing is not a gate.
+
+Two consequences for any new DTO, both enforced by the generator refusing to
+export otherwise:
+
+- **No 64-bit integers cross the boundary.** JavaScript numbers are f64 and
+  exact only to 2^53, so specta rejects `u64`/`i64`. Use `u32`, or a string when
+  the value is genuinely large.
+- **`#[serde(skip_serializing_if)]` is unavailable.** It cannot be expressed in
+  the unified serde mode the bindings use, so an absent value travels as an
+  explicit `null` and is declared `T | null`.
+
+Commands reject rather than resolving a tagged result, which keeps the frontend's
+existing `catch` path. TypeScript types no `catch` binding, so `isErrorDto` in
+`src/types/ipc.ts` is the one runtime narrowing — defined against the *generated*
+`ErrorDto`, so a change to the Rust error shape breaks it at compile time.
 
 ## Traceability: the `@covers` annotation
 
@@ -111,3 +145,7 @@ feature:
 - Extend the cross-cutting tests that enumerate screens: the hard-coded-string
   test (`src/i18n/hardCodedStrings.test.tsx`) lists every screen it renders, and
   a new screen must be added to it.
+- A new command goes in `bindings.rs`'s single `collect_commands![…]` and in
+  `ipc_tests.rs`'s `COMMANDS` allowlist — the mock runtime starts with an empty
+  ACL and denies anything unlisted. Then regenerate the bindings and commit them
+  with the change.

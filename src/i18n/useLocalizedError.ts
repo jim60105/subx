@@ -30,7 +30,11 @@ export function useLocalizedError(): (error: unknown) => LocalizedError {
     (error: unknown): LocalizedError => {
       const dto: ErrorDto = isErrorDto(error)
         ? error
-        : { code: "core.internal", message: String(error ?? UNKNOWN_ERROR_DETAIL) };
+        : {
+            code: "core.internal",
+            message: String(error ?? UNKNOWN_ERROR_DETAIL),
+            hintCode: null,
+          };
 
       const messageKey = `codes.${dto.code}`;
       const isKnown = i18n.exists(messageKey, { ns: "errors" });

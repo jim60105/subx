@@ -28,16 +28,19 @@ const AI_API_KEY: &str = "ai.api_key";
 const CONNECTION_TEST_HINT: &str = "config.connection_test.hint";
 
 #[tauri::command]
+#[specta::specta]
 pub fn get_config(state: State<AppState>) -> Result<ConfigDto, ErrorDto> {
     read_config(state.config_service())
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn set_config_value(request: SetConfigRequest, state: State<AppState>) -> Result<(), ErrorDto> {
     write_config_value(state.config_service(), &request.key, &request.value)
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn test_ai_connection(
     state: State<'_, AppState>,
 ) -> Result<ConnectionTestResult, ErrorDto> {
@@ -138,7 +141,7 @@ async fn probe_ai_connection(service: &dyn ConfigService) -> ConnectionTestResul
     match provider.chat_completion(probe).await {
         Ok(_) => ConnectionTestResult {
             ok: true,
-            latency_ms: Some(started.elapsed().as_millis() as u64),
+            latency_ms: Some(started.elapsed().as_millis() as u32),
             error: None,
         },
         Err(err) => failed_test(err),
