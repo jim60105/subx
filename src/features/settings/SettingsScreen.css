@@ -142,7 +142,7 @@
 
 .settings-button--primary {
   color: var(--text-on-accent);
-  background: var(--accent-gradient);
+  background: var(--accent-gradient-strong);
   border-color: transparent;
   box-shadow: var(--shadow-raised);
 }

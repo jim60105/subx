@@ -2,11 +2,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    // Works around WebKitGTK/NVIDIA Wayland compositing bugs (e.g. "Error 71
-    // dispatching to Wayland display") that otherwise crash the webview on
-    // startup or resize. See https://v2.tauri.app/develop/debug/linux-graphics/
-    #[cfg(target_os = "linux")]
-    std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
+    // Must happen before the webview is created; see `platform.rs` for what
+    // each override works around.
+    subx_lib::platform::apply_startup_env();
 
     subx_lib::run()
 }

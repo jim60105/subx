@@ -17,6 +17,7 @@ describe("app shell", () => {
     clearMocks();
   });
 
+  // @covers app-shell/desktop-application-launches-with-the-home-task-entry-hub#first-launch-shows-the-hub
   it("starts on the home hub", () => {
     renderWithI18n(
       <ThemeProvider>
@@ -27,6 +28,7 @@ describe("app shell", () => {
     expect(screen.getByRole("heading", { name: "What would you like to do?" })).toBeInTheDocument();
   });
 
+  // @covers app-shell/navigation-between-home-and-feature-screens#enter-and-leave-a-feature
   it("navigates into a feature and back without losing the hub", async () => {
     renderWithI18n(
       <ThemeProvider>

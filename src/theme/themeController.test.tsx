@@ -31,6 +31,7 @@ function renderProbe() {
 }
 
 describe("theme controller", () => {
+  // @covers theme-system/theme-follows-system-preference-by-default#first-launch-on-a-dark-mode-system
   it("follows the system preference when no override is stored", () => {
     setPrefersDark(true);
     renderProbe();
@@ -40,6 +41,7 @@ describe("theme controller", () => {
     expect(document.documentElement).toHaveAttribute("data-theme", "dark");
   });
 
+  // @covers theme-system/theme-follows-system-preference-by-default#system-preference-changes-at-runtime
   it("reflects a system preference change while following the system", () => {
     setPrefersDark(false);
     renderProbe();
@@ -63,6 +65,7 @@ describe("theme controller", () => {
     expect(readThemePreference()).toBe("light");
   });
 
+  // @covers theme-system/manual-theme-override-is-persisted#override-survives-restart
   it("restores a persisted override on the next launch", () => {
     window.localStorage.setItem(THEME_STORAGE_KEY, "light");
     setPrefersDark(true);
@@ -71,6 +74,7 @@ describe("theme controller", () => {
     expect(screen.getByTestId("theme")).toHaveTextContent("light");
   });
 
+  // @covers theme-system/manual-theme-override-is-persisted#returning-to-follow-system
   it("resumes following the system after returning to follow-system", async () => {
     window.localStorage.setItem(THEME_STORAGE_KEY, "light");
     setPrefersDark(true);

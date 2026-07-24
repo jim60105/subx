@@ -12,6 +12,13 @@
   --accent-from: #7c3aed;
   --accent-to: #06b6d4;
   --accent-gradient: linear-gradient(135deg, var(--accent-from), var(--accent-to));
+  /*
+   * Same identity, darkened cyan endpoint — the only variant allowed to carry
+   * text. White on `--accent-to` reaches 2.43:1, well under AA, and the cyan
+   * end of the plain gradient is equally illegible as clipped text on a light
+   * background. Decorative surfaces keep `--accent-gradient` unchanged.
+   */
+  --accent-gradient-strong: linear-gradient(135deg, var(--accent-from), #0e7490);
   --accent-gradient-soft: linear-gradient(
     135deg,
     color-mix(in srgb, var(--accent-from) 18%, transparent),
@@ -99,7 +106,7 @@
 
   --text-primary: #14162b;
   --text-secondary: #4a5070;
-  --text-muted: #6b7192;
+  --text-muted: #5f6585;
   --text-on-accent: #ffffff;
 
   /* Cyan is too low-contrast for text on white; violet carries accent text. */

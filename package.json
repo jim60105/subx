@@ -11,7 +11,12 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "test:rust:coverage": "cd src-tauri && cargo cov",
+    "spec:trace": "node scripts/check-spec-coverage.mjs",
+    "verify": "tsc --noEmit && npm run test:coverage && npm run test:rust:coverage && npm run spec:trace"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
@@ -26,9 +31,11 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",
+    "@types/node": "^22.20.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.6.0",
+    "@vitest/coverage-v8": "^2.1.9",
     "jsdom": "^25.0.1",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",

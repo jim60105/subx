@@ -25,6 +25,7 @@ describe("WizardShell", () => {
     await setupI18n("en");
   });
 
+  // @covers app-shell/reusable-wizardshell-layout#step-indicator-reflects-progress
   it("renders every step with the right state and counter", () => {
     renderWithI18n(
       <WizardShell steps={STEPS} activeStep={2}>
@@ -51,6 +52,7 @@ describe("WizardShell", () => {
     expect(screen.getByText("step body")).toBeInTheDocument();
   });
 
+  // @covers app-shell/reusable-wizardshell-layout#navigation-controls-are-feature-controlled
   it("lets the feature disable the next action", async () => {
     const onNext = vi.fn();
     renderWithI18n(

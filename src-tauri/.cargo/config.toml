@@ -1,0 +1,11 @@
+# Backend coverage gate.
+#
+# A cargo alias so the flags cannot drift between a local run and CI: `cargo cov`
+# means the same 85% floor everywhere. Stable `llvm-cov` reports no branch data,
+# so three metrics are gated, not four.
+#
+# `main.rs` is the process entry point and `lib.rs` is the Tauri builder wiring,
+# neither of which runs headless; `/rustlib/` drops the standard-library files
+# `llvm-cov` otherwise leaks into the report.
+[alias]
+cov = ["llvm-cov", "--lib", "--fail-under-lines", "85", "--fail-under-functions", "85", "--fail-under-regions", "85", "--ignore-filename-regex", "(^|/)(main|lib)\\.rs$|/rustlib/"]

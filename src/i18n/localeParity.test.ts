@@ -14,6 +14,7 @@ function flattenKeys(value: Json, prefix = ""): string[] {
 const NAMESPACES = Object.keys(resources.en) as (keyof typeof resources.en)[];
 
 describe("locale parity", () => {
+  // @covers localization/ui-is-localized-in-english-and-traditional-chinese#complete-zh-tw-coverage
   it.each(NAMESPACES)("every language defines the same keys in the %s namespace", (namespace) => {
     const reference = flattenKeys(resources.en[namespace] as Json).sort();
 

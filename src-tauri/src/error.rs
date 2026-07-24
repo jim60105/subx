@@ -88,4 +88,23 @@ mod tests {
         assert_eq!(dto.code, "core.unsupported_file_type");
         assert_eq!(dto.hint_code, None);
     }
+
+    /// `skip_serializing_if` makes an absent hint *missing* on the wire rather
+    /// than `null`. The frontend declares `hintCode?: string`, so `null` would
+    /// be a different contract — and this is the distinction a generated
+    /// binding has to preserve.
+    #[test]
+    fn an_absent_hint_is_missing_from_the_wire_not_null() {
+        let json = serde_json::to_value(ErrorDto::new("core.test", "detail")).unwrap();
+
+        assert_eq!(json["code"], "core.test");
+        assert!(
+            json.get("hintCode").is_none(),
+            "an absent hint must not serialize at all: {json}"
+        );
+
+        let hinted = serde_json::to_value(ErrorDto::new("core.test", "d").with_hint("core.test.hint"))
+            .unwrap();
+        assert_eq!(hinted["hintCode"], "core.test.hint");
+    }
 }

@@ -1,0 +1,113 @@
+# Verification gates
+
+This project keeps two promises mechanically: that the code stays covered by
+tests, and that every specification scenario is verified by one. Both are
+enforced locally by `npm run verify` and again in CI on every push.
+
+Because there is **no pull-request flow**, CI reports *after* a commit is already
+on the branch. `npm run verify` is therefore the real defence — run it before you
+push — and CI is the backstop. Everything CI runs, `verify` runs too, from the
+same checked-in configuration.
+
+## Running the gates
+
+```bash
+npm run verify            # everything below, in order
+```
+
+Individually:
+
+| Command | Gate |
+| --- | --- |
+| `tsc --noEmit` | TypeScript type-checks |
+| `npm run test:coverage` | Frontend tests, ≥ 85 % on every Vitest metric |
+| `npm run test:rust:coverage` | Backend tests, ≥ 85 % lines / regions / functions |
+| `npm run spec:trace` | Every spec scenario traces to a test or a waiver |
+
+The frontend floor is declared in `vite.config.ts` (`test.coverage.thresholds`).
+The backend floor is the `cov` alias in `src-tauri/.cargo/config.toml`; run it
+from `src-tauri/` (`cargo cov`) so cargo picks the alias up. Stable `llvm-cov`
+reports no branch data, so the backend gates three metrics rather than four.
+
+## Traceability: the `@covers` annotation
+
+Every `#### Scenario:` in `openspec/specs/**/spec.md` must be verified by a test
+that names it:
+
+```ts
+// @covers theme-system/manual-theme-override-is-persisted#override-survives-restart
+it("restores the stored preference on mount", () => { … });
+```
+
+```rust
+// @covers settings-management/api-key-is-masked-and-write-only#masked-display
+#[test]
+fn read_masks_the_api_key() { … }
+```
+
+Both languages use a `//` line comment directly above the test. The scenario ID
+is derived from the spec headings:
+
+```
+<capability>/<requirement-slug>#<scenario-slug>
+```
+
+where each slug is the heading text lowercased with every run of
+non-alphanumeric characters collapsed to a single `-`. You do not have to build
+these by hand — the report prints them:
+
+```bash
+npm run spec:trace -- --report
+```
+
+The checker fails on an unverified scenario, on an annotation whose ID matches no
+scenario (which is what a reworded heading produces), and on a stale or
+unjustified waiver. An annotation asserts a human's judgement that the test
+verifies the scenario; the checker only confirms the link exists and points
+somewhere real — the adequacy of the assertion is a code-review matter.
+
+## Waivers
+
+A scenario automation genuinely cannot reach is exempted in
+`scripts/spec-coverage.config.json`, and only with a written reason and a manual
+procedure:
+
+```json
+{
+  "id": "app-shell/application-launches-successfully-under-wayland#launch-on-nvidia-wayland",
+  "reason": "Needs a real Wayland compositor and an NVIDIA GPU; GitHub-hosted runners have neither.",
+  "manualVerification": "docs/verification.md#manual-wayland-smoke-test"
+}
+```
+
+A waiver is rejected if it omits either field, names a scenario that no longer
+exists, or names one that a test in fact annotates. Exactly one scenario is
+waived today.
+
+### Manual Wayland smoke test
+
+The one waived scenario — the app launching on NVIDIA + Wayland without a
+WebKitGTK DMABUF crash — is verified by hand:
+
+1. On a Linux machine with an NVIDIA GPU running a Wayland session
+   (`echo $XDG_SESSION_TYPE` → `wayland`).
+2. Build and run the app: `npm run tauri dev`.
+3. The window must open and render. A failure looks like an immediate crash with
+   `Error 71 dispatching to Wayland display`.
+
+The pure part of the workaround — which environment overrides each target needs
+— is unit-tested in `src-tauri/src/platform.rs`; only the window actually
+opening cannot be asserted headless.
+
+## Adding a feature
+
+A new change proposal carries the annotation obligation forward automatically
+(see the `tasks` rule in `openspec/config.yaml`). Concretely, when you land a
+feature:
+
+- Annotate every new scenario, or waive it with justification.
+- New modules count against the same 85 % floor — do not widen an exclusion list
+  to dodge it; that is how a gate becomes decorative.
+- Extend the cross-cutting tests that enumerate screens: the hard-coded-string
+  test (`src/i18n/hardCodedStrings.test.tsx`) lists every screen it renders, and
+  a new screen must be added to it.

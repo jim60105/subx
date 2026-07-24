@@ -1,6 +1,10 @@
 mod commands;
 mod dto;
 mod error;
+mod handlers;
+#[cfg(test)]
+mod ipc_tests;
+pub mod platform;
 mod state;
 
 use std::sync::Arc;
@@ -19,12 +23,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(AppState::new(Arc::new(config_service)))
-        .invoke_handler(tauri::generate_handler![
-            commands::system::ping,
-            commands::config::get_config,
-            commands::config::set_config_value,
-            commands::config::test_ai_connection,
-        ])
+        .invoke_handler(handlers::invoke_handler())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

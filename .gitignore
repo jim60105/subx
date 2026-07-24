@@ -27,3 +27,7 @@ node_modules
 dist
 *.local
 *.log
+
+# Coverage reports
+coverage
+lcov.info

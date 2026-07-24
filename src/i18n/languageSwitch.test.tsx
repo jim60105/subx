@@ -10,6 +10,7 @@ describe("runtime language switching", () => {
     await setupI18n("en");
   });
 
+  // @covers localization/runtime-language-switching-with-persistence#immediate-switch
   it("re-renders visible strings in the new language and persists the choice", async () => {
     renderWithI18n(<HomeScreen onOpenTask={() => {}} />);
     expect(screen.getByRole("heading", { name: "What would you like to do?" })).toBeInTheDocument();

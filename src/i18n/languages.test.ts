@@ -15,6 +15,7 @@ describe("locale detection", () => {
     },
   );
 
+  // @covers localization/system-locale-detection-on-first-launch#any-other-system-locale
   it.each(["ja-JP", "en-US", "de", "zh-CN", "zh-Hans"])(
     "falls back to English for %s",
     (locale) => {
@@ -48,6 +49,7 @@ describe("language persistence", () => {
     expect(resolveInitialLanguage(["zh-TW"])).toBe("en");
   });
 
+  // @covers localization/system-locale-detection-on-first-launch#traditional-chinese-system
   it("detects from the system locale on first launch", () => {
     expect(resolveInitialLanguage(["zh-TW"])).toBe("zh-TW");
   });

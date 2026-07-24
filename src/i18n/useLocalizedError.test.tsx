@@ -22,6 +22,7 @@ describe("error-code localization", () => {
     await setupI18n("en");
   });
 
+  // @covers localization/backend-error-codes-are-localized-by-the-frontend#known-error-code
   it("localizes a known code", () => {
     const error: ErrorDto = { code: "core.internal", message: "thread panicked" };
     renderWithI18n(<ErrorProbe error={error} />);
@@ -33,6 +34,7 @@ describe("error-code localization", () => {
     expect(screen.getByTestId("known")).toHaveTextContent("true");
   });
 
+  // @covers localization/backend-error-codes-are-localized-by-the-frontend#unknown-error-code
   it("falls back to a generic message for an unknown code, keeping the raw detail", () => {
     const error: ErrorDto = { code: "match.not_a_real_code", message: "engine exploded" };
     renderWithI18n(<ErrorProbe error={error} />);

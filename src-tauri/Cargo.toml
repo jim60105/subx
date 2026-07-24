@@ -24,6 +24,10 @@ serde_json = "1"
 subx-cli = "1.7"
 
 [dev-dependencies]
+# The `test` feature unlocks `tauri::test`'s mock runtime, which is the only way
+# to reach the `#[tauri::command]` wrappers: they take `State<AppState>`, which
+# cannot exist without a running app.
+tauri = { version = "2", features = ["test"] }
 tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 wiremock = "0.6"

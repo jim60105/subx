@@ -11,10 +11,11 @@ schema: spec-driven
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  tasks:
+    - Every new `#### Scenario:` this change adds to a spec must be verified by a
+      test carrying a `// @covers <scenario-id>` annotation, or exempted by a
+      justified waiver in `scripts/spec-coverage.config.json`. Include the
+      annotation work in the tasks. See docs/verification.md.
+    - New source counts against the 85% coverage floor in both languages; close
+      the gap with tests rather than widening a coverage exclusion list.

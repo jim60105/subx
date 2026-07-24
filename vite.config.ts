@@ -36,6 +36,34 @@ export default defineConfig(async () => ({
     globals: false,
     setupFiles: ["./src/test/setup.ts"],
     css: false,
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    // `scripts/` carries the traceability checker and its tests; without this it
+    // would be measured by coverage but never actually run.
+    include: ["src/**/*.{test,spec}.{ts,tsx}", "scripts/**/*.test.ts"],
+    coverage: {
+      provider: "v8",
+      // Measure every first-party file, even one no test imports, so a new
+      // untested module lowers the number instead of vanishing from it.
+      all: true,
+      include: ["src/**/*.{ts,tsx}", "scripts/**/*.mjs"],
+      exclude: [
+        // Process entry point: running it *is* starting the app.
+        "src/main.tsx",
+        // Type-only module — compiles to nothing, so v8 reports 0 of 0.
+        "src/navigation/screens.ts",
+        // Ambient declarations.
+        "src/vite-env.d.ts",
+        "scripts/**/*.d.mts",
+        // Tests and test helpers are not first-party source.
+        "src/**/*.{test,spec}.{ts,tsx}",
+        "src/test/**",
+        "scripts/**/*.test.ts",
+      ],
+      thresholds: {
+        statements: 85,
+        branches: 85,
+        functions: 85,
+        lines: 85,
+      },
+    },
   },
 }));

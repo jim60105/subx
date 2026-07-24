@@ -9,6 +9,7 @@ describe("home task-entry hub", () => {
     await setupI18n("en");
   });
 
+  // @covers app-shell/desktop-application-launches-with-the-home-task-entry-hub#first-launch-shows-the-hub
   it("shows a card for every task", () => {
     renderWithI18n(<HomeScreen onOpenTask={() => {}} />);
 
@@ -26,6 +27,7 @@ describe("home task-entry hub", () => {
     expect(onOpenTask).toHaveBeenCalledWith("match");
   });
 
+  // @covers app-shell/desktop-application-launches-with-the-home-task-entry-hub#unimplemented-features-are-visibly-disabled
   it("marks unimplemented tasks as coming soon and does not navigate", async () => {
     const onOpenTask = vi.fn();
     renderWithI18n(<HomeScreen onOpenTask={onOpenTask} />);

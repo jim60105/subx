@@ -91,6 +91,7 @@ describe("settings screen", () => {
     clearMocks();
   });
 
+  // @covers settings-management/api-key-is-masked-and-write-only#masked-display
   it("shows the stored API key only as a masked placeholder", async () => {
     mockBackend();
     renderSettings();
@@ -121,6 +122,7 @@ describe("settings screen", () => {
     expect(backend.writes[1].value).toBe("llama3.1");
   });
 
+  // @covers settings-management/api-key-is-masked-and-write-only#replacing-the-key
   it("replaces the key and shows only the new mask afterwards", async () => {
     const backend = mockBackend();
     renderSettings();
@@ -134,6 +136,7 @@ describe("settings screen", () => {
     expect(backend.writes).toEqual([{ key: "ai.api_key", value: "sk-brand-new-key-9876" }]);
   });
 
+  // @covers settings-management/validated-writes-with-field-level-errors#invalid-value-is-rejected
   it("keeps a rejected value in its field while the other fields still save", async () => {
     const backend = mockBackend();
     backend.reject("ai.base_url", {
@@ -160,6 +163,7 @@ describe("settings screen", () => {
     expect(model()).toHaveValue("gpt-4o-mini");
   });
 
+  // @covers settings-management/ai-connection-test#successful-test
   it("reports a successful connection test with its latency", async () => {
     mockBackend();
     renderSettings();
@@ -170,6 +174,7 @@ describe("settings screen", () => {
     expect(await screen.findByText("Connection succeeded in 128 ms.")).toBeInTheDocument();
   });
 
+  // @covers settings-management/ai-connection-test#failing-test
   it("localizes a failed connection test and points at the fields", async () => {
     const backend = mockBackend();
     backend.setTestResult({
@@ -206,6 +211,7 @@ describe("settings screen", () => {
     expect(screen.queryByText(/Connection succeeded/)).not.toBeInTheDocument();
   });
 
+  // @covers settings-management/settings-screen-edits-the-shared-cli-configuration#external-changes-are-picked-up
   it("picks up an external edit when the window regains focus", async () => {
     const backend = mockBackend();
     renderSettings();
@@ -297,5 +303,24 @@ describe("settings screen", () => {
     await waitFor(() => expect(screen.getByLabelText("Language")).toBeInTheDocument());
     expect(screen.getByLabelText("Theme")).toBeInTheDocument();
     expect(screen.getByLabelText("Theme")).toHaveValue("system");
+  });
+
+  // @covers settings-management/gui-local-preferences-on-the-same-screen#preferences-do-not-touch-the-cli-config
+  it("never writes to the CLI config when a preference changes", async () => {
+    const backend = mockBackend();
+    renderSettings();
+    await waitFor(() => expect(screen.getByLabelText("Theme")).toBeInTheDocument());
+    // The only writes so far are none: nothing has been saved.
+    expect(backend.writes).toHaveLength(0);
+
+    // Change the theme, then the language — both GUI-local preferences.
+    await userEvent.selectOptions(screen.getByLabelText("Theme"), "dark");
+    await userEvent.selectOptions(screen.getByLabelText("Language"), "zh-TW");
+
+    // The preference change persists to GUI-local storage, not the CLI config.
+    expect(window.localStorage.getItem("subx.theme")).toBe("dark");
+    // `set_config_value` is the only path to the CLI config file, and it must
+    // not have been reached.
+    expect(backend.writes).toEqual([]);
   });
 });

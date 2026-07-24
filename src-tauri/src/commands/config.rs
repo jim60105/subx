@@ -177,6 +177,7 @@ mod tests {
         TestConfigService::with_ai_settings_and_key("openai", "gpt-4.1-mini", api_key)
     }
 
+    // @covers settings-management/api-key-is-masked-and-write-only#masked-display
     #[test]
     fn read_masks_the_api_key() {
         let service = service_with_key("sk-secret-value-1234");
@@ -197,6 +198,23 @@ mod tests {
 
         assert_eq!(dto.ai.api_key_masked, "");
         assert!(!dto.ai.api_key_set);
+    }
+
+    /// The write-then-read round trip the "Replacing the key" scenario asks
+    /// for: a new key persists, but every subsequent read hands back only its
+    /// mask — the cleartext must never survive a read.
+    // @covers settings-management/api-key-is-masked-and-write-only#replacing-the-key
+    #[test]
+    fn a_replaced_key_reads_back_only_as_its_mask() {
+        let service = service_with_key("sk-old-value-0000");
+
+        write_config_value(&service, AI_API_KEY, "sk-new-secret-value-5678")
+            .expect("write must succeed");
+
+        let dto = read_config(&service).expect("read must succeed");
+        assert_eq!(dto.ai.api_key_masked, "****5678");
+        assert!(dto.ai.api_key_set);
+        assert_ne!(dto.ai.api_key_masked, "sk-new-secret-value-5678");
     }
 
     #[test]
@@ -220,6 +238,7 @@ mod tests {
         assert_eq!(read_config(&service).unwrap().ai.provider, "local");
     }
 
+    // @covers settings-management/validated-writes-with-field-level-errors#invalid-value-is-rejected
     #[test]
     fn rejected_values_carry_the_field_code_and_leave_the_value_unchanged() {
         let service = service_with_key("sk-secret-value-1234");
@@ -270,6 +289,8 @@ mod tests {
     /// Exercises the real production service against a temporary config file:
     /// the in-memory `TestConfigService` never touches disk, so it cannot show
     /// that the GUI and the CLI actually share one store.
+    // @covers settings-management/settings-screen-edits-the-shared-cli-configuration#cli-and-gui-stay-in-sync
+    // @covers settings-management/settings-screen-edits-the-shared-cli-configuration#external-changes-are-picked-up
     #[test]
     fn the_config_file_is_the_shared_store() {
         let dir = tempfile::tempdir().expect("temp dir");
@@ -307,6 +328,7 @@ mod tests {
         service
     }
 
+    // @covers settings-management/ai-connection-test#successful-test
     #[tokio::test]
     async fn connection_test_succeeds_against_a_working_endpoint() {
         let server = MockServer::start().await;
@@ -325,6 +347,7 @@ mod tests {
         assert!(result.error.is_none());
     }
 
+    // @covers settings-management/ai-connection-test#failing-test
     #[tokio::test]
     async fn connection_test_reports_a_rejected_key_as_a_result_not_an_error() {
         let server = MockServer::start().await;

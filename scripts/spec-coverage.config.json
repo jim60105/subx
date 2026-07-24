@@ -1,0 +1,12 @@
+{
+  "specDir": "openspec/specs",
+  "testRoots": ["src", "scripts", "src-tauri/src", "src-tauri/tests"],
+  "testExtensions": [".ts", ".tsx", ".rs", ".mjs"],
+  "waivers": [
+    {
+      "id": "app-shell/application-launches-successfully-under-wayland#launch-on-nvidia-wayland",
+      "reason": "Needs a real Wayland compositor and an NVIDIA GPU; GitHub-hosted runners have neither. The pure decision (which env overrides a target needs) is unit-tested in platform.rs, but the scenario itself — a window actually opening without a Wayland protocol crash — cannot be asserted headless.",
+      "manualVerification": "docs/verification.md#manual-wayland-smoke-test"
+    }
+  ]
+}

@@ -43,7 +43,7 @@ button {
 }
 
 .gradient-text {
-  background: var(--accent-gradient);
+  background: var(--accent-gradient-strong);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

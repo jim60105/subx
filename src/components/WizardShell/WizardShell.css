@@ -31,7 +31,7 @@
 
 .wizard__step[data-state="active"] {
   color: var(--text-on-accent);
-  background: var(--accent-gradient);
+  background: var(--accent-gradient-strong);
   box-shadow: var(--shadow-raised);
 }
 
@@ -103,7 +103,7 @@
 
 .wizard__button--primary {
   color: var(--text-on-accent);
-  background: var(--accent-gradient);
+  background: var(--accent-gradient-strong);
   border-color: transparent;
   box-shadow: var(--shadow-raised);
 }
