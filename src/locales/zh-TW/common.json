@@ -25,5 +25,12 @@
   "featurePlaceholder": {
     "title": "尚未實作",
     "description": "這項功能會在後續版本推出。"
+  },
+  "titlebar": {
+    "group": "視窗控制",
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "restore": "還原",
+    "close": "關閉"
   }
 }

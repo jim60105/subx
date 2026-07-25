@@ -1,0 +1,47 @@
+.window-controls {
+  display: flex;
+  gap: var(--titlebar-btn-gap);
+  align-items: center;
+  /* Ensure buttons are not part of the drag region */
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.window-controls__btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--titlebar-btn-size);
+  height: var(--titlebar-btn-size);
+  box-sizing: border-box;
+  padding: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  transition:
+    color var(--motion-fast) var(--ease-out),
+    background-color var(--motion-fast) var(--ease-out);
+}
+
+.window-controls__btn:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.window-controls__btn:active {
+  background: var(--surface-border);
+}
+
+/* Close button danger hover */
+.window-controls__btn--close:hover {
+  color: var(--text-on-accent);
+  background: var(--titlebar-close-hover);
+}
+
+.window-controls__btn--close:active {
+  background: var(--titlebar-close-hover);
+  filter: brightness(0.85);
+}

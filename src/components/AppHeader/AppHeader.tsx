@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LanguageSelect } from "../LanguageSelect/LanguageSelect";
 import { ThemeSelect } from "../ThemeSelect/ThemeSelect";
+import { WindowControls } from "../WindowControls/WindowControls";
 import { SettingsIcon } from "../icons/SettingsIcon";
 import "./AppHeader.css";
 
@@ -15,7 +17,21 @@ export function AppHeader({ onBack, onOpenSettings }: AppHeaderProps) {
   const { t } = useTranslation("common");
 
   return (
-    <header className="app-header">
+    <header
+      className="app-header"
+      data-tauri-drag-region
+      onDoubleClick={(e) => {
+        // Only toggle maximize when clicking the header itself (the drag region),
+        // not when double-clicking interactive children.
+        if (e.target === e.currentTarget || (e.target as HTMLElement).hasAttribute("data-tauri-drag-region")) {
+          try {
+            getCurrentWindow().toggleMaximize();
+          } catch {
+            // ignore in non-Tauri test environments
+          }
+        }
+      }}
+    >
       <div className="app-header__brand">
         {onBack && (
           <button type="button" className="app-header__back" onClick={onBack}>
@@ -40,6 +56,8 @@ export function AppHeader({ onBack, onOpenSettings }: AppHeaderProps) {
             <SettingsIcon />
           </button>
         )}
+        <div className="app-header__separator" aria-hidden="true" />
+        <WindowControls />
       </div>
     </header>
   );

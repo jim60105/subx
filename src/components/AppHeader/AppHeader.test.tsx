@@ -7,6 +7,20 @@ import { renderWithI18n, setupI18n } from "../../test/renderWithI18n";
 import { ThemeProvider } from "../../theme/ThemeProvider";
 import { AppHeader } from "./AppHeader";
 
+const mockToggleMaximize = vi.fn().mockResolvedValue(undefined);
+const mockMinimize = vi.fn().mockResolvedValue(undefined);
+const mockClose = vi.fn().mockResolvedValue(undefined);
+
+vi.mock("@tauri-apps/api/window", () => ({
+  getCurrentWindow: () => ({
+    minimize: mockMinimize,
+    toggleMaximize: mockToggleMaximize,
+    close: mockClose,
+    isMaximized: vi.fn().mockResolvedValue(false),
+    onResized: vi.fn().mockResolvedValue(vi.fn()),
+  }),
+}));
+
 function renderHeader(onBack?: () => void, onOpenSettings?: () => void) {
   return renderWithI18n(
     <ThemeProvider>
@@ -17,6 +31,7 @@ function renderHeader(onBack?: () => void, onOpenSettings?: () => void) {
 
 describe("AppHeader", () => {
   beforeEach(async () => {
+    vi.clearAllMocks();
     await setupI18n("en");
   });
 
@@ -72,5 +87,33 @@ describe("AppHeader", () => {
     expect(screen.getByLabelText("語言")).toBeInTheDocument();
     expect(screen.getByText("AI 字幕工具")).toBeInTheDocument();
     expect(window.localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe("zh-TW");
+  });
+
+  // @covers custom-titlebar/header-drag-region-for-window-repositioning#drag-the-window-by-the-header
+  it("carries data-tauri-drag-region attribute on header and toggles maximize on header double-click", async () => {
+    const { container } = renderHeader();
+    const header = container.querySelector("header.app-header");
+    expect(header).toHaveAttribute("data-tauri-drag-region");
+
+    if (header) {
+      await userEvent.dblClick(header);
+      expect(mockToggleMaximize).toHaveBeenCalledOnce();
+    }
+  });
+
+  // @covers custom-titlebar/header-drag-region-for-window-repositioning#header-buttons-remain-clickable
+  it("renders window controls and keeps header interactive buttons clickable without double-click maximize trigger", async () => {
+    const onOpenSettings = vi.fn();
+    renderHeader(undefined, onOpenSettings);
+
+    expect(screen.getByRole("group", { name: "Window controls" })).toBeInTheDocument();
+
+    const settingsButton = screen.getByRole("button", { name: "Settings" });
+    await userEvent.click(settingsButton);
+    expect(onOpenSettings).toHaveBeenCalledOnce();
+
+    mockToggleMaximize.mockClear();
+    await userEvent.dblClick(settingsButton);
+    expect(mockToggleMaximize).not.toHaveBeenCalled();
   });
 });

@@ -53,6 +53,11 @@
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Titlebar window controls */
+  --titlebar-btn-size: 36px;
+  --titlebar-close-hover: var(--danger);
+  --titlebar-btn-gap: 0px;
 }
 
 /* Dark theme: mdBook deep charcoal base with glassmorphism panels. */

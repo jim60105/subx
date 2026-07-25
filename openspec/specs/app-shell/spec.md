@@ -8,12 +8,12 @@ The desktop application frame: the Tauri 2 window, the home task-entry hub, clie
 
 ### Requirement: Desktop application launches with the home task-entry hub
 
-The application SHALL be a Tauri 2 desktop app with a React + TypeScript frontend. On launch it SHALL display a home screen presenting the available task entries as cards: Match, Convert, Sync, and Translate.
+The application SHALL be a Tauri 2 desktop app with a React + TypeScript frontend using a **frameless window** (`"decorations": false`). On launch it SHALL display a home screen presenting the available task entries as cards: Match, Convert, Sync, and Translate.
 
 #### Scenario: First launch shows the hub
 
 - **WHEN** the user launches the application
-- **THEN** a desktop window opens showing the home screen with a Match card and Convert / Sync / Translate cards
+- **THEN** a desktop window opens **without a native title bar** showing the home screen with a Match card and Convert / Sync / Translate cards
 
 #### Scenario: Unimplemented features are visibly disabled
 
@@ -68,7 +68,7 @@ The desktop application SHALL start and render its window when running under a W
 
 ### Requirement: AppHeader floating chrome and control layout
 
-The application header (`AppHeader`) SHALL render header controls (navigation back affordance, language picker, theme picker, and settings button) with a unified control height of 36px. The header SHALL establish a primary stacking context (`z-index: 100`) and popover menus SHALL use `z-index: 1000` to ensure floating dropdown menus render above page main content and step indicators without clipping. Header buttons SHALL avoid nested `backdrop-filter` declarations inside the blurred header container to prevent WebKit GPU compositing layer bugs.
+The application header (`AppHeader`) SHALL render header controls (navigation back affordance, language picker, theme picker, settings button, **and window control buttons**) with a unified control height of 36px. The header SHALL establish a primary stacking context (`z-index: 100`) and popover menus SHALL use `z-index: 1000` to ensure floating dropdown menus render above page main content and step indicators without clipping. Header buttons SHALL avoid nested `backdrop-filter` declarations inside the blurred header container to prevent WebKit GPU compositing layer bugs. **The header SHALL carry the `data-tauri-drag-region` attribute to enable window dragging on its empty space.**
 
 #### Scenario: Preference dropdown popover floats above page content
 

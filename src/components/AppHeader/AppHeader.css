@@ -10,6 +10,7 @@
   backdrop-filter: var(--surface-blur);
   border-bottom: 1px solid var(--surface-border);
   box-shadow: var(--shadow-panel);
+  user-select: none;
 }
 
 .app-header__brand {
@@ -80,4 +81,11 @@
   color: var(--accent-text);
   background: var(--surface-hover);
   border-color: var(--surface-border-hover);
+}
+
+.app-header__separator {
+  width: 1px;
+  height: 20px;
+  background: var(--surface-border);
+  flex-shrink: 0;
 }

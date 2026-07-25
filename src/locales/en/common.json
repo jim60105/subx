@@ -25,5 +25,12 @@
   "featurePlaceholder": {
     "title": "Not implemented yet",
     "description": "This feature arrives in a later release."
+  },
+  "titlebar": {
+    "group": "Window controls",
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore",
+    "close": "Close"
   }
 }
