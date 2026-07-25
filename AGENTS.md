@@ -49,6 +49,7 @@ Note: CI runs on `push` only; `npm run verify` is the primary verification gate.
 - **85% Coverage Floor**: Required for both frontend (`vite.config.ts`) and backend (`cargo cov` in `src-tauri/`). Close gaps with tests, not exclusion additions.
 - **Spec Traceability**: Each `#### Scenario:` in `openspec/specs/**/spec.md` requires a matching `// @covers <capability>/<requirement-slug>#<scenario-slug>` comment directly above its test. Obtain exact IDs using `npm run spec:trace -- --report`.
 - **IPC Bindings**: `src/types/bindings.ts` is auto-generated from Rust `specta::Type` definitions. Never hand-edit; run `npm run bindings:generate`.
+- **Frontend Verification**: Always use the `agent-browser` skill to verify frontend behavior and UI interactions.
 
 ## Conventions & Workflow
 
