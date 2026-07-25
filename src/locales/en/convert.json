@@ -1,0 +1,69 @@
+{
+  "steps": {
+    "sources": "Sources",
+    "options": "Options",
+    "run": "Convert"
+  },
+  "sources": {
+    "title": "Choose what to convert",
+    "description": "Add the subtitles you want in another format. Folders, individual files, and archives all work.",
+    "dropzone": "Drag files or folders here",
+    "dropHint": "or use the buttons below",
+    "browseFiles": "Browse files",
+    "browseFolder": "Browse folder",
+    "listLabel": "Selected sources",
+    "empty": "No sources added yet.",
+    "remove": "Remove {{name}}",
+    "scan": {
+      "scanning": "Scanning sources…",
+      "count": "{{count}} subtitle files found",
+      "none": "No subtitle files were found in these sources."
+    },
+    "continue": "Continue"
+  },
+  "options": {
+    "title": "Pick a format",
+    "description": "Every file below shows exactly where its converted copy will be written.",
+    "formatLabel": "Convert to",
+    "formats": {
+      "srt": "SRT (SubRip)",
+      "ass": "ASS (Advanced SubStation)",
+      "vtt": "VTT (WebVTT)",
+      "sub": "SUB (MicroDVD)"
+    },
+    "keepOriginal": "Keep the original files",
+    "keepOriginalHint": "Turn this off to delete each input once its conversion succeeds.",
+    "encodingNote": "The input encoding is detected automatically and every output is written as UTF-8.",
+    "listLabel": "Planned conversions",
+    "selection": "Include {{name}}",
+    "outputLabel": "Will be written to",
+    "overwrite": "Replaces an existing file",
+    "previewing": "Preparing the preview…",
+    "back": "Back",
+    "continue": "Continue"
+  },
+  "run": {
+    "title": "Convert the files",
+    "summary": "{{count}} files · {{format}}",
+    "keepingOriginals": "The original files will be kept.",
+    "removingOriginals": "Each original will be deleted once its conversion succeeds.",
+    "start": "Convert now",
+    "starting": "Starting…",
+    "progress": "Converting {{index}} of {{total}} · {{name}}",
+    "cancel": "Cancel",
+    "report": {
+      "title": "Results",
+      "summary": "{{success}} converted · {{failure}} failed",
+      "cancelled": "You stopped the batch, so the remaining files were not started.",
+      "status": {
+        "converted": "Converted",
+        "failed": "Failed",
+        "skipped": "Skipped",
+        "cancelled": "Not started"
+      },
+      "overwritten": "Replaced an existing file",
+      "originalRemoved": "Original deleted",
+      "finish": "Finish"
+    }
+  }
+}

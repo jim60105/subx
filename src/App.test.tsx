@@ -52,6 +52,22 @@ describe("app shell", () => {
     expect(screen.getByRole("heading", { name: "What would you like to do?" })).toBeInTheDocument();
   });
 
+  it("opens the convert wizard from the hub and returns", async () => {
+    renderWithI18n(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Convert format/ }));
+    expect(
+      screen.getByRole("heading", { name: "Choose what to convert" }),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Back/ }));
+    expect(screen.getByRole("heading", { name: "What would you like to do?" })).toBeInTheDocument();
+  });
+
   it("opens settings from the header and returns to the hub", async () => {
     mockIPC((command) => {
       if (command === "get_config") {

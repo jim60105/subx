@@ -1,6 +1,3 @@
-import { getCurrentWebview } from "@tauri-apps/api/webview";
-import { open } from "@tauri-apps/plugin-dialog";
-
 import { commands } from "../../types/bindings";
 import { Channel } from "../../types/channel";
 import type {
@@ -12,8 +9,10 @@ import type {
 } from "../../types/ipc";
 
 /**
- * The match wizard's backend surface, one thin wrapper per command plus the two
- * platform pickers. Every backend call goes through the generated `commands`.
+ * The match wizard's backend surface, one thin wrapper per command. Every
+ * backend call goes through the generated `commands`; the native pickers and
+ * the drag-drop subscription live in `platform/filePickers`, shared with the
+ * other wizards.
  */
 
 export function scanSources(paths: string[]): Promise<SourceScanResult> {
@@ -46,29 +45,4 @@ export function executeSelected(
   operationIds: number[],
 ): Promise<ExecutionReportDto> {
   return commands.executeSelected(planId, operationIds);
-}
-
-/** Opens the native picker for one or more files. Empty when cancelled. */
-export async function pickFiles(): Promise<string[]> {
-  const selection = await open({ multiple: true, directory: false });
-  if (selection === null) return [];
-  return Array.isArray(selection) ? selection : [selection];
-}
-
-/** Opens the native picker for a single folder. Empty when cancelled. */
-export async function pickFolder(): Promise<string[]> {
-  const selection = await open({ directory: true, multiple: false });
-  return selection === null ? [] : [selection as string];
-}
-
-/**
- * Subscribes to OS file drops on the window, delivering the dropped paths.
- * Resolves to an unlisten function.
- */
-export function subscribeToDroppedPaths(
-  onPaths: (paths: string[]) => void,
-): Promise<() => void> {
-  return getCurrentWebview().onDragDropEvent((event) => {
-    if (event.payload.type === "drop") onPaths(event.payload.paths);
-  });
 }

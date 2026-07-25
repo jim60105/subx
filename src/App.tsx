@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AppHeader } from "./components/AppHeader/AppHeader";
+import { ConvertScreen } from "./features/convert/ConvertScreen";
 import { HomeScreen } from "./features/home/HomeScreen";
 import { MatchScreen } from "./features/match/MatchScreen";
 import { SettingsScreen } from "./features/settings/SettingsScreen";
@@ -18,6 +19,7 @@ export default function App() {
       <main className="app__main">
         {screen === "home" && <HomeScreen onOpenTask={setScreen} />}
         {screen === "match" && <MatchScreen onOpenSettings={() => setScreen("settings")} />}
+        {screen === "convert" && <ConvertScreen />}
         {screen === "settings" && <SettingsScreen />}
       </main>
     </div>

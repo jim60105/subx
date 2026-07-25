@@ -1,0 +1,141 @@
+.convert-run {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.convert-run__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.convert-run__title {
+  margin: 0;
+  font-size: var(--text-xl);
+  color: var(--text-primary);
+}
+
+.convert-run__summary {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.convert-run__originals {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.convert-run__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.convert-run__button {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--surface-hover);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.convert-run__button--primary {
+  color: var(--text-on-accent);
+  background: var(--accent-gradient-strong);
+  border-color: transparent;
+}
+
+.convert-run__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.convert-run__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.convert-run__progress-text {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.convert-run__report {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.convert-run__report-title {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--text-primary);
+}
+
+.convert-run__report-summary {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.convert-run__report-cancelled {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.convert-run__outcomes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.convert-run__outcome {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.convert-run__outcome-name {
+  flex: 1 1 auto;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.convert-run__outcome-status {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.convert-run__outcome[data-status="converted"] .convert-run__outcome-status {
+  color: var(--success);
+}
+
+.convert-run__outcome[data-status="failed"] .convert-run__outcome-status {
+  color: var(--danger);
+}
+
+.convert-run__outcome-flag {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--accent-text);
+  background: var(--accent-gradient-soft);
+  border-radius: var(--radius-pill);
+}

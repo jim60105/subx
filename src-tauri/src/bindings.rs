@@ -37,6 +37,10 @@ pub fn specta_builder<R: Runtime>() -> Builder<R> {
             crate::commands::r#match::analyze_sources,
             crate::commands::r#match::cancel_analysis,
             crate::commands::r#match::execute_selected,
+            crate::commands::convert::list_convert_inputs,
+            crate::commands::convert::preview_conversion,
+            crate::commands::convert::execute_conversion,
+            crate::commands::convert::cancel_conversion,
         ])
         // Still empty. The match wizard reports progress over a per-invocation
         // `tauri::ipc::Channel` (`MatchProgress`), not a `tauri_specta::Event`:
@@ -338,6 +342,10 @@ mod tests {
             "analyzeSources",
             "cancelAnalysis",
             "executeSelected",
+            "listConvertInputs",
+            "previewConversion",
+            "executeConversion",
+            "cancelConversion",
         ] {
             assert!(
                 COMMITTED.contains(&format!("{command}:")),

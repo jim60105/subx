@@ -4,7 +4,8 @@
 //! their own state (e.g. match plan storage); the frontend references entries
 //! by identifier only.
 
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 
 use subx_cli::cli::CollectedFiles;
@@ -19,6 +20,7 @@ use tokio::task::AbortHandle;
 pub struct AppState {
     config_service: Arc<dyn ConfigService>,
     match_state: Arc<MatchState>,
+    convert_state: Arc<ConvertState>,
 }
 
 impl AppState {
@@ -26,6 +28,7 @@ impl AppState {
         Self {
             config_service,
             match_state: Arc::new(MatchState::default()),
+            convert_state: Arc::new(ConvertState::default()),
         }
     }
 
@@ -50,6 +53,11 @@ impl AppState {
     /// The match wizard's backend-owned plan storage.
     pub fn match_state(&self) -> Arc<MatchState> {
         Arc::clone(&self.match_state)
+    }
+
+    /// The convert wizard's backend-owned plan storage.
+    pub fn convert_state(&self) -> Arc<ConvertState> {
+        Arc::clone(&self.convert_state)
     }
 }
 
@@ -222,6 +230,244 @@ impl ActivePlan {
     /// moved into state.
     pub fn operations(&self) -> &[MatchOperation] {
         &self.operations
+    }
+}
+
+/// Backend-owned convert wizard state: at most one plan, at most one execution.
+///
+/// Deliberately a copy of [`MatchState`]'s slot/epoch machinery rather than a
+/// shared abstraction over it (design D1): the two differ in how they stop —
+/// match aborts its task, convert asks the running batch to stop between files
+/// so no output is ever half-written — and an abstraction over two users that
+/// disagree on their central mechanism would have to leak both.
+#[derive(Default)]
+pub struct ConvertState {
+    inner: Mutex<ConvertInner>,
+}
+
+#[derive(Default)]
+struct ConvertInner {
+    /// The single execution slot, reserved *before* the batch starts so a
+    /// losing concurrent caller converts nothing.
+    converting: bool,
+    /// The running execution's cooperative stop flag (design D5). Unlike match,
+    /// convert is never aborted mid-call: the in-flight file finishes, and the
+    /// executor checks this before starting the next one.
+    cancel: Option<Arc<AtomicBool>>,
+    /// The single active plan, replaced by each successful preview.
+    plan: Option<ConvertPlan>,
+    /// Bumped by `cancel`, so a preview that was still resolving output paths
+    /// when the user backed out does not install its plan afterwards.
+    epoch: u64,
+}
+
+/// One planned conversion: where it reads from, where it will write, and why it
+/// cannot run if it cannot.
+pub struct ConvertPlanItem {
+    pub input: PathBuf,
+    pub output: PathBuf,
+    /// Whether `output` already existed at preview time (design D3). A hint for
+    /// the UI, not a lock — the filesystem may change before execution.
+    pub output_exists: bool,
+    /// Stable reason code when the item is excluded from execution
+    /// (`convert.already_target_format`, `convert.output_collision`), else `None`.
+    pub skip_reason: Option<String>,
+}
+
+/// A previewed conversion held for execution.
+///
+/// Owns the `CollectedFiles` so archive-extracted subtitles — which live in
+/// temporary directories it holds — still exist when `execute_conversion` runs
+/// (design D1). Execution takes ownership and holds it across every
+/// `convert_file().await`; dropping the plan drops the extraction directories.
+pub struct ConvertPlan {
+    id: String,
+    target_format: String,
+    keep_original: bool,
+    items: Vec<ConvertPlanItem>,
+    collected: CollectedFiles,
+}
+
+impl ConvertPlan {
+    pub fn new(
+        target_format: String,
+        keep_original: bool,
+        items: Vec<ConvertPlanItem>,
+        collected: CollectedFiles,
+    ) -> Self {
+        Self {
+            id: format!("convert-{}", NEXT_PLAN_ID.fetch_add(1, Ordering::Relaxed)),
+            target_format,
+            keep_original,
+            items,
+            collected,
+        }
+    }
+
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub fn target_format(&self) -> &str {
+        &self.target_format
+    }
+
+    pub fn keep_original(&self) -> bool {
+        self.keep_original
+    }
+
+    /// Borrows the items, used to build the preview DTO before the plan moves
+    /// into state.
+    pub fn items(&self) -> &[ConvertPlanItem] {
+        &self.items
+    }
+
+    /// Hands back the items **and** the `CollectedFiles`.
+    ///
+    /// The caller must keep the returned `CollectedFiles` alive across the
+    /// execution `.await`s: an archive-sourced item reads from a path inside
+    /// one, and dropping it early deletes the input before the conversion runs.
+    pub fn into_execution(self) -> (Vec<ConvertPlanItem>, CollectedFiles) {
+        (self.items, self.collected)
+    }
+}
+
+impl ConvertState {
+    /// The epoch a preview should pin itself to, read before it starts working.
+    pub async fn current_epoch(&self) -> u64 {
+        self.inner.lock().await.epoch
+    }
+
+    /// Stores the plan **only if** its epoch is still current — i.e. no `cancel`
+    /// intervened while it was being built. Returns whether it was stored.
+    pub async fn commit_plan(&self, epoch: u64, plan: ConvertPlan) -> bool {
+        let mut inner = self.inner.lock().await;
+        if inner.epoch == epoch {
+            inner.plan = Some(plan);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Removes and returns the active plan if its id matches. A mismatch (or
+    /// absence) means the plan is stale (design D1).
+    pub async fn take_plan_if(&self, plan_id: &str) -> Option<ConvertPlan> {
+        let mut inner = self.inner.lock().await;
+        match &inner.plan {
+            Some(plan) if plan.id == plan_id => inner.plan.take(),
+            _ => None,
+        }
+    }
+
+    /// Reserves the single execution slot, handing back the stop flag the batch
+    /// must check before each file, or `Err` if a batch is already running.
+    ///
+    /// Reserving here — before any file is converted — is what guarantees a
+    /// losing concurrent caller writes nothing at all (design D5).
+    pub async fn try_begin_execution(&self) -> Result<Arc<AtomicBool>, ()> {
+        let mut inner = self.inner.lock().await;
+        if inner.converting {
+            return Err(());
+        }
+        inner.converting = true;
+        // A fresh flag per run: a cancel from a previous batch must not stop
+        // this one before it converts anything.
+        let flag = Arc::new(AtomicBool::new(false));
+        inner.cancel = Some(Arc::clone(&flag));
+        Ok(flag)
+    }
+
+    /// Releases the execution slot.
+    pub async fn finish_execution(&self) {
+        let mut inner = self.inner.lock().await;
+        inner.converting = false;
+        inner.cancel = None;
+    }
+
+    /// Asks a running batch to stop before its next file, discards the pending
+    /// plan, and advances the epoch so an in-flight preview cannot install one.
+    pub async fn cancel(&self) {
+        let mut inner = self.inner.lock().await;
+        if let Some(flag) = &inner.cancel {
+            flag.store(true, Ordering::SeqCst);
+        }
+        inner.plan = None;
+        inner.epoch = inner.epoch.wrapping_add(1);
+    }
+
+    /// Whether a batch currently holds the execution slot. Test-facing.
+    #[cfg(test)]
+    pub async fn is_running(&self) -> bool {
+        self.inner.lock().await.converting
+    }
+}
+
+#[cfg(test)]
+mod convert_state_tests {
+    use super::*;
+
+    fn dummy_plan() -> ConvertPlan {
+        ConvertPlan::new(
+            "srt".to_string(),
+            true,
+            Vec::new(),
+            CollectedFiles::new(Vec::new()),
+        )
+    }
+
+    #[tokio::test]
+    async fn a_committed_plan_is_retrievable_by_its_id() {
+        let state = ConvertState::default();
+        let epoch = state.current_epoch().await;
+        let plan = dummy_plan();
+        let id = plan.id().to_string();
+
+        assert!(state.commit_plan(epoch, plan).await);
+        assert!(state.take_plan_if(&id).await.is_some());
+        assert!(
+            state.take_plan_if(&id).await.is_none(),
+            "a plan is executed once; taking it must leave the slot empty"
+        );
+    }
+
+    /// The cancel race: a cancel between the preview finishing and the commit
+    /// bumps the epoch, so the plan the user backed out of is never installed.
+    #[tokio::test]
+    async fn a_plan_is_discarded_when_a_cancel_bumped_the_epoch() {
+        let state = ConvertState::default();
+        let epoch = state.current_epoch().await;
+        state.cancel().await;
+
+        assert!(!state.commit_plan(epoch, dummy_plan()).await);
+    }
+
+    #[tokio::test]
+    async fn a_reserved_slot_rejects_a_second_execution() {
+        let state = ConvertState::default();
+        let flag = state.try_begin_execution().await.expect("the first run reserves the slot");
+
+        assert!(state.try_begin_execution().await.is_err());
+        assert!(!flag.load(Ordering::SeqCst), "a fresh run starts uncancelled");
+
+        state.finish_execution().await;
+        assert!(!state.is_running().await);
+        assert!(state.try_begin_execution().await.is_ok());
+    }
+
+    /// Cancelling sets the *running* batch's flag; a batch started afterwards
+    /// gets a fresh one, or every later run would stop immediately.
+    #[tokio::test]
+    async fn cancel_stops_the_running_batch_but_not_the_next_one() {
+        let state = ConvertState::default();
+        let running = state.try_begin_execution().await.unwrap();
+
+        state.cancel().await;
+        assert!(running.load(Ordering::SeqCst));
+
+        state.finish_execution().await;
+        let next = state.try_begin_execution().await.unwrap();
+        assert!(!next.load(Ordering::SeqCst));
     }
 }
 

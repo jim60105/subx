@@ -27,16 +27,27 @@ describe("home task-entry hub", () => {
     expect(onOpenTask).toHaveBeenCalledWith("match");
   });
 
+  it("opens the convert wizard from its card", async () => {
+    const onOpenTask = vi.fn();
+    renderWithI18n(<HomeScreen onOpenTask={onOpenTask} />);
+
+    const convert = screen.getByRole("button", { name: /Convert format/ });
+    expect(convert).toBeEnabled();
+    await userEvent.click(convert);
+
+    expect(onOpenTask).toHaveBeenCalledWith("convert");
+  });
+
   // @covers app-shell/desktop-application-launches-with-the-home-task-entry-hub#unimplemented-features-are-visibly-disabled
   it("marks unimplemented tasks as coming soon and does not navigate", async () => {
     const onOpenTask = vi.fn();
     renderWithI18n(<HomeScreen onOpenTask={onOpenTask} />);
 
-    const convert = screen.getByRole("button", { name: /Convert format/ });
-    expect(convert).toBeDisabled();
-    expect(convert).toHaveTextContent("Coming soon");
+    const sync = screen.getByRole("button", { name: /Sync timing/ });
+    expect(sync).toBeDisabled();
+    expect(sync).toHaveTextContent("Coming soon");
 
-    await userEvent.click(convert);
+    await userEvent.click(sync);
 
     expect(onOpenTask).not.toHaveBeenCalled();
   });

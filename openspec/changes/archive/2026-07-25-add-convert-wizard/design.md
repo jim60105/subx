@@ -42,6 +42,8 @@ Holding the plan backend-side is not optional here: archive-extracted inputs liv
 
 The scan step's `list_convert_inputs` is a separate, stateless command (counts only); the plan is created by `preview_conversion` when the user reaches step 2 with concrete options. Re-previewing (changed format, changed keep-original) replaces the active plan.
 
+`preview_conversion` pins the epoch it read *before* collecting files and commits its plan only if the epoch is unchanged, exactly as match D3 guards analysis. This matters because Tauri does not cancel a command when the frontend stops awaiting it: backing out of a slow preview (a large archive) leaves it running server-side, and without the guard it could `commit_plan` *after* a newer preview, silently replacing the plan the user now acts on. The frontend therefore calls `cancel_conversion` — which bumps the epoch — whenever it abandons a plan (Back out of the options step, or Finish), so any in-flight preview fails its commit and the user's live plan wins.
+
 ### D2: Same-format inputs are auto-excluded, not converted in place
 
 When an input's resolved output path equals the input path — the direct product of the CLI's `input.with_extension(fmt)` arithmetic for a file already carrying the target extension — `convert_file` would read and rewrite the same file, and the `!keep_original` branch would delete the file it just wrote. The preview therefore marks such items `skipped` (reason code `convert.already_target_format`), excludes them from selection, and the executor refuses them defensively. The skip condition is literally `resolved_output == input` (comparing the paths the plan actually computed, not re-deriving from extensions — which also sidesteps case-sensitivity mismatches), and it is evaluated *first*: a skipped item is never additionally flagged as an overwrite, even though its "output" trivially exists, so the UI never shows a contradictory skipped-plus-conflict state.
@@ -60,9 +62,15 @@ Allowing overwrites makes write ordering matter: `convert_file` writes its outpu
 
 Per-file progress travels over a `tauri::ipc::Channel<ConvertProgress>` (`{ index, total, fileName }` plus a terminal stage) passed into `execute_conversion`, behind the same `ProgressReporter`-style seam for tests. Cancellation is cooperative between files: `cancel_conversion` bumps the state epoch and sets a cancel flag the executor checks before starting each file; the in-flight `convert_file` (single-file, local, fast) is allowed to finish. This keeps every written output a *complete* output — aborting mid-write is the one thing that could corrupt a file, and nothing here needs it. The executor slot is reserved before spawning (`convert.conversion_in_progress` on contention), exactly like analysis in match D3.
 
-### D6: Error codes
+### D6: The default target format arrives with the first preview
 
-`convert.no_subtitles` (scan found nothing convertible, surfaced at step 1), `convert.stale_plan`, `convert.conversion_in_progress`, `convert.already_target_format` (item skip reason). Per-item execution failures map through the shared `SubXError → core.<category>` conversion into the report DTO; the two-layer `ConversionResult { success: false, errors }` case (converter ran but validation failed) becomes a per-item error with the crate's message text, coded `core.subtitle_format`, mirroring the CLI's own synthetic mapping.
+The options step must show the format `formats.default_output` names, but `get_config` exposes only the AI section and this change adds no settings surface (Non-Goals). Rather than widen the config DTO for one read, `ConvertOptionsDto::target_format` is optional: a `null` means "resolve from the shared config", and `ConvertPlanDto` echoes the format the backend actually used. The step therefore learns the default from the same round trip that produces the paths it is about to render, and every later preview sends the format explicitly.
+
+This keeps the config-reading where every other config read in this change already is — the backend, after `service.reload()` — and leaves the frontend with no second source of truth to drift from.
+
+### D7: Error codes
+
+`convert.no_subtitles` (scan found nothing convertible, surfaced at step 1), `convert.stale_plan`, `convert.conversion_in_progress`, and the item skip reasons `convert.already_target_format` (D2) and `convert.output_collision` (Risks, below). Per-item execution failures map through the shared `SubXError → core.<category>` conversion into the report DTO; the two-layer `ConversionResult { success: false, errors }` case (converter ran but validation failed) becomes a per-item error with the crate's message text, coded `core.subtitle_format`, mirroring the CLI's own synthetic mapping.
 
 ## Risks / Trade-offs
 

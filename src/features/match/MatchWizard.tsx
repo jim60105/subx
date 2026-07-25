@@ -3,9 +3,9 @@ import { useTranslation } from "react-i18next";
 
 import { WizardShell } from "../../components/WizardShell/WizardShell";
 import type { WizardStep } from "../../components/WizardShell/WizardShell";
+import { pickFiles, pickFolder, subscribeToDroppedPaths } from "../../platform/filePickers";
 import { AnalysisStep } from "./AnalysisStep";
 import { ExecuteStep } from "./ExecuteStep";
-import { pickFiles, pickFolder, subscribeToDroppedPaths } from "./matchWizardApi";
 import { ReviewStep } from "./ReviewStep";
 import { SourcesStep } from "./SourcesStep";
 import { useMatchWizard, WIZARD_STEPS } from "./useMatchWizard";

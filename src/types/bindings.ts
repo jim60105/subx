@@ -22,6 +22,23 @@ export const commands = {
 	cancelAnalysis: () => __TAURI_INVOKE<null>("cancel_analysis"),
 	/**  Executes exactly the selected operations of a plan and reports each outcome. */
 	executeSelected: (planId: string, operationIds: number[]) => __TAURI_INVOKE<ExecutionReportDto>("execute_selected", { planId, operationIds }),
+	/**
+	 *  Scans the given sources and returns the subtitle count for the Step 1
+	 *  preview. An empty count is a valid result the UI blocks on, not an error.
+	 */
+	listConvertInputs: (paths: string[]) => __TAURI_INVOKE<ConvertScanResult>("list_convert_inputs", { paths }),
+	/**
+	 *  Resolves every output path for the chosen options and stores the resulting
+	 *  plan, returning it for review in Step 2.
+	 */
+	previewConversion: (paths: string[], options: ConvertOptionsDto) => __TAURI_INVOKE<ConvertPlanDto>("preview_conversion", { paths, options }),
+	/**
+	 *  Converts exactly the selected items of a plan, reporting per-file progress
+	 *  over `on_progress`, and returns each item's outcome.
+	 */
+	executeConversion: (planId: string, itemIds: number[], onProgress: Channel<ConvertProgress>) => __TAURI_INVOKE<ConversionReportDto>("execute_conversion", { planId, itemIds, onProgress }),
+	/**  Stops a running batch before its next file and discards the pending plan. */
+	cancelConversion: () => __TAURI_INVOKE<null>("cancel_conversion"),
 };
 
 /* Types */
@@ -78,6 +95,135 @@ export type ConnectionTestResult = {
 	/**  Why the test failed; present only on failure. */
 	error: ErrorDto | null,
 };
+
+/**  One item's outcome in the Step 3 report. */
+export type ConversionOutcomeDto = {
+	inputName: string,
+	outputPath: string,
+	status: ConversionStatusDto,
+	/**  Whether the write replaced a file that already existed (design D3). */
+	overwritten: boolean,
+	/**
+	 *  Whether the input was removed afterwards, i.e. keep-original was off and
+	 *  the removal succeeded (design D4).
+	 */
+	originalRemoved: boolean,
+	/**  Why the item failed, localizable through the shared error path. */
+	error: ErrorDto | null,
+	/**
+	 *  A non-fatal problem — today only "the conversion succeeded but the
+	 *  original could not be removed", which the CLI discards and the GUI must
+	 *  not, since it would otherwise misstate what is on disk (design D4).
+	 */
+	warning: ErrorDto | null,
+};
+
+/**  The final report returned by `execute_conversion`. */
+export type ConversionReportDto = {
+	outcomes: ConversionOutcomeDto[],
+	successCount: number,
+	failureCount: number,
+	/**
+	 *  True when the user stopped the batch; the `Cancelled` outcomes are the
+	 *  items that were never started.
+	 */
+	cancelled: boolean,
+};
+
+/**  What became of one item in the batch. */
+export type ConversionStatusDto = "converted" | "failed" | 
+/**  Excluded by the plan (`skip_reason`) and refused by the executor. */
+"skipped" | 
+/**  Never started: the batch was cancelled before reaching it (design D5). */
+"cancelled";
+
+/**
+ *  Target format of a conversion run.
+ * 
+ *  Exactly the four the crate can serialize; SMI and LRC stay readable inputs
+ *  with no way to become outputs, so offering them would be a dead choice.
+ */
+export type ConvertFormatDto = "srt" | "ass" | "vtt" | "sub";
+
+/**
+ *  One planned conversion, referenced by the frontend via `id` only.
+ * 
+ *  `id` is the item's index in the backend-held plan. `skip_reason` carries a
+ *  stable code (`convert.already_target_format`, `convert.output_collision`)
+ *  when the item cannot run; such items are excluded from execution, and the
+ *  skip is evaluated before `output_exists` so a skipped item is never *also*
+ *  presented as an overwrite (design D2).
+ */
+export type ConvertItemDto = {
+	id: number,
+	inputName: string,
+	inputPath: string,
+	outputPath: string,
+	outputExists: boolean,
+	skipReason: string | null,
+};
+
+/**
+ *  The options a preview is computed from.
+ * 
+ *  `target_format` is optional because the wizard's Step 2 has to render the
+ *  configured default before the user has chosen anything: a `null` means
+ *  "resolve `formats.default_output` from the shared config", and the resulting
+ *  plan echoes back what was used (design D6).
+ */
+export type ConvertOptionsDto = {
+	targetFormat: ConvertFormatDto | null,
+	keepOriginal: boolean,
+};
+
+/**
+ *  The plan Step 2 renders, returned by `preview_conversion`.
+ * 
+ *  `plan_id` ties a later `execute_conversion` back to this exact preview; a
+ *  newer preview replaces it and the old id becomes stale (design D1).
+ */
+export type ConvertPlanDto = {
+	planId: string,
+	/**
+	 *  The format actually used, including when the request left it to the
+	 *  configuration (design D6).
+	 */
+	targetFormat: ConvertFormatDto,
+	keepOriginal: boolean,
+	items: ConvertItemDto[],
+};
+
+/**
+ *  A progress message pushed over the execution `Channel`.
+ * 
+ *  Per file, never finer: the crate converts a whole file in one call and
+ *  reports nothing from inside it, so a percentage would be invented.
+ */
+export type ConvertProgress = {
+	stage: ConvertStage,
+	/**  1-based position of `file_name` in the batch; equals `total` on `Finished`. */
+	index: number,
+	total: number,
+	fileName: string,
+};
+
+/**
+ *  Scan preview returned by `list_convert_inputs` before any plan exists.
+ * 
+ *  A count is all Step 1 needs; the file list — which includes temporary
+ *  archive-extraction paths — never leaves the backend.
+ */
+export type ConvertScanResult = {
+	subtitleCount: number,
+};
+
+/**  Where a batch is, as reported to Step 3 (design D5). */
+export type ConvertStage = "converting" | 
+/**
+ *  The batch stopped, whether it finished or was cancelled. The report the
+ *  command resolves with is what says which.
+ */
+"finished";
 
 /**
  *  Structured error crossing the Tauri IPC boundary.

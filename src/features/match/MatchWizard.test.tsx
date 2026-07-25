@@ -8,6 +8,8 @@ import type { MatchPlanDto, MatchProgress } from "../../types/ipc";
 import { MatchWizard } from "./MatchWizard";
 
 vi.mock("./matchWizardApi");
+vi.mock("../../platform/filePickers");
+import * as pickers from "../../platform/filePickers";
 import * as api from "./matchWizardApi";
 
 const PLAN: MatchPlanDto = {
@@ -54,9 +56,9 @@ async function reachAnalysis(user: ReturnType<typeof userEvent.setup>) {
 
 beforeEach(async () => {
   await setupI18n("en");
-  vi.mocked(api.subscribeToDroppedPaths).mockResolvedValue(() => {});
-  vi.mocked(api.pickFiles).mockResolvedValue(["/m/show.mkv"]);
-  vi.mocked(api.pickFolder).mockResolvedValue(["/m"]);
+  vi.mocked(pickers.subscribeToDroppedPaths).mockResolvedValue(() => {});
+  vi.mocked(pickers.pickFiles).mockResolvedValue(["/m/show.mkv"]);
+  vi.mocked(pickers.pickFolder).mockResolvedValue(["/m"]);
   vi.mocked(api.scanSources).mockResolvedValue({ videoCount: 1, subtitleCount: 2 });
   vi.mocked(api.analyzeSources).mockResolvedValue(PLAN);
   vi.mocked(api.cancelAnalysis).mockResolvedValue(undefined);

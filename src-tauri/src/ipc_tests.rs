@@ -28,7 +28,7 @@ use crate::state::AppState;
 /// `mock_context` starts with an empty ACL, so every command under test has to
 /// be allowed explicitly. `the_allowlist_matches_the_declaration` keeps this
 /// list from drifting away from the builder.
-const COMMANDS: [&str; 8] = [
+const COMMANDS: [&str; 12] = [
     "ping",
     "get_config",
     "set_config_value",
@@ -37,6 +37,10 @@ const COMMANDS: [&str; 8] = [
     "analyze_sources",
     "cancel_analysis",
     "execute_selected",
+    "list_convert_inputs",
+    "preview_conversion",
+    "execute_conversion",
+    "cancel_conversion",
 ];
 
 /// A mock app carrying the real command registration over the given service.
@@ -267,6 +271,49 @@ fn execute_selected_rejects_an_unknown_plan_over_ipc() {
 
     assert_eq!(error["code"], "match.stale_plan");
     assert_eq!(error["hintCode"], "match.stale_plan.hint");
+}
+
+/// `list_convert_inputs` crosses the boundary and deserializes its `paths`
+/// argument into the counts DTO. Empty sources are a valid `0` result.
+#[test]
+fn list_convert_inputs_answers_over_ipc_with_camel_cased_counts() {
+    let app = app_with(service_with_key());
+
+    let response = invoke(&webview(&app), "list_convert_inputs", json!({ "paths": [] }))
+        .expect("list_convert_inputs must succeed on empty sources");
+
+    assert_eq!(response["subtitleCount"], 0);
+}
+
+/// `preview_conversion` deserializes the nested options object the frontend
+/// sends — camel-cased, with an explicit `null` for "use the configured
+/// default" — and rejects a scan that found nothing convertible.
+// @covers convert-workflow/multi-source-selection-with-scan-preview#no-convertible-subtitles-block-progress
+#[test]
+fn preview_conversion_deserializes_its_options_and_rejects_empty_sources() {
+    let app = app_with(service_with_key());
+
+    let error = invoke(
+        &webview(&app),
+        "preview_conversion",
+        json!({ "paths": [], "options": { "targetFormat": null, "keepOriginal": true } }),
+    )
+    .expect_err("sources holding no subtitles must be rejected");
+
+    assert_eq!(error["code"], "convert.no_subtitles");
+    assert_eq!(error["hintCode"], "convert.no_subtitles.hint");
+}
+
+/// `cancel_conversion` reaches the webview and resolves with no payload even
+/// when nothing is running — cancelling twice must be harmless.
+#[test]
+fn cancel_conversion_answers_over_ipc() {
+    let app = app_with(service_with_key());
+
+    let response =
+        invoke(&webview(&app), "cancel_conversion", json!({})).expect("cancel must succeed");
+
+    assert_eq!(response, Value::Null);
 }
 
 /// An unregistered command must be rejected, which is what makes the

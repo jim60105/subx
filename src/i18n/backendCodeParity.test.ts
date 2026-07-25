@@ -96,8 +96,10 @@ describe("the crate stays behind the command layer", () => {
  *
  * Three shapes exist and all are scanned: `core.<category>` codes, built in
  * `error.rs` from the crate's own `category()`; `config.<field>` codes, built
- * in `commands/config.rs` from the key being written; and `match.<reason>`
- * codes, the literal constants in `commands/match.rs`.
+ * in `commands/config.rs` from the key being written; and per-feature
+ * `<feature>.<reason>` codes, the literal constants in each feature's command
+ * module. **A new feature module must add its prefix to the pattern below**, or
+ * its codes ship untranslated with nothing to notice.
  */
 function backendErrorCodes(): { codes: Set<string>; hints: Set<string> } {
   const codes = new Set<string>();
@@ -108,7 +110,9 @@ function backendErrorCodes(): { codes: Set<string>; hints: Set<string> } {
 
     // Literal codes and hint codes written out in full, e.g.
     // `const CONNECTION_TEST_HINT: &str = "config.connection_test.hint";`
-    for (const match of source.matchAll(/"((?:core|config|match)\.[a-z_]+(?:\.hint)?)"/g)) {
+    for (const match of source.matchAll(
+      /"((?:core|config|match|convert)\.[a-z_]+(?:\.hint)?)"/g,
+    )) {
       (match[1].endsWith(".hint") ? hints : codes).add(match[1]);
     }
 

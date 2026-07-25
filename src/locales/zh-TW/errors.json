@@ -33,7 +33,12 @@
     "match.analysis_in_progress": "已經有一個分析正在執行。",
     "match.analysis_cancelled": "分析已取消。",
     "match.stale_plan": "這份配對計畫已經過期。",
-    "match.execution_locked": "目前有另一項 SubX 操作正在執行。"
+    "match.execution_locked": "目前有另一項 SubX 操作正在執行。",
+    "convert.no_subtitles": "找不到可轉換的字幕檔。",
+    "convert.stale_plan": "這份轉換計畫已經過期。",
+    "convert.conversion_in_progress": "已經有一項轉換正在執行。",
+    "convert.already_target_format": "已經是目標格式。",
+    "convert.output_collision": "另一個檔案已經會寫入這個路徑。"
   },
   "hints": {
     "core.retry": "請再試一次。如果持續失敗，請查看技術細節。",
@@ -58,6 +63,8 @@
     "match.ai_unavailable.hint": "請檢查網路連線後再重新分析。",
     "match.sources_insufficient.hint": "請同時加入影片與字幕再進行分析。",
     "match.stale_plan.hint": "請重新執行分析以建立新的配對計畫。",
-    "match.execution_locked.hint": "請等待另一項操作結束後再試一次。"
+    "match.execution_locked.hint": "請等待另一項操作結束後再試一次。",
+    "convert.no_subtitles.hint": "請加入資料夾、字幕檔，或內含字幕的壓縮檔。",
+    "convert.stale_plan.hint": "請返回上一步重新準備轉換。"
   }
 }

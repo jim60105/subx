@@ -33,7 +33,12 @@
     "match.analysis_in_progress": "An analysis is already running.",
     "match.analysis_cancelled": "The analysis was cancelled.",
     "match.stale_plan": "This plan is out of date.",
-    "match.execution_locked": "Another SubX operation is currently running."
+    "match.execution_locked": "Another SubX operation is currently running.",
+    "convert.no_subtitles": "No convertible subtitle files were found.",
+    "convert.stale_plan": "This conversion plan is out of date.",
+    "convert.conversion_in_progress": "A conversion is already running.",
+    "convert.already_target_format": "Already in the target format.",
+    "convert.output_collision": "Another file already writes to this path."
   },
   "hints": {
     "core.retry": "Try the action again. If it keeps failing, check the technical details.",
@@ -58,6 +63,8 @@
     "match.ai_unavailable.hint": "Check your network connection and try the analysis again.",
     "match.sources_insufficient.hint": "Add both a video and a subtitle before analyzing.",
     "match.stale_plan.hint": "Run the analysis again to build a fresh plan.",
-    "match.execution_locked.hint": "Wait for the other operation to finish, then try again."
+    "match.execution_locked.hint": "Wait for the other operation to finish, then try again.",
+    "convert.no_subtitles.hint": "Add a folder, a subtitle file or an archive that contains subtitles.",
+    "convert.stale_plan.hint": "Go back and prepare the conversion again."
   }
 }

@@ -14,6 +14,9 @@ import { act, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import App from "../App";
+import { ConvertOptionsStep } from "../features/convert/ConvertOptionsStep";
+import { ConvertRunStep } from "../features/convert/ConvertRunStep";
+import { ConvertSourcesStep } from "../features/convert/ConvertSourcesStep";
 import { HomeScreen } from "../features/home/HomeScreen";
 import { AnalysisStep } from "../features/match/AnalysisStep";
 import { ExecuteStep } from "../features/match/ExecuteStep";
@@ -22,7 +25,7 @@ import { SourcesStep } from "../features/match/SourcesStep";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
 import { ThemeProvider } from "../theme/ThemeProvider";
 import { i18n, renderWithI18n, setupI18n } from "../test/renderWithI18n";
-import type { ConfigDto, MatchPlanDto } from "../types/ipc";
+import type { ConfigDto, ConvertPlanDto, MatchPlanDto } from "../types/ipc";
 
 const CONFIG: ConfigDto = {
   ai: {
@@ -137,6 +140,14 @@ const EMPTY_PLAN: MatchPlanDto = {
   unmatchedSubtitles: [],
 };
 
+/** The convert equivalent: chrome only, no file names to read as prose. */
+const EMPTY_CONVERT_PLAN: ConvertPlanDto = {
+  planId: "convert-1",
+  targetFormat: "srt",
+  keepOriginal: true,
+  items: [],
+};
+
 /**
  * Every screen that exists today. `add-match-wizard` extends this list with its
  * four step components — the wizard host itself has window/dialog side effects
@@ -193,6 +204,56 @@ const SCREENS = [
           report={null}
           executeError={undefined}
           onExecute={() => {}}
+          onRestart={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "ConvertSourcesStep",
+    render: () =>
+      renderWithI18n(
+        <ConvertSourcesStep
+          sources={[]}
+          scan={null}
+          isScanning={false}
+          scanError={undefined}
+          onBrowseFiles={() => {}}
+          onBrowseFolder={() => {}}
+          onRemoveSource={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "ConvertOptionsStep",
+    render: () =>
+      renderWithI18n(
+        <ConvertOptionsStep
+          targetFormat="srt"
+          keepOriginal
+          plan={EMPTY_CONVERT_PLAN}
+          isPreviewing={false}
+          previewError={undefined}
+          selectedIds={new Set()}
+          onFormatChange={() => {}}
+          onKeepOriginalChange={() => {}}
+          onToggle={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "ConvertRunStep",
+    render: () =>
+      renderWithI18n(
+        <ConvertRunStep
+          targetFormat="srt"
+          selectedCount={0}
+          keepOriginal
+          isConverting={false}
+          progress={null}
+          report={null}
+          convertError={undefined}
+          onConvert={() => {}}
+          onCancel={() => {}}
           onRestart={() => {}}
         />,
       ),

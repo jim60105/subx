@@ -1,0 +1,69 @@
+{
+  "steps": {
+    "sources": "來源",
+    "options": "選項",
+    "run": "轉換"
+  },
+  "sources": {
+    "title": "選擇要轉換的檔案",
+    "description": "加入想轉成其他格式的字幕。資料夾、單一檔案與壓縮檔都可以。",
+    "dropzone": "將檔案或資料夾拖曳到這裡",
+    "dropHint": "或使用下方按鈕",
+    "browseFiles": "瀏覽檔案",
+    "browseFolder": "瀏覽資料夾",
+    "listLabel": "已選來源",
+    "empty": "尚未加入任何來源。",
+    "remove": "移除 {{name}}",
+    "scan": {
+      "scanning": "正在掃描來源…",
+      "count": "找到 {{count}} 個字幕檔",
+      "none": "這些來源中找不到任何字幕檔。"
+    },
+    "continue": "繼續"
+  },
+  "options": {
+    "title": "選擇格式",
+    "description": "以下每個檔案都會顯示轉換後的檔案實際寫入的位置。",
+    "formatLabel": "轉換為",
+    "formats": {
+      "srt": "SRT（SubRip）",
+      "ass": "ASS（Advanced SubStation）",
+      "vtt": "VTT（WebVTT）",
+      "sub": "SUB（MicroDVD）"
+    },
+    "keepOriginal": "保留原始檔案",
+    "keepOriginalHint": "關閉後，每個輸入檔會在轉換成功後被刪除。",
+    "encodingNote": "輸入編碼會自動偵測，所有輸出一律以 UTF-8 寫入。",
+    "listLabel": "預定的轉換",
+    "selection": "包含 {{name}}",
+    "outputLabel": "將寫入到",
+    "overwrite": "會覆蓋既有檔案",
+    "previewing": "正在準備預覽…",
+    "back": "上一步",
+    "continue": "繼續"
+  },
+  "run": {
+    "title": "開始轉換",
+    "summary": "{{count}} 個檔案 · {{format}}",
+    "keepingOriginals": "原始檔案會保留。",
+    "removingOriginals": "每個原始檔案會在轉換成功後刪除。",
+    "start": "立即轉換",
+    "starting": "正在開始…",
+    "progress": "正在轉換第 {{index}} / {{total}} 個 · {{name}}",
+    "cancel": "取消",
+    "report": {
+      "title": "結果",
+      "summary": "{{success}} 個已轉換 · {{failure}} 個失敗",
+      "cancelled": "你已停止批次處理，其餘檔案沒有開始轉換。",
+      "status": {
+        "converted": "已轉換",
+        "failed": "失敗",
+        "skipped": "已略過",
+        "cancelled": "未開始"
+      },
+      "overwritten": "已覆蓋既有檔案",
+      "originalRemoved": "已刪除原始檔",
+      "finish": "完成"
+    }
+  }
+}
