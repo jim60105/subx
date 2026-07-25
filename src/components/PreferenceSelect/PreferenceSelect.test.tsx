@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { PreferenceSelect } from "./PreferenceSelect";
@@ -58,5 +58,25 @@ describe("PreferenceSelect", () => {
     );
 
     expect(screen.getByText("Pick one")).not.toHaveClass("visually-hidden");
+  });
+
+  // @covers theme-system/preference-dropdown-controls-render-custom-dom-popovers-matching-active-theme#preference-select-popover-adapts-to-light-theme
+  // @covers theme-system/preference-dropdown-controls-render-custom-dom-popovers-matching-active-theme#preference-select-popover-adapts-to-dark-theme
+  it("opens custom DOM popover when trigger button is clicked", async () => {
+    const onChange = vi.fn();
+    render(
+      <PreferenceSelect label="Pick one" value="a" options={OPTIONS} onChange={onChange} />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Option A" });
+    await userEvent.click(trigger);
+
+    const menu = screen.getByRole("listbox");
+    expect(menu).toBeInTheDocument();
+
+    const optionB = within(menu).getByRole("option", { name: "Option B" });
+    await userEvent.click(optionB);
+
+    expect(onChange).toHaveBeenCalledWith("b");
   });
 });

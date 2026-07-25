@@ -46,13 +46,17 @@ describe("AppHeader", () => {
     expect(screen.getByLabelText("Theme")).toBeInTheDocument();
   });
 
+  // @covers app-shell/appheader-floating-chrome-and-control-layout#preference-dropdown-popover-floats-above-page-content
+  // @covers app-shell/appheader-floating-chrome-and-control-layout#header-controls-share-uniform-height-and-remain-visible-during-theme-toggle
   it("offers the settings entry everywhere except on settings itself", async () => {
     renderHeader();
     expect(screen.queryByRole("button", { name: "Settings" })).not.toBeInTheDocument();
 
     const onOpenSettings = vi.fn();
     renderHeader(undefined, onOpenSettings);
-    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+    const settingsButton = screen.getByRole("button", { name: "Settings" });
+    expect(settingsButton).toHaveClass("app-header__settings");
+    await userEvent.click(settingsButton);
 
     expect(onOpenSettings).toHaveBeenCalledOnce();
   });
