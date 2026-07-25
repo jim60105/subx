@@ -4,6 +4,7 @@ import { ConvertScreen } from "./features/convert/ConvertScreen";
 import { HomeScreen } from "./features/home/HomeScreen";
 import { MatchScreen } from "./features/match/MatchScreen";
 import { SettingsScreen } from "./features/settings/SettingsScreen";
+import { SyncScreen } from "./features/sync/SyncScreen";
 import type { ScreenId } from "./navigation/screens";
 import "./App.css";
 
@@ -20,6 +21,7 @@ export default function App() {
         {screen === "home" && <HomeScreen onOpenTask={setScreen} />}
         {screen === "match" && <MatchScreen onOpenSettings={() => setScreen("settings")} />}
         {screen === "convert" && <ConvertScreen />}
+        {screen === "sync" && <SyncScreen />}
         {screen === "settings" && <SettingsScreen />}
       </main>
     </div>

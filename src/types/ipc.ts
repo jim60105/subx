@@ -38,6 +38,10 @@ export type {
   RelocationModeDto,
   SetConfigRequest,
   SourceScanResult,
+  SyncApplyResultDto,
+  SyncDefaultsDto,
+  SyncDetectionDto,
+  SyncMethodDto,
 } from "./bindings";
 
 /**

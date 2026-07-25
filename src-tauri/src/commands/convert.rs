@@ -35,6 +35,7 @@ use crate::dto::{
     ConvertStage,
 };
 use crate::error::ErrorDto;
+use crate::paths::path_key;
 use crate::state::{AppState, ConvertPlan, ConvertPlanItem, ConvertState};
 
 // Stable error codes the frontend localizes (design D7). Kept as literals so
@@ -504,28 +505,6 @@ fn resolve_output_path(input: &Path, collected: &CollectedFiles, format_id: &str
     }
 }
 
-/// The identity of a path *as the filesystem will resolve it*.
-///
-/// macOS and Windows treat `A.vtt` and `a.vtt` as one file. Comparing the raw
-/// paths there would miss two hazards at once: two plan items whose outputs
-/// differ only in case would each believe they own the file and the second
-/// would silently overwrite the first, and — worse — a same-format input like
-/// `show.SRT` would resolve to a "different" output `show.srt` that is really
-/// itself, so with keep-original off the run would delete the file it had just
-/// written. Folding case exactly where the filesystem does closes both.
-///
-/// Linux stays byte-exact on purpose: `A.vtt` and `a.vtt` are genuinely two
-/// files there, and folding would exclude a conversion the user can perform.
-#[cfg(any(target_os = "macos", target_os = "windows"))]
-fn path_key(path: &Path) -> String {
-    path.to_string_lossy().to_lowercase()
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
-fn path_key(path: &Path) -> String {
-    path.to_string_lossy().into_owned()
-}
-
 /// The sibling path a conversion is written to before it is known to be good.
 ///
 /// A sibling, not a temp directory: the rename that publishes it is only atomic
@@ -720,30 +699,6 @@ mod tests {
             .iter()
             .find(|item| item.input_name == name)
             .unwrap_or_else(|| panic!("the plan must contain {name}: {:?}", plan.items))
-    }
-
-    // ─── Path identity ──────────────────────────────────────────────────────
-
-    /// The rule the skip and collision checks both rest on, stated per platform
-    /// so a change to either branch has to face this test.
-    #[test]
-    fn a_path_key_folds_case_exactly_where_the_filesystem_does() {
-        let upper = Path::new("/media/Episode.VTT");
-        let lower = Path::new("/media/episode.vtt");
-
-        if cfg!(any(target_os = "macos", target_os = "windows")) {
-            assert_eq!(
-                path_key(upper),
-                path_key(lower),
-                "one file on a case-insensitive filesystem must be one key"
-            );
-        } else {
-            assert_ne!(
-                path_key(upper),
-                path_key(lower),
-                "two files on a case-sensitive filesystem must stay two keys"
-            );
-        }
     }
 
     // ─── Scan ───────────────────────────────────────────────────────────────

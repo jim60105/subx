@@ -338,3 +338,65 @@ pub struct ConversionReportDto {
     /// items that were never started.
     pub cancelled: bool,
 }
+
+/// How the sync wizard obtains its offset.
+///
+/// The crate's `sync.default_method` has three values, but only `manual` is a
+/// distinct *choice* here: `auto` and `vad` both route to the same local VAD
+/// detection inside `SyncEngine`, so the wizard offers one automatic option.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub enum SyncMethodDto {
+    Auto,
+    Manual,
+}
+
+/// The shared configuration's sync settings, as Step 2 needs them (design D4).
+///
+/// Read-only: the sensitivity the user moves for one run is sent along with the
+/// detect call and never written back to the configuration file.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncDefaultsDto {
+    pub default_method: SyncMethodDto,
+    /// `sync.vad.sensitivity` as a whole percentage `0..=100`, not the crate's
+    /// `0.0..=1.0` `f32` — the same choice `MatchOperationDto::confidence`
+    /// makes, and for one more reason here: specta exports an `f32` as
+    /// `number | null`, because NaN and the infinities serialize as JSON null.
+    /// That is honest about `f32`, and it is not a thing a sensitivity slider
+    /// should have to handle. Lower is stricter.
+    pub vad_sensitivity: u32,
+    /// `sync.max_offset_seconds`, in milliseconds to match every other offset
+    /// on this boundary (design D3).
+    pub max_offset_ms: i32,
+}
+
+/// What one detection found, for the review step.
+///
+/// `offset_ms` is the crate's `f32` seconds rounded to whole milliseconds — the
+/// precision subtitles actually carry, and an integer the editable field can
+/// round-trip without float-formatting artifacts (design D3).
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncDetectionDto {
+    pub offset_ms: i32,
+    /// A whole percentage `0..=100`, matching `MatchOperationDto::confidence`.
+    /// Shown rather than thresholded on: blocking on a confidence value would
+    /// invent product policy the crate makes no claim about.
+    pub confidence: u32,
+    /// Analysis warnings, coded rather than raw: the crate assembles English
+    /// prose at runtime, so it travels as an `ErrorDto`'s `message` under the
+    /// stable `sync.detection_warning` code the frontend localizes (design D7).
+    pub warnings: Vec<ErrorDto>,
+}
+
+/// What applying the offset wrote.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncApplyResultDto {
+    pub output_path: String,
+    /// Whether the write replaced a file that was already there — true only
+    /// after the user confirmed the overwrite, since the command refuses
+    /// otherwise (design D5).
+    pub overwritten: bool,
+}

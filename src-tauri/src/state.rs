@@ -21,6 +21,7 @@ pub struct AppState {
     config_service: Arc<dyn ConfigService>,
     match_state: Arc<MatchState>,
     convert_state: Arc<ConvertState>,
+    sync_state: Arc<SyncState>,
 }
 
 impl AppState {
@@ -29,6 +30,7 @@ impl AppState {
             config_service,
             match_state: Arc::new(MatchState::default()),
             convert_state: Arc::new(ConvertState::default()),
+            sync_state: Arc::new(SyncState::default()),
         }
     }
 
@@ -58,6 +60,11 @@ impl AppState {
     /// The convert wizard's backend-owned plan storage.
     pub fn convert_state(&self) -> Arc<ConvertState> {
         Arc::clone(&self.convert_state)
+    }
+
+    /// The sync wizard's single running-detection slot.
+    pub fn sync_state(&self) -> Arc<SyncState> {
+        Arc::clone(&self.sync_state)
     }
 }
 
@@ -400,6 +407,214 @@ impl ConvertState {
     #[cfg(test)]
     pub async fn is_running(&self) -> bool {
         self.inner.lock().await.converting
+    }
+}
+
+/// Backend-owned sync wizard state: at most one running detection, nothing else.
+///
+/// Deliberately smaller than its two siblings, because the sync flow carries a
+/// single number from detection to apply rather than a plan (design D1): there
+/// is nothing to store, invalidate or take, so this holds only the guard. The
+/// guard itself is [`MatchState`]'s — reserve before spawning, abort on cancel,
+/// and refuse to hand back a result whose epoch a cancel has since bumped.
+#[derive(Default)]
+pub struct SyncState {
+    inner: Mutex<SyncInner>,
+}
+
+#[derive(Default)]
+struct SyncInner {
+    /// The single detection slot, reserved *before* the task is spawned so a
+    /// losing concurrent caller never decodes any audio.
+    detecting: bool,
+    /// The running detection's abort handle, set once the task is spawned.
+    running: Option<AbortHandle>,
+    /// Bumped by `cancel`. A detection that reserved epoch `E` may only return
+    /// its result while the epoch is still `E`, so a cancel that lands while
+    /// VAD is finishing discards the result instead of racing the UI.
+    epoch: u64,
+}
+
+impl SyncState {
+    /// Reserves the single detection slot, returning the current epoch, or
+    /// `Err` if one is already reserved.
+    pub async fn try_begin_detection(&self) -> Result<u64, ()> {
+        let mut inner = self.inner.lock().await;
+        if inner.detecting {
+            return Err(());
+        }
+        inner.detecting = true;
+        Ok(inner.epoch)
+    }
+
+    /// Records the spawned detection's abort handle, **or aborts the task** if
+    /// a cancel already claimed its epoch.
+    ///
+    /// Reserving the slot and registering the handle cannot be one lock —
+    /// `tokio::spawn` sits between them — so a `cancel_sync_detection` can land
+    /// in the gap, find `running == None`, and abort nothing. The epoch is what
+    /// makes that gap safe: a task whose epoch is gone is already abandoned, so
+    /// it is aborted here rather than adopted. Adopting it would be worse than
+    /// leaking it, because a *newer* detection may already own the slot and its
+    /// handle would be silently replaced, leaving that run uncancellable.
+    pub async fn set_running(&self, epoch: u64, handle: AbortHandle) {
+        let mut inner = self.inner.lock().await;
+        if inner.epoch == epoch {
+            inner.running = Some(handle);
+        } else {
+            handle.abort();
+        }
+    }
+
+    /// Releases the detection slot without publishing a result (error paths).
+    ///
+    /// Epoch-guarded for the same reason as [`Self::commit`]: an abandoned
+    /// detection must not free a slot it no longer owns.
+    pub async fn finish_detection(&self, epoch: u64) {
+        let mut inner = self.inner.lock().await;
+        if inner.epoch != epoch {
+            return;
+        }
+        inner.detecting = false;
+        inner.running = None;
+    }
+
+    /// Releases the slot and reports whether the result may still be shown —
+    /// i.e. whether the epoch this detection reserved is still current.
+    ///
+    /// A stale epoch releases *nothing*. The slot it would otherwise clear may
+    /// belong to a newer detection that started after the cancel, and clearing
+    /// it would both discard that run's abort handle and let a third start
+    /// alongside it.
+    pub async fn commit(&self, epoch: u64) -> bool {
+        let mut inner = self.inner.lock().await;
+        if inner.epoch != epoch {
+            return false;
+        }
+        inner.detecting = false;
+        inner.running = None;
+        true
+    }
+
+    /// Aborts any running detection and advances the epoch, so a result already
+    /// past the abort point cannot be returned to a user who cancelled.
+    ///
+    /// The abort alone is not enough: `tokio::task::AbortHandle` takes effect at
+    /// an `.await` point, and VAD's decode/inference loop is CPU-bound between
+    /// them. The epoch is what makes the user-visible contract — a cancelled
+    /// detection never surfaces a result — independent of when the task
+    /// actually stops (design D2).
+    pub async fn cancel(&self) {
+        let mut inner = self.inner.lock().await;
+        inner.detecting = false;
+        if let Some(handle) = inner.running.take() {
+            handle.abort();
+        }
+        inner.epoch = inner.epoch.wrapping_add(1);
+    }
+
+    /// Whether a detection is currently reserved or running. Test-facing.
+    #[cfg(test)]
+    pub async fn is_running(&self) -> bool {
+        let inner = self.inner.lock().await;
+        inner.detecting || inner.running.is_some()
+    }
+}
+
+#[cfg(test)]
+mod sync_state_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn a_detection_that_was_not_cancelled_may_publish_its_result() {
+        let state = SyncState::default();
+        let epoch = state.try_begin_detection().await.unwrap();
+
+        assert!(state.commit(epoch).await);
+        assert!(!state.is_running().await, "commit releases the slot");
+    }
+
+    /// The cancel race: a cancel between VAD finishing and the command reading
+    /// the result bumps the epoch, so the abandoned detection stays abandoned.
+    #[tokio::test]
+    async fn a_result_is_discarded_when_a_cancel_bumped_the_epoch() {
+        let state = SyncState::default();
+        let epoch = state.try_begin_detection().await.unwrap();
+        state.cancel().await;
+
+        assert!(!state.commit(epoch).await);
+    }
+
+    #[tokio::test]
+    async fn a_reserved_slot_rejects_a_second_detection() {
+        let state = SyncState::default();
+        let epoch = state.try_begin_detection().await.unwrap();
+
+        assert!(state.try_begin_detection().await.is_err());
+
+        state.finish_detection(epoch).await;
+        assert!(!state.is_running().await);
+        assert!(state.try_begin_detection().await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn cancelling_aborts_the_running_task() {
+        let state = SyncState::default();
+        let epoch = state.try_begin_detection().await.unwrap();
+        let task = tokio::spawn(std::future::pending::<()>());
+        state.set_running(epoch, task.abort_handle()).await;
+
+        state.cancel().await;
+
+        assert!(task.await.unwrap_err().is_cancelled());
+        assert!(!state.is_running().await);
+    }
+
+    /// The gap between reserving the slot and registering the handle: a cancel
+    /// landing there has nothing to abort, so registration must abort the task
+    /// itself rather than hand it a slot it no longer owns.
+    #[tokio::test]
+    async fn a_task_registered_after_its_cancel_is_aborted_not_adopted() {
+        let state = SyncState::default();
+        let epoch = state.try_begin_detection().await.unwrap();
+        state.cancel().await;
+
+        let task = tokio::spawn(std::future::pending::<()>());
+        state.set_running(epoch, task.abort_handle()).await;
+
+        assert!(task.await.unwrap_err().is_cancelled());
+        assert!(
+            !state.is_running().await,
+            "an abandoned task must not occupy the slot"
+        );
+    }
+
+    /// The other half: once a newer detection owns the slot, the abandoned one
+    /// must not release it on the way out — doing so would discard the new
+    /// run's abort handle and let a third detection start alongside it.
+    #[tokio::test]
+    async fn an_abandoned_detection_cannot_release_a_newer_ones_slot() {
+        let state = SyncState::default();
+        let abandoned = state.try_begin_detection().await.unwrap();
+        state.cancel().await;
+
+        let current = state.try_begin_detection().await.unwrap();
+        let running = tokio::spawn(std::future::pending::<()>());
+        state.set_running(current, running.abort_handle()).await;
+
+        // Both of the abandoned run's exits, neither of which may touch the slot.
+        assert!(!state.commit(abandoned).await);
+        state.finish_detection(abandoned).await;
+
+        assert!(state.is_running().await, "the newer detection still holds the slot");
+        assert!(
+            state.try_begin_detection().await.is_err(),
+            "no third detection may start alongside it"
+        );
+
+        // And the newer run is still cancellable — its handle survived.
+        state.cancel().await;
+        assert!(running.await.unwrap_err().is_cancelled());
     }
 }
 

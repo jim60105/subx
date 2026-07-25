@@ -111,7 +111,7 @@ function backendErrorCodes(): { codes: Set<string>; hints: Set<string> } {
     // Literal codes and hint codes written out in full, e.g.
     // `const CONNECTION_TEST_HINT: &str = "config.connection_test.hint";`
     for (const match of source.matchAll(
-      /"((?:core|config|match|convert)\.[a-z_]+(?:\.hint)?)"/g,
+      /"((?:core|config|match|convert|sync)\.[a-z_]+(?:\.hint)?)"/g,
     )) {
       (match[1].endsWith(".hint") ? hints : codes).add(match[1]);
     }

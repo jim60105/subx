@@ -19,7 +19,7 @@ interface TaskDefinition {
 const TASKS: TaskDefinition[] = [
   { id: "match", icon: <MatchIcon />, screen: "match" },
   { id: "convert", icon: <ConvertIcon />, screen: "convert" },
-  { id: "sync", icon: <SyncIcon /> },
+  { id: "sync", icon: <SyncIcon />, screen: "sync" },
   { id: "translate", icon: <TranslateIcon /> },
 ];
 

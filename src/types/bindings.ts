@@ -39,6 +39,17 @@ export const commands = {
 	executeConversion: (planId: string, itemIds: number[], onProgress: Channel<ConvertProgress>) => __TAURI_INVOKE<ConversionReportDto>("execute_conversion", { planId, itemIds, onProgress }),
 	/**  Stops a running batch before its next file and discards the pending plan. */
 	cancelConversion: () => __TAURI_INVOKE<null>("cancel_conversion"),
+	/**  Reads the shared configuration's sync settings for Step 2's controls. */
+	getSyncDefaults: () => __TAURI_INVOKE<SyncDefaultsDto>("get_sync_defaults"),
+	/**
+	 *  Runs a cancellable local VAD detection over the pair and returns the offset,
+	 *  its confidence, and any warnings the analysis produced.
+	 */
+	detectSyncOffset: (mediaPath: string, subtitlePath: string, sensitivity: number | null) => __TAURI_INVOKE<SyncDetectionDto>("detect_sync_offset", { mediaPath, subtitlePath, sensitivity }),
+	/**  Abandons a running detection (design D2). */
+	cancelSyncDetection: () => __TAURI_INVOKE<null>("cancel_sync_detection"),
+	/**  Shifts the subtitle by the reviewed offset and saves it to a new file. */
+	applySyncOffset: (subtitlePath: string, offsetMs: number, outputPath: string | null, overwrite: boolean) => __TAURI_INVOKE<SyncApplyResultDto>("apply_sync_offset", { subtitlePath, offsetMs, outputPath, overwrite }),
 };
 
 /* Types */
@@ -369,4 +380,71 @@ export type SourceScanResult = {
 	videoCount: number,
 	subtitleCount: number,
 };
+
+/**  What applying the offset wrote. */
+export type SyncApplyResultDto = {
+	outputPath: string,
+	/**
+	 *  Whether the write replaced a file that was already there — true only
+	 *  after the user confirmed the overwrite, since the command refuses
+	 *  otherwise (design D5).
+	 */
+	overwritten: boolean,
+};
+
+/**
+ *  The shared configuration's sync settings, as Step 2 needs them (design D4).
+ * 
+ *  Read-only: the sensitivity the user moves for one run is sent along with the
+ *  detect call and never written back to the configuration file.
+ */
+export type SyncDefaultsDto = {
+	defaultMethod: SyncMethodDto,
+	/**
+	 *  `sync.vad.sensitivity` as a whole percentage `0..=100`, not the crate's
+	 *  `0.0..=1.0` `f32` — the same choice `MatchOperationDto::confidence`
+	 *  makes, and for one more reason here: specta exports an `f32` as
+	 *  `number | null`, because NaN and the infinities serialize as JSON null.
+	 *  That is honest about `f32`, and it is not a thing a sensitivity slider
+	 *  should have to handle. Lower is stricter.
+	 */
+	vadSensitivity: number,
+	/**
+	 *  `sync.max_offset_seconds`, in milliseconds to match every other offset
+	 *  on this boundary (design D3).
+	 */
+	maxOffsetMs: number,
+};
+
+/**
+ *  What one detection found, for the review step.
+ * 
+ *  `offset_ms` is the crate's `f32` seconds rounded to whole milliseconds — the
+ *  precision subtitles actually carry, and an integer the editable field can
+ *  round-trip without float-formatting artifacts (design D3).
+ */
+export type SyncDetectionDto = {
+	offsetMs: number,
+	/**
+	 *  A whole percentage `0..=100`, matching `MatchOperationDto::confidence`.
+	 *  Shown rather than thresholded on: blocking on a confidence value would
+	 *  invent product policy the crate makes no claim about.
+	 */
+	confidence: number,
+	/**
+	 *  Analysis warnings, coded rather than raw: the crate assembles English
+	 *  prose at runtime, so it travels as an `ErrorDto`'s `message` under the
+	 *  stable `sync.detection_warning` code the frontend localizes (design D7).
+	 */
+	warnings: ErrorDto[],
+};
+
+/**
+ *  How the sync wizard obtains its offset.
+ * 
+ *  The crate's `sync.default_method` has three values, but only `manual` is a
+ *  distinct *choice* here: `auto` and `vad` both route to the same local VAD
+ *  detection inside `SyncEngine`, so the wizard offers one automatic option.
+ */
+export type SyncMethodDto = "auto" | "manual";
 

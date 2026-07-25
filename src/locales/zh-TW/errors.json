@@ -38,7 +38,14 @@
     "convert.stale_plan": "這份轉換計畫已經過期。",
     "convert.conversion_in_progress": "已經有一項轉換正在執行。",
     "convert.already_target_format": "已經是目標格式。",
-    "convert.output_collision": "另一個檔案已經會寫入這個路徑。"
+    "convert.output_collision": "另一個檔案已經會寫入這個路徑。",
+    "sync.vad_unavailable": "這台電腦目前無法使用自動偵測。",
+    "sync.detection_in_progress": "已經有一項偵測正在執行。",
+    "sync.detection_cancelled": "偵測已取消。",
+    "sync.offset_exceeds_max": "這個偏移量超過你設定允許的範圍。",
+    "sync.output_exists": "該路徑已經有檔案存在。",
+    "sync.output_is_input": "輸出路徑會覆蓋正在同步的那份字幕。",
+    "sync.detection_warning": "分析完成，但有需要留意的地方。"
   },
   "hints": {
     "core.retry": "請再試一次。如果持續失敗，請查看技術細節。",
@@ -65,6 +72,10 @@
     "match.stale_plan.hint": "請重新執行分析以建立新的配對計畫。",
     "match.execution_locked.hint": "請等待另一項操作結束後再試一次。",
     "convert.no_subtitles.hint": "請加入資料夾、字幕檔，或內含字幕的壓縮檔。",
-    "convert.stale_plan.hint": "請返回上一步重新準備轉換。"
+    "convert.stale_plan.hint": "請返回上一步重新準備轉換。",
+    "sync.vad_unavailable.hint": "請返回上一步改為自行輸入偏移量。",
+    "sync.offset_exceeds_max.hint": "請改用較小的偏移量，或在設定檔中調高 sync.max_offset_seconds。",
+    "sync.output_exists.hint": "請改選其他路徑，或確認要覆蓋既有檔案。",
+    "sync.output_is_input.hint": "請選擇與所選字幕不同的輸出路徑。"
   }
 }

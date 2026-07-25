@@ -23,9 +23,13 @@ import { ExecuteStep } from "../features/match/ExecuteStep";
 import { ReviewStep } from "../features/match/ReviewStep";
 import { SourcesStep } from "../features/match/SourcesStep";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
+import { SyncApplyStep } from "../features/sync/SyncApplyStep";
+import { SyncDetectStep } from "../features/sync/SyncDetectStep";
+import { SyncInputsStep } from "../features/sync/SyncInputsStep";
+import { SyncMethodStep } from "../features/sync/SyncMethodStep";
 import { ThemeProvider } from "../theme/ThemeProvider";
 import { i18n, renderWithI18n, setupI18n } from "../test/renderWithI18n";
-import type { ConfigDto, ConvertPlanDto, MatchPlanDto } from "../types/ipc";
+import type { ConfigDto, ConvertPlanDto, MatchPlanDto, SyncDefaultsDto } from "../types/ipc";
 
 const CONFIG: ConfigDto = {
   ai: {
@@ -148,6 +152,13 @@ const EMPTY_CONVERT_PLAN: ConvertPlanDto = {
   items: [],
 };
 
+/** The sync steps' seed values; all three are numbers, never prose. */
+const SYNC_DEFAULTS: SyncDefaultsDto = {
+  defaultMethod: "auto",
+  vadSensitivity: 0.5,
+  maxOffsetMs: 60_000,
+};
+
 /**
  * Every screen that exists today. `add-match-wizard` extends this list with its
  * four step components — the wizard host itself has window/dialog side effects
@@ -254,6 +265,74 @@ const SCREENS = [
           convertError={undefined}
           onConvert={() => {}}
           onCancel={() => {}}
+          onRestart={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "SyncInputsStep",
+    render: () =>
+      renderWithI18n(
+        <SyncInputsStep
+          mediaPath={null}
+          subtitlePath={null}
+          onBrowseMedia={() => {}}
+          onBrowseSubtitle={() => {}}
+          onClearMedia={() => {}}
+          onClearSubtitle={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "SyncMethodStep",
+    render: () =>
+      renderWithI18n(
+        <SyncMethodStep
+          method="manual"
+          hasMedia={false}
+          defaults={SYNC_DEFAULTS}
+          defaultsError={undefined}
+          sensitivity={0.5}
+          offsetMs={0}
+          offsetExceedsMax={false}
+          onMethodChange={() => {}}
+          onSensitivityChange={() => {}}
+          onOffsetChange={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "SyncDetectStep",
+    render: () =>
+      renderWithI18n(
+        <SyncDetectStep
+          method="manual"
+          defaults={SYNC_DEFAULTS}
+          isDetecting={false}
+          detection={null}
+          detectError={undefined}
+          offsetMs={0}
+          offsetExceedsMax={false}
+          onOffsetChange={() => {}}
+          onCancel={() => {}}
+          onRetry={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "SyncApplyStep",
+    render: () =>
+      renderWithI18n(
+        <SyncApplyStep
+          offsetMs={0}
+          outputPath=""
+          isApplying={false}
+          applyResult={null}
+          applyError={undefined}
+          canConfirmOverwrite={false}
+          onOutputPathChange={() => {}}
+          onApply={() => {}}
+          onConfirmOverwrite={() => {}}
           onRestart={() => {}}
         />,
       ),

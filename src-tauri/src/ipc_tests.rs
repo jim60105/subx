@@ -28,7 +28,7 @@ use crate::state::AppState;
 /// `mock_context` starts with an empty ACL, so every command under test has to
 /// be allowed explicitly. `the_allowlist_matches_the_declaration` keeps this
 /// list from drifting away from the builder.
-const COMMANDS: [&str; 12] = [
+const COMMANDS: [&str; 16] = [
     "ping",
     "get_config",
     "set_config_value",
@@ -41,6 +41,10 @@ const COMMANDS: [&str; 12] = [
     "preview_conversion",
     "execute_conversion",
     "cancel_conversion",
+    "get_sync_defaults",
+    "detect_sync_offset",
+    "cancel_sync_detection",
+    "apply_sync_offset",
 ];
 
 /// A mock app carrying the real command registration over the given service.
@@ -314,6 +318,83 @@ fn cancel_conversion_answers_over_ipc() {
         invoke(&webview(&app), "cancel_conversion", json!({})).expect("cancel must succeed");
 
     assert_eq!(response, Value::Null);
+}
+
+/// `get_sync_defaults` crosses the boundary with the camel-cased shape Step 2
+/// reads, offsets in milliseconds and the method as its serialized variant.
+// @covers sync-workflow/method-selection-seeded-from-shared-configuration#defaults-come-from-the-shared-configuration
+#[test]
+fn get_sync_defaults_answers_over_ipc_with_camel_cased_fields() {
+    let app = app_with(service_with_key());
+
+    let response =
+        invoke(&webview(&app), "get_sync_defaults", json!({})).expect("the defaults must be read");
+
+    assert_eq!(response["defaultMethod"], "auto");
+    assert!(response["vadSensitivity"].is_number(), "{response}");
+    assert!(response["maxOffsetMs"].is_number(), "{response}");
+}
+
+/// `apply_sync_offset` deserializes its camel-cased arguments — including the
+/// explicit `null` output path that means "use the default `_synced` name" —
+/// and crosses back an `ErrorDto` for a subtitle that is not there.
+#[test]
+fn apply_sync_offset_deserializes_its_arguments_over_ipc() {
+    let app = app_with(service_with_key());
+
+    let error = invoke(
+        &webview(&app),
+        "apply_sync_offset",
+        json!({
+            "subtitlePath": "/does/not/exist.srt",
+            "offsetMs": 1000,
+            "outputPath": null,
+            "overwrite": false,
+        }),
+    )
+    .expect_err("a missing subtitle must be rejected");
+
+    // The arguments were accepted — the failure is the crate's, reported through
+    // the shared `core.*` mapping rather than a deserialization complaint.
+    assert!(
+        error["code"].as_str().is_some_and(|code| code.starts_with("core.")),
+        "the arguments must deserialize before the crate reports the real failure: {error}"
+    );
+}
+
+/// `cancel_sync_detection` reaches the webview and resolves with no payload
+/// even when nothing is running — cancelling twice must be harmless.
+#[test]
+fn cancel_sync_detection_answers_over_ipc() {
+    let app = app_with(service_with_key());
+
+    let response =
+        invoke(&webview(&app), "cancel_sync_detection", json!({})).expect("cancel must succeed");
+
+    assert_eq!(response, Value::Null);
+}
+
+/// `detect_sync_offset` deserializes its camel-cased pair and its optional
+/// per-run sensitivity, and reports a failure as an `ErrorDto`.
+#[test]
+fn detect_sync_offset_deserializes_its_arguments_over_ipc() {
+    let app = app_with(service_with_key());
+
+    let error = invoke(
+        &webview(&app),
+        "detect_sync_offset",
+        json!({
+            "mediaPath": "/does/not/exist.mkv",
+            "subtitlePath": "/does/not/exist.srt",
+            "sensitivity": 75,
+        }),
+    )
+    .expect_err("a missing pair must be rejected");
+
+    assert!(
+        error["code"].is_string(),
+        "the arguments must deserialize before the real failure is reported: {error}"
+    );
 }
 
 /// An unregistered command must be rejected, which is what makes the

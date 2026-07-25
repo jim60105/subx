@@ -1,0 +1,119 @@
+.sync-detect {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sync-detect__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sync-detect__title {
+  margin: 0;
+  font-size: var(--text-xl);
+  color: var(--text-primary);
+}
+
+.sync-detect__description {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.sync-detect__running {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.sync-detect__status {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.sync-detect__spinner {
+  width: 2rem;
+  height: 2rem;
+  background: var(--accent-gradient);
+  border-radius: var(--radius-pill);
+  animation: sync-detect-pulse 1.4s var(--ease-out) infinite;
+}
+
+@keyframes sync-detect-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sync-detect__spinner {
+    animation: none;
+  }
+}
+
+.sync-detect__error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.sync-detect__button {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  background: var(--surface-hover);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.sync-detect__button--primary {
+  color: var(--text-on-accent);
+  background: var(--accent-gradient-strong);
+  border-color: transparent;
+}
+
+.sync-detect__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  padding: var(--space-3);
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.sync-detect__fact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sync-detect__fact-name {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.sync-detect__fact-value {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  color: var(--text-primary);
+}

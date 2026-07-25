@@ -18,6 +18,18 @@ export async function pickFiles(): Promise<string[]> {
   return Array.isArray(selection) ? selection : [selection];
 }
 
+/**
+ * Opens the native picker for exactly one file. `null` when cancelled.
+ *
+ * Distinct from [`pickFiles`] rather than a caller-side "take the first":
+ * the sync wizard fills two single-file slots, and a dialog that lets the user
+ * select five files only to silently keep one is a dialog that lied.
+ */
+export async function pickFile(): Promise<string | null> {
+  const selection = await open({ multiple: false, directory: false });
+  return typeof selection === "string" ? selection : null;
+}
+
 /** Opens the native picker for a single folder. Empty when cancelled. */
 export async function pickFolder(): Promise<string[]> {
   const selection = await open({ directory: true, multiple: false });

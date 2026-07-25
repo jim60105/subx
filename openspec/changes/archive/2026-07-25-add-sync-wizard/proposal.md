@@ -8,7 +8,7 @@ Out-of-sync subtitles are the everyday pain SubX's `sync` command solves — loc
 
 ## What Changes
 
-- Add Tauri commands `detect_sync_offset`, `cancel_sync_detection`, and `apply_sync_offset` in the thin command layer, delegating to the crate: `FormatManager` for subtitle load/save and `SyncEngine` (`detect_sync_offset()` for VAD analysis, `apply_manual_offset()` for the shift).
+- Add Tauri commands `get_sync_defaults`, `detect_sync_offset`, `cancel_sync_detection`, and `apply_sync_offset` in the thin command layer, delegating to the crate: `FormatManager` for subtitle load/save and `SyncEngine` (`detect_sync_offset()` for VAD analysis; the offset shift is mirrored in the command layer rather than taken from `apply_manual_offset()`, see design D6). `get_sync_defaults` is the read-only command that seeds Step 2's controls from the shared configuration (design D4).
 - Add the Sync wizard UI on top of `WizardShell` as a four-step flow:
   - **Step 1 — Inputs**: pick one video (or audio) file and one subtitle file via drag-and-drop or browse; subtitle-only is allowed and restricts the flow to manual offset.
   - **Step 2 — Method**: automatic detection (local VAD, offline — with an optional per-run sensitivity override) or manual offset entry, validated against the configured `sync.max_offset_seconds`.
@@ -29,7 +29,7 @@ Out-of-sync subtitles are the everyday pain SubX's `sync` command solves — loc
 
 ## Impact
 
-- Backend: new `commands/sync.rs`; `state.rs` gains a `SyncState` (single running-detection slot with epoch, mirroring `MatchState`'s guard — no plan storage needed, the reviewed value is just a number); `dto.rs` gains `SyncDetectionDto`, `SyncApplyResultDto` and option DTOs; error mapping extended with `sync.*` codes.
+- Backend: new `commands/sync.rs`; `state.rs` gains a `SyncState` (single running-detection slot with epoch, mirroring `MatchState`'s guard — no plan storage needed, the reviewed value is just a number); `dto.rs` gains `SyncMethodDto`, `SyncDefaultsDto`, `SyncDetectionDto` and `SyncApplyResultDto`; error mapping extended with `sync.*` codes.
 - Frontend: new `features/sync/` (four step components inside `WizardShell`, state hook, `syncApi.ts`); `ScreenId` gains `"sync"`; home hub card wired; new locale namespace `sync`; new screens registered in `hardCodedStrings.test.tsx`.
 - Uses `subx-cli` crate APIs: `SyncEngine::new(SyncConfig)`, `detect_sync_offset()`, `apply_manual_offset()`, `FormatManager::load_subtitle()`/`save_subtitle()`. VAD (Silero via the `voice_activity_detector` crate) is bundled and offline — no model download, no network. No `subx-cli` changes.
 - `src/types/bindings.ts` regenerated; every new command registered in `bindings.rs` and the IPC test allowlist.

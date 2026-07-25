@@ -68,6 +68,30 @@ describe("app shell", () => {
     expect(screen.getByRole("heading", { name: "What would you like to do?" })).toBeInTheDocument();
   });
 
+  it("opens the sync wizard from the hub and returns", async () => {
+    // The sync wizard reads the shared config's sync settings on mount.
+    mockIPC((command) => {
+      if (command === "get_sync_defaults") {
+        return { defaultMethod: "auto", vadSensitivity: 40, maxOffsetMs: 60_000 };
+      }
+      throw new Error(`unexpected command: ${command}`);
+    });
+
+    renderWithI18n(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Sync timing/ }));
+    expect(
+      screen.getByRole("heading", { name: "Choose the video and subtitle" }),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Back/ }));
+    expect(screen.getByRole("heading", { name: "What would you like to do?" })).toBeInTheDocument();
+  });
+
   it("opens settings from the header and returns to the hub", async () => {
     mockIPC((command) => {
       if (command === "get_config") {

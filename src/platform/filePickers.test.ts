@@ -8,7 +8,7 @@ vi.mock("@tauri-apps/api/webview", () => ({ getCurrentWebview: vi.fn() }));
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open } from "@tauri-apps/plugin-dialog";
 
-import { pickFiles, pickFolder, subscribeToDroppedPaths } from "./filePickers";
+import { pickFile, pickFiles, pickFolder, subscribeToDroppedPaths } from "./filePickers";
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -28,6 +28,16 @@ describe("the native pickers", () => {
   it("returns nothing when the file picker is cancelled", async () => {
     vi.mocked(open).mockResolvedValue(null);
     await expect(pickFiles()).resolves.toEqual([]);
+  });
+
+  it("returns the one chosen file", async () => {
+    vi.mocked(open).mockResolvedValue("/only.srt");
+    await expect(pickFile()).resolves.toBe("/only.srt");
+  });
+
+  it("returns null when the single-file picker is cancelled", async () => {
+    vi.mocked(open).mockResolvedValue(null);
+    await expect(pickFile()).resolves.toBeNull();
   });
 
   it("returns the chosen folder", async () => {

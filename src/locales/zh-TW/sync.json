@@ -1,0 +1,85 @@
+{
+  "steps": {
+    "inputs": "檔案",
+    "method": "方式",
+    "detect": "偏移",
+    "apply": "儲存"
+  },
+  "inputs": {
+    "title": "選擇影片與字幕",
+    "description": "同步一次處理一組檔案。可以將檔案拖曳到視窗任一處，或是點選瀏覽。",
+    "dropzone": "將影片與字幕拖曳到這裡",
+    "media": {
+      "label": "影片或音訊",
+      "hint": "用來對照字幕時間軸的聲音來源。",
+      "empty": "尚未選擇媒體檔案。",
+      "browse": "選擇影片",
+      "clear": "移除影片"
+    },
+    "subtitle": {
+      "label": "字幕",
+      "hint": "要調整時間軸的檔案。",
+      "empty": "尚未選擇字幕。",
+      "browse": "選擇字幕",
+      "clear": "移除字幕"
+    },
+    "subtitleOnly": "沒有影片或音訊就無從分析，因此這次只能自行輸入偏移量。",
+    "continue": "繼續"
+  },
+  "method": {
+    "title": "要如何取得偏移量？",
+    "description": "偵測完全在這台電腦上執行，不需帳號、不連網路，也不會產生費用。",
+    "legend": "偏移量取得方式",
+    "auto": {
+      "name": "自動偵測",
+      "hint": "聆聽媒體檔案中的語音，再與字幕時間軸比對。",
+      "needsMedia": "請先加入影片或音訊檔案才能偵測。"
+    },
+    "manual": {
+      "name": "自行輸入",
+      "hint": "以你已知的數值平移每一句字幕。"
+    },
+    "sensitivity": {
+      "label": "語音靈敏度",
+      "value": "{{percent}}%",
+      "hint": "數值越低越嚴格：較安靜的段落比較不會被判定為語音。",
+      "perRun": "此設定僅套用於這次執行，不會變更你已儲存的設定。"
+    },
+    "back": "上一步",
+    "continue": "繼續"
+  },
+  "detect": {
+    "title": "確認偏移量",
+    "description": "下方數值就是實際會套用的值。若結果接近但不夠精準，可以直接調整。",
+    "running": "正在分析音訊…… {{seconds}} 秒",
+    "cancel": "取消",
+    "retry": "重試",
+    "detected": "偵測到的偏移量",
+    "confidence": "信心度",
+    "confidenceValue": "{{percent}}%",
+    "back": "上一步",
+    "continue": "繼續"
+  },
+  "offset": {
+    "label": "偏移量（毫秒）",
+    "seconds": "{{seconds}} 秒",
+    "hint": "正值會延後字幕出現，負值則會提前。",
+    "exceedsMax": "此數值超過設定中的 {{limit}} 秒上限，請調小後再繼續。"
+  },
+  "apply": {
+    "title": "儲存同步後的字幕",
+    "summary": "每一句字幕都會平移 {{seconds}} 秒。",
+    "outputLabel": "儲存至",
+    "originalKept": "你選擇的檔案不會被更動，平移後的副本會寫入上方路徑。",
+    "start": "儲存",
+    "applying": "儲存中……",
+    "confirmOverwrite": "覆蓋既有檔案",
+    "back": "上一步",
+    "report": {
+      "title": "已儲存",
+      "written": "已寫入",
+      "overwritten": "已覆蓋一個既有檔案。",
+      "finish": "完成"
+    }
+  }
+}

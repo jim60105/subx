@@ -38,16 +38,28 @@ describe("home task-entry hub", () => {
     expect(onOpenTask).toHaveBeenCalledWith("convert");
   });
 
+  it("opens the sync wizard from its card", async () => {
+    const onOpenTask = vi.fn();
+    renderWithI18n(<HomeScreen onOpenTask={onOpenTask} />);
+
+    const sync = screen.getByRole("button", { name: /Sync timing/ });
+    expect(sync).toBeEnabled();
+    await userEvent.click(sync);
+
+    expect(onOpenTask).toHaveBeenCalledWith("sync");
+  });
+
   // @covers app-shell/desktop-application-launches-with-the-home-task-entry-hub#unimplemented-features-are-visibly-disabled
   it("marks unimplemented tasks as coming soon and does not navigate", async () => {
     const onOpenTask = vi.fn();
     renderWithI18n(<HomeScreen onOpenTask={onOpenTask} />);
 
-    const sync = screen.getByRole("button", { name: /Sync timing/ });
-    expect(sync).toBeDisabled();
-    expect(sync).toHaveTextContent("Coming soon");
+    // Translate is the last card still to be built; the other three now open.
+    const translate = screen.getByRole("button", { name: /Translate/ });
+    expect(translate).toBeDisabled();
+    expect(translate).toHaveTextContent("Coming soon");
 
-    await userEvent.click(sync);
+    await userEvent.click(translate);
 
     expect(onOpenTask).not.toHaveBeenCalled();
   });

@@ -5,6 +5,7 @@ mod error;
 #[cfg(test)]
 mod ipc_tests;
 pub mod platform;
+mod paths;
 mod state;
 
 use std::sync::Arc;

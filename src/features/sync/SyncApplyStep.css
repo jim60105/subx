@@ -1,0 +1,113 @@
+.sync-apply {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sync-apply__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sync-apply__title {
+  margin: 0;
+  font-size: var(--text-xl);
+  color: var(--text-primary);
+}
+
+.sync-apply__summary {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.sync-apply__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sync-apply__field-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sync-apply__input {
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  background: var(--surface-hover);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.sync-apply__note {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.sync-apply__actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.sync-apply__button {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  background: var(--surface-hover);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.sync-apply__button--primary {
+  color: var(--text-on-accent);
+  background: var(--accent-gradient-strong);
+  border-color: transparent;
+}
+
+.sync-apply__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.sync-apply__error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.sync-apply__report {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--success-surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.sync-apply__report-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--text-primary);
+}
+
+.sync-apply__report-path {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.sync-apply__report-flag {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}

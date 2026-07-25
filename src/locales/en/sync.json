@@ -1,0 +1,85 @@
+{
+  "steps": {
+    "inputs": "Files",
+    "method": "Method",
+    "detect": "Offset",
+    "apply": "Save"
+  },
+  "inputs": {
+    "title": "Choose the video and subtitle",
+    "description": "Sync works on one pair at a time. Drop the files anywhere on this window or browse for them.",
+    "dropzone": "Drop a video and a subtitle here",
+    "media": {
+      "label": "Video or audio",
+      "hint": "The soundtrack the subtitle is measured against.",
+      "empty": "No media file chosen.",
+      "browse": "Choose video",
+      "clear": "Remove video"
+    },
+    "subtitle": {
+      "label": "Subtitle",
+      "hint": "The file whose timing will be shifted.",
+      "empty": "No subtitle chosen.",
+      "browse": "Choose subtitle",
+      "clear": "Remove subtitle"
+    },
+    "subtitleOnly": "Without a video or audio file there is nothing to analyse, so this run is limited to entering an offset yourself.",
+    "continue": "Continue"
+  },
+  "method": {
+    "title": "How should the offset be found?",
+    "description": "Detection runs entirely on this computer. No account, no network request, no cost.",
+    "legend": "Offset method",
+    "auto": {
+      "name": "Detect it automatically",
+      "hint": "Listens for speech in the media file and compares it with the subtitle timing.",
+      "needsMedia": "Add a video or audio file to enable detection."
+    },
+    "manual": {
+      "name": "Enter it myself",
+      "hint": "Shift every cue by an amount you already know."
+    },
+    "sensitivity": {
+      "label": "Speech sensitivity",
+      "value": "{{percent}}%",
+      "hint": "Lower is stricter: quieter passages are less likely to count as speech.",
+      "perRun": "This applies to this run only and does not change your saved settings."
+    },
+    "back": "Back",
+    "continue": "Continue"
+  },
+  "detect": {
+    "title": "Review the offset",
+    "description": "The value below is what will be applied. Adjust it if the result is close but not exact.",
+    "running": "Analysing the audio… {{seconds}}s",
+    "cancel": "Cancel",
+    "retry": "Try again",
+    "detected": "Detected offset",
+    "confidence": "Confidence",
+    "confidenceValue": "{{percent}}%",
+    "back": "Back",
+    "continue": "Continue"
+  },
+  "offset": {
+    "label": "Offset in milliseconds",
+    "seconds": "{{seconds}} seconds",
+    "hint": "A positive value delays the subtitles; a negative one makes them appear sooner.",
+    "exceedsMax": "This is beyond the {{limit}} second limit in your settings. Reduce it to continue."
+  },
+  "apply": {
+    "title": "Save the synced subtitle",
+    "summary": "Every cue will move by {{seconds}} seconds.",
+    "outputLabel": "Save to",
+    "originalKept": "The file you selected is never changed; the shifted copy is written to the path above.",
+    "start": "Save",
+    "applying": "Saving…",
+    "confirmOverwrite": "Replace the existing file",
+    "back": "Back",
+    "report": {
+      "title": "Saved",
+      "written": "Written to",
+      "overwritten": "An existing file was replaced.",
+      "finish": "Finish"
+    }
+  }
+}

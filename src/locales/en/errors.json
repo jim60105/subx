@@ -38,7 +38,14 @@
     "convert.stale_plan": "This conversion plan is out of date.",
     "convert.conversion_in_progress": "A conversion is already running.",
     "convert.already_target_format": "Already in the target format.",
-    "convert.output_collision": "Another file already writes to this path."
+    "convert.output_collision": "Another file already writes to this path.",
+    "sync.vad_unavailable": "Automatic detection is unavailable on this system.",
+    "sync.detection_in_progress": "A detection is already running.",
+    "sync.detection_cancelled": "The detection was cancelled.",
+    "sync.offset_exceeds_max": "That offset is larger than your settings allow.",
+    "sync.output_exists": "A file already exists at that path.",
+    "sync.output_is_input": "The output would replace the subtitle being synced.",
+    "sync.detection_warning": "The analysis finished with a warning."
   },
   "hints": {
     "core.retry": "Try the action again. If it keeps failing, check the technical details.",
@@ -65,6 +72,10 @@
     "match.stale_plan.hint": "Run the analysis again to build a fresh plan.",
     "match.execution_locked.hint": "Wait for the other operation to finish, then try again.",
     "convert.no_subtitles.hint": "Add a folder, a subtitle file or an archive that contains subtitles.",
-    "convert.stale_plan.hint": "Go back and prepare the conversion again."
+    "convert.stale_plan.hint": "Go back and prepare the conversion again.",
+    "sync.vad_unavailable.hint": "Go back and enter the offset yourself instead.",
+    "sync.offset_exceeds_max.hint": "Use a smaller offset, or raise sync.max_offset_seconds in your configuration.",
+    "sync.output_exists.hint": "Choose another path, or confirm replacing the existing file.",
+    "sync.output_is_input.hint": "Pick an output path different from the subtitle you selected."
   }
 }
