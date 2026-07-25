@@ -14,8 +14,8 @@ jobs:
     name: Frontend (typecheck + coverage)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
@@ -27,7 +27,7 @@ jobs:
     name: Backend (tests + coverage)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Tauri system dependencies
         run: |
           sudo apt-get update
@@ -40,7 +40,7 @@ jobs:
       # Only so the drift gate below can run the same npm script `npm run
       # verify` does, rather than a second copy of the command that could drift
       # from it. No `npm ci`: the script shells out to cargo and git.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
       - uses: dtolnay/rust-toolchain@stable
@@ -63,8 +63,8 @@ jobs:
     name: Spec-to-test traceability
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
       # No install step: the checker depends only on the Node standard library,
