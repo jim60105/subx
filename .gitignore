@@ -31,4 +31,5 @@ dist
 # Coverage reports
 coverage
 lcov.info
+junit.xml
 .agents/

@@ -41,6 +41,7 @@ export default defineConfig(async () => ({
     include: ["src/**/*.{test,spec}.{ts,tsx}", "scripts/**/*.test.ts"],
     coverage: {
       provider: "v8",
+      reporter: ["text", "json", "html", "lcov", "clover"],
       // Measure every first-party file, even one no test imports, so a new
       // untested module lowers the number instead of vanishing from it.
       all: true,

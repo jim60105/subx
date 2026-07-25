@@ -20,7 +20,7 @@ describe("continuous integration runs every gate", () => {
   it("invokes the four gate commands", () => {
     // Frontend coverage, backend coverage, traceability, bindings drift.
     expect(WORKFLOW).toMatch(/npm run test:coverage/);
-    expect(WORKFLOW).toMatch(/cargo cov/);
+    expect(WORKFLOW).toMatch(/cargo (cov|llvm-cov nextest)/);
     expect(WORKFLOW).toMatch(/node scripts\/check-spec-coverage\.mjs/);
     expect(WORKFLOW).toMatch(/npm run bindings:check/);
   });
@@ -47,6 +47,20 @@ describe("continuous integration runs every gate", () => {
     for (const step of setupNodeSteps!) {
       expect(step).toMatch(/node-version:\s*['"]?lts\/\*['"]?/);
     }
+  });
+
+  // @covers verification-gates/continuous-integration-runs-every-gate#continuous-integration-publishes-frontend-and-backend-coverage-to-codecov
+  it("uploads frontend and backend coverage reports to Codecov", () => {
+    expect(WORKFLOW).toMatch(/flags:\s*frontend/);
+    expect(WORKFLOW).toMatch(/flags:\s*backend/);
+    expect(WORKFLOW).toMatch(/codecov\/codecov-action@v5/);
+  });
+
+  // @covers verification-gates/continuous-integration-runs-every-gate#continuous-integration-publishes-frontend-and-backend-test-results-to-codecov
+  it("uploads frontend and backend test results to Codecov", () => {
+    expect(WORKFLOW).toMatch(/report_type:\s*test_results/);
+    expect(WORKFLOW).toMatch(/outputFile\.junit=junit\.xml/);
+    expect(WORKFLOW).toMatch(/src-tauri\/target\/nextest\/default\/junit\.xml/);
   });
 });
 

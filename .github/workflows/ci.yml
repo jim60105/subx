@@ -21,7 +21,24 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx tsc --noEmit
-      - run: npm run test:coverage
+      - run: npm run test:coverage -- --reporter=default --reporter=junit --outputFile.junit=junit.xml
+      - name: Upload frontend coverage to Codecov
+        uses: codecov/codecov-action@v5
+        if: ${{ !cancelled() }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+      - name: Upload frontend test results to Codecov
+        uses: codecov/codecov-action@v5
+        if: ${{ !cancelled() }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./junit.xml
+          flags: frontend
+          report_type: test_results
+          name: frontend-test-results
 
   backend:
     name: Backend (tests + coverage)
@@ -50,9 +67,27 @@ jobs:
         with:
           workspaces: src-tauri
       - uses: taiki-e/install-action@cargo-llvm-cov
+      - uses: taiki-e/install-action@nextest
       - name: Backend coverage gate
         working-directory: src-tauri
-        run: cargo cov
+        run: cargo llvm-cov nextest --lib --lcov --output-path lcov.info --fail-under-lines 85 --fail-under-functions 85 --fail-under-regions 85 --ignore-filename-regex "(^|/)(main|lib)\.rs$|/rustlib/"
+      - name: Upload backend coverage to Codecov
+        uses: codecov/codecov-action@v5
+        if: ${{ !cancelled() }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./src-tauri/lcov.info
+          flags: backend
+          name: backend-coverage
+      - name: Upload backend test results to Codecov
+        uses: codecov/codecov-action@v5
+        if: ${{ !cancelled() }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./src-tauri/target/nextest/default/junit.xml
+          flags: backend
+          report_type: test_results
+          name: backend-test-results
       # A step in this job rather than a job of its own: regenerating the
       # bindings compiles the `tauri` crate, so a separate job would pay this
       # job's apt-install and build cost a second time for one `git diff`.
