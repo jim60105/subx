@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 'lts/*'
           cache: npm
       - run: npm ci
       - run: npx tsc --noEmit
@@ -42,7 +42,7 @@ jobs:
       # from it. No `npm ci`: the script shells out to cargo and git.
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 'lts/*'
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: llvm-tools-preview
@@ -66,7 +66,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 'lts/*'
       # No install step: the checker depends only on the Node standard library,
       # so this is the gate contributors trip most often and it returns first.
       - run: node scripts/check-spec-coverage.mjs

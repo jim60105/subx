@@ -8,7 +8,7 @@ The Rust backend is a thin translation layer over `subx-cli`. Subtitle logic and
 
 ## Build & Validation
 
-Requires Node 20 and a stable Rust toolchain. Building on Linux requires `libwebkit2gtk-4.1-dev`, `libappindicator3-dev`, `librsvg2-dev`, `patchelf`, and `libgtk-3-dev`.
+Requires Node Current LTS (lts/*) and a stable Rust toolchain. Building on Linux requires `libwebkit2gtk-4.1-dev`, `libappindicator3-dev`, `librsvg2-dev`, `patchelf`, and `libgtk-3-dev`.
 
 ```bash
 npm install                # always first

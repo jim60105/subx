@@ -42,7 +42,7 @@ SubX 為 [subx-cli](https://github.com/jim60105/subx-cli) 提供桌面圖形使�
 
 建構 SubX 需要下列環境與套件：
 
-- Node 20 或更高版本
+- Node Current LTS 或更高版本
 - Rust 穩定版工具鏈
 - Linux 系統相依套件 — `libwebkit2gtk-4.1-dev`、`libappindicator3-dev`、`librsvg2-dev`、`patchelf`、`libgtk-3-dev`
 

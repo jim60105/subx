@@ -42,7 +42,7 @@ Features for subtitle synchronization (Sync wizard) and translation (Translate w
 
 Building SubX requires:
 
-- Node 20 or higher
+- Node Current LTS (or higher)
 - Rust stable toolchain
 - Linux system dependencies: `libwebkit2gtk-4.1-dev`, `libappindicator3-dev`, `librsvg2-dev`, `patchelf`, `libgtk-3-dev`
 

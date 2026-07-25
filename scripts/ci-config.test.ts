@@ -38,4 +38,15 @@ describe("continuous integration runs every gate", () => {
     // No `|| true` swallowing a gate's failure.
     expect(WORKFLOW).not.toMatch(/\|\|\s*true/);
   });
+
+  // @covers verification-gates/continuous-integration-runs-every-gate#ci-steps-pin-node-js-to-current-lts
+  it("configures setup-node steps with Current LTS", () => {
+    const setupNodeSteps = WORKFLOW.match(/uses:\s*actions\/setup-node@v\d+[\s\S]*?(?=\n\s*-\s|\n\s*jobs:|$)/g);
+    expect(setupNodeSteps).not.toBeNull();
+    expect(setupNodeSteps?.length).toBeGreaterThan(0);
+    for (const step of setupNodeSteps!) {
+      expect(step).toMatch(/node-version:\s*['"]?lts\/\*['"]?/);
+    }
+  });
 });
+
