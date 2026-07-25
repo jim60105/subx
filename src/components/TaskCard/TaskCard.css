@@ -15,12 +15,14 @@
   transition:
     transform var(--motion-base) var(--ease-out),
     border-color var(--motion-base) var(--ease-out),
-    background-color var(--motion-base) var(--ease-out);
+    background-color var(--motion-base) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out);
 }
 
 .task-card:not(:disabled):hover {
   background: var(--surface-hover);
-  border-color: color-mix(in srgb, var(--accent-from) 45%, transparent);
+  border-color: var(--surface-border-hover);
+  box-shadow: var(--shadow-panel), var(--shadow-glow);
   transform: translateY(-3px);
 }
 

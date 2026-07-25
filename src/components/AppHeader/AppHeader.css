@@ -4,7 +4,10 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-4) var(--space-6);
+  background: var(--surface);
+  backdrop-filter: var(--surface-blur);
   border-bottom: 1px solid var(--surface-border);
+  box-shadow: var(--shadow-panel);
 }
 
 .app-header__brand {
@@ -31,10 +34,14 @@
   background: var(--surface);
   border: 1px solid var(--surface-border);
   border-radius: var(--radius-md);
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
 }
 
 .app-header__back:hover {
   background: var(--surface-hover);
+  border-color: var(--surface-border-hover);
 }
 
 .app-header__controls {
@@ -51,9 +58,14 @@
   background: var(--surface);
   border: 1px solid var(--surface-border);
   border-radius: var(--radius-md);
+  transition:
+    color var(--motion-fast) var(--ease-out),
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
 }
 
 .app-header__settings:hover {
   color: var(--accent-text);
   background: var(--surface-hover);
+  border-color: var(--surface-border-hover);
 }

@@ -1,5 +1,5 @@
 /*
- * Theme tokens — the "neon gradient" visual identity.
+ * Theme tokens — official Rust programming language brand visual identity.
  *
  * Every colour, radius, shadow and motion value the UI uses is declared here as
  * a CSS custom property. Components must never hard-code a colour: the theme
@@ -8,17 +8,15 @@
  */
 
 :root {
-  /* Brand gradient — identical in both themes. */
-  --accent-from: #7c3aed;
-  --accent-to: #06b6d4;
+  /* Brand gradient — official Rust programming language brand palette. */
+  --accent-from: #e05d26;
+  --accent-to: #b7410e;
   --accent-gradient: linear-gradient(135deg, var(--accent-from), var(--accent-to));
   /*
-   * Same identity, darkened cyan endpoint — the only variant allowed to carry
-   * text. White on `--accent-to` reaches 2.43:1, well under AA, and the cyan
-   * end of the plain gradient is equally illegible as clipped text on a light
-   * background. Decorative surfaces keep `--accent-gradient` unchanged.
+   * Same identity, tuned Rust orange endpoint to ensure WCAG AA 4.5:1
+   * contrast for --text-on-accent (#ffffff).
    */
-  --accent-gradient-strong: linear-gradient(135deg, var(--accent-from), #0e7490);
+  --accent-gradient-strong: linear-gradient(135deg, #c64916, var(--accent-to));
   --accent-gradient-soft: linear-gradient(
     135deg,
     color-mix(in srgb, var(--accent-from) 18%, transparent),
@@ -57,28 +55,29 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Dark theme: deep-navy base with glassmorphism panels. */
+/* Dark theme: mdBook deep charcoal base with glassmorphism panels. */
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --bg-base: #0d1021;
+  --bg-base: #141518;
   --bg-gradient:
-    radial-gradient(ellipse 80% 60% at 15% -10%, rgba(124, 58, 237, 0.22), transparent 60%),
-    radial-gradient(ellipse 70% 55% at 90% 0%, rgba(6, 182, 212, 0.16), transparent 60%);
+    radial-gradient(ellipse 80% 60% at 15% -10%, rgba(224, 93, 38, 0.22), transparent 60%),
+    radial-gradient(ellipse 70% 55% at 90% 0%, rgba(183, 65, 14, 0.16), transparent 60%);
 
   --surface: rgba(255, 255, 255, 0.045);
   --surface-hover: rgba(255, 255, 255, 0.075);
   --surface-border: rgba(255, 255, 255, 0.1);
+  --surface-border-hover: rgba(224, 93, 38, 0.4);
   --surface-blur: blur(18px);
 
   --text-primary: #e9ebf7;
   --text-secondary: #a7adcd;
-  --text-muted: #7d83a6;
+  --text-muted: #858ab1;
   --text-on-accent: #ffffff;
 
   /* Accent tuned for legible text/icons against the dark base. */
-  --accent-text: #a78bfa;
-  --focus-ring: #22d3ee;
+  --accent-text: #ff8c5a;
+  --focus-ring: #e05d26;
 
   /* Outcome colours; the surfaces are tinted panels behind them. */
   --danger: #fb7185;
@@ -87,31 +86,33 @@
   --success-surface: rgba(52, 211, 153, 0.12);
 
   --shadow-panel: 0 18px 44px rgba(0, 0, 0, 0.45);
-  --shadow-raised: 0 12px 30px rgba(124, 58, 237, 0.28);
+  --shadow-glow: 0 0 24px rgba(224, 93, 38, 0.25);
+  --shadow-raised: 0 12px 30px rgba(224, 93, 38, 0.28);
 }
 
-/* Light theme: same gradient identity on light neutrals. */
+/* Light theme: warm parchment neutral with Rust brand accents. */
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --bg-base: #f5f6fb;
+  --bg-base: #f9f8f6;
   --bg-gradient:
-    radial-gradient(ellipse 80% 60% at 15% -10%, rgba(124, 58, 237, 0.12), transparent 60%),
-    radial-gradient(ellipse 70% 55% at 90% 0%, rgba(6, 182, 212, 0.1), transparent 60%);
+    radial-gradient(ellipse 80% 60% at 15% -10%, rgba(224, 93, 38, 0.12), transparent 60%),
+    radial-gradient(ellipse 70% 55% at 90% 0%, rgba(183, 65, 14, 0.1), transparent 60%);
 
   --surface: rgba(255, 255, 255, 0.85);
   --surface-hover: #ffffff;
-  --surface-border: rgba(13, 16, 33, 0.1);
+  --surface-border: rgba(20, 21, 24, 0.1);
+  --surface-border-hover: rgba(224, 93, 38, 0.35);
   --surface-blur: blur(14px);
 
-  --text-primary: #14162b;
+  --text-primary: #141518;
   --text-secondary: #4a5070;
   --text-muted: #5f6585;
   --text-on-accent: #ffffff;
 
-  /* Cyan is too low-contrast for text on white; violet carries accent text. */
-  --accent-text: #6d28d9;
-  --focus-ring: #7c3aed;
+  /* Terracotta carries accent text on light backgrounds for AA contrast. */
+  --accent-text: #b7410e;
+  --focus-ring: #e05d26;
 
   /* Darkened against white so the text keeps its contrast ratio. */
   --danger: #be123c;
@@ -119,6 +120,7 @@
   --success: #047857;
   --success-surface: rgba(4, 120, 87, 0.08);
 
-  --shadow-panel: 0 14px 34px rgba(13, 16, 33, 0.1);
-  --shadow-raised: 0 12px 26px rgba(124, 58, 237, 0.18);
+  --shadow-panel: 0 14px 34px rgba(20, 21, 24, 0.1);
+  --shadow-glow: 0 0 20px rgba(224, 93, 38, 0.18);
+  --shadow-raised: 0 12px 26px rgba(224, 93, 38, 0.18);
 }

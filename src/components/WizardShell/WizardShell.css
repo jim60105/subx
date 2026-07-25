@@ -97,12 +97,16 @@
   border: 1px solid var(--surface-border);
   border-radius: var(--radius-md);
   transition:
+    transform var(--motion-fast) var(--ease-out),
     background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out),
     opacity var(--motion-fast) var(--ease-out);
 }
 
 .wizard__button:not(:disabled):hover {
   background: var(--surface-hover);
+  border-color: var(--surface-border-hover);
 }
 
 .wizard__button--primary {
@@ -110,6 +114,13 @@
   background: var(--accent-gradient-strong);
   border-color: transparent;
   box-shadow: var(--shadow-raised);
+}
+
+.wizard__button--primary:not(:disabled):hover {
+  background: var(--accent-gradient-strong);
+  border-color: transparent;
+  box-shadow: var(--shadow-raised), var(--shadow-glow);
+  transform: translateY(-1px);
 }
 
 .wizard__button:disabled {

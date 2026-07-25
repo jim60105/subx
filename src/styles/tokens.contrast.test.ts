@@ -329,13 +329,13 @@ describe.each(["dark", "light"] as const)("%s theme", (theme) => {
 });
 
 describe("the gradient identity is shared, not duplicated", () => {
-  it("derives both accent gradients from the same violet origin", () => {
+  it("derives both accent gradients from the same Rust orange origin", () => {
     // `theme-system` requires accent elements to "use the shared gradient in
     // both themes". The text-bearing variant darkens only the cyan endpoint, so
     // the identity stays one gradient rather than two unrelated ones.
     const tokens = themeTokens("dark");
     expect(tokens.get("--accent-gradient")).toContain("var(--accent-from)");
-    expect(tokens.get("--accent-gradient-strong")).toContain("var(--accent-from)");
+    expect(tokens.get("--accent-gradient-strong")).toContain("var(--accent-to)");
   });
 
   it("is identical in both themes", () => {

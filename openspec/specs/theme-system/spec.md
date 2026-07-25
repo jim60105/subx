@@ -8,7 +8,7 @@ The application's visual identity and theming behaviour: a dark and a light them
 
 ### Requirement: Dual light/dark themes with neon-gradient identity
 
-The application SHALL provide a dark theme and a light theme sharing the same visual identity: violet `#7c3aed` → cyan `#06b6d4` gradient accents. The dark theme SHALL use the deep-navy base `#0d1021` with glassmorphism-styled panels. All theme values SHALL be exposed as CSS custom properties so components never hard-code colors.
+The application SHALL provide a dark theme and a light theme sharing the official Rust programming language brand identity: Rust orange `#e05d26` → terracotta `#b7410e` gradient accents. The dark theme SHALL use the mdBook deep charcoal base `#141518` with glassmorphism-styled panels. All theme values SHALL be exposed as CSS custom properties so components never hard-code colors.
 
 #### Scenario: Both themes render every shell screen
 
