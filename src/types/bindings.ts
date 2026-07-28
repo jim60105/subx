@@ -50,6 +50,28 @@ export const commands = {
 	cancelSyncDetection: () => __TAURI_INVOKE<null>("cancel_sync_detection"),
 	/**  Shifts the subtitle by the reviewed offset and saves it to a new file. */
 	applySyncOffset: (subtitlePath: string, offsetMs: number, outputPath: string | null, overwrite: boolean) => __TAURI_INVOKE<SyncApplyResultDto>("apply_sync_offset", { subtitlePath, offsetMs, outputPath, overwrite }),
+	/**
+	 *  Scans the given sources for the Step 1 cue-count preview, and hands back
+	 *  the configured default target language for Step 2 to prefill.
+	 * 
+	 *  Takes no options on purpose — see [`TranslateScanResult`].
+	 */
+	listTranslateInputs: (paths: string[]) => __TAURI_INVOKE<TranslateScanResult>("list_translate_inputs", { paths }),
+	/**
+	 *  Resolves every output path and glossary entry for the chosen options and
+	 *  stores the resulting plan, returning it for review in Step 2.
+	 */
+	previewTranslation: (paths: string[], options: TranslateOptionsDto) => __TAURI_INVOKE<TranslatePlanDto>("preview_translation", { paths, options }),
+	/**
+	 *  Translates exactly the selected items of a plan, reporting per-file
+	 *  progress over `on_progress`, and returns each item's outcome.
+	 */
+	executeTranslation: (planId: string, itemIds: number[], onProgress: Channel<TranslateProgress>) => __TAURI_INVOKE<TranslationReportDto>("execute_translation", { planId, itemIds, onProgress }),
+	/**
+	 *  Signals a running batch to stop after its in-flight file and discards the
+	 *  pending plan (design D3).
+	 */
+	cancelTranslation: () => __TAURI_INVOKE<null>("cancel_translation"),
 };
 
 /* Types */
@@ -447,4 +469,170 @@ export type SyncDetectionDto = {
  *  detection inside `SyncEngine`, so the wizard offers one automatic option.
  */
 export type SyncMethodDto = "auto" | "manual";
+
+/**
+ *  One planned translation, referenced by the frontend via `id` only.
+ * 
+ *  `cue_count` gives Step 1 its cost preview before any AI request is sent.
+ *  `id` is the item's index in the backend-held plan. `skip_reason` carries a
+ *  stable code (`translate.unparsable`, `translate.replace_archive_forbidden`,
+ *  `translate.output_collision`, `translate.output_exists`) when the item
+ *  cannot run; such items are excluded from execution (design D1, D4).
+ */
+export type TranslateItemDto = {
+	id: number,
+	inputName: string,
+	inputPath: string,
+	outputPath: string,
+	cueCount: number,
+	outputExists: boolean,
+	skipReason: string | null,
+};
+
+/**
+ *  The options a translation preview is computed from.
+ * 
+ *  `target_language` is optional for the same reason `ConvertOptionsDto`'s
+ *  `target_format` is: a `null` resolves `translation.default_target_language`
+ *  from the shared configuration (design D5), and the resulting plan echoes
+ *  back what was used. `overwrite` is a plan-level toggle (design D4): off,
+ *  a suffix-mode item whose output already exists is excluded; on, it is
+ *  re-included. It has no effect in replace mode, which is gated by the
+ *  backup setting and the archive prohibition instead.
+ */
+export type TranslateOptionsDto = {
+	targetLanguage: string | null,
+	sourceLanguage: string | null,
+	context: string | null,
+	/**
+	 *  `source = target` (or `source -> target`) lines, one per entry; parsed
+	 *  with the crate's public `parse_glossary_text()` at execution time.
+	 */
+	glossaryText: string | null,
+	outputMode: TranslateOutputModeDto,
+	overwrite: boolean,
+};
+
+/**
+ *  Where a translation run writes its output (design Context, D4).
+ * 
+ *  `Suffix` is the default: `<stem>.<target-language>.<ext>` beside the input
+ *  (beside the originating archive for extracted files). `Replace` writes the
+ *  input path itself and is refused for archive-extracted subtitles.
+ */
+export type TranslateOutputModeDto = "suffix" | "replace";
+
+/**
+ *  The plan Step 2 renders, returned by `preview_translation`.
+ * 
+ *  `plan_id` ties a later `execute_translation` back to this exact preview; a
+ *  newer preview replaces it and the old id becomes stale (design D1).
+ */
+export type TranslatePlanDto = {
+	planId: string,
+	/**
+	 *  The language actually used, including when the request left it to the
+	 *  configuration (design D5).
+	 */
+	targetLanguage: string,
+	outputMode: TranslateOutputModeDto,
+	items: TranslateItemDto[],
+};
+
+/**
+ *  A progress message pushed over the execution `Channel`.
+ * 
+ *  Per file, never finer: `translate_subtitle` reports nothing from inside
+ *  itself (progress prints go to stderr, invisible here), so a percentage
+ *  would be invented (design Non-Goals).
+ */
+export type TranslateProgress = {
+	stage: TranslateStage,
+	/**  1-based position of `file_name` in the batch; equals `total` on `Finished`. */
+	index: number,
+	total: number,
+	fileName: string,
+};
+
+/**
+ *  One subtitle the Step 1 scan found, with the cost preview it exists for.
+ * 
+ *  `unparsable` is the scan-time equivalent of the plan's
+ *  `translate.unparsable` skip reason: the file is listed rather than dropped,
+ *  but it contributes no cues and will not run.
+ */
+export type TranslateScanItemDto = {
+	name: string,
+	cueCount: number,
+	unparsable: boolean,
+};
+
+/**
+ *  What Step 1 renders, returned by `list_translate_inputs`.
+ * 
+ *  Deliberately option-free: the scan exists so the wizard can show the size
+ *  of the coming AI job *before* the options step, and the target language —
+ *  which a plan cannot be resolved without — is only entered there. Folding
+ *  the scan into `preview_translation` would make Step 1 depend on a value the
+ *  user has no way to supply yet, dead-ending the wizard whenever
+ *  `translation.default_target_language` is unset.
+ * 
+ *  `default_target_language` carries the configured default up to Step 2 so
+ *  that step can prefill its input without a plan having been built first.
+ */
+export type TranslateScanResult = {
+	files: TranslateScanItemDto[],
+	defaultTargetLanguage: string | null,
+};
+
+/**  Where a batch is, as reported to Step 3 (design D3). */
+export type TranslateStage = "translating" | 
+/**
+ *  The batch stopped, whether it finished or was cancelled. The report the
+ *  command resolves with is what says which.
+ */
+"finished";
+
+/**  One item's outcome in the Step 4 report. */
+export type TranslationOutcomeDto = {
+	inputName: string,
+	outputPath: string,
+	status: TranslationStatusDto,
+	/**
+	 *  Present only when replace mode created a backup copy before writing
+	 *  (design D2).
+	 */
+	backupPath: string | null,
+	/**  Why the item failed, localizable through the shared error path. */
+	error: ErrorDto | null,
+	/**
+	 *  A non-fatal problem — today only the engine's empty-cue-fallback signal
+	 *  under `translate.empty_cue_fallback`, which the crate discards and the
+	 *  GUI must not, since it would otherwise misstate what the output holds
+	 *  (design D6).
+	 */
+	warning: ErrorDto | null,
+};
+
+/**  The final report returned by `execute_translation`. */
+export type TranslationReportDto = {
+	outcomes: TranslationOutcomeDto[],
+	successCount: number,
+	failureCount: number,
+	/**
+	 *  True when the user stopped the batch; the `Cancelled` outcomes are the
+	 *  items that were never started or were interrupted mid-translation.
+	 */
+	cancelled: boolean,
+};
+
+/**  What became of one item in the batch. */
+export type TranslationStatusDto = "translated" | "failed" | 
+/**  Excluded by the plan (`skip_reason`) and refused by the executor. */
+"skipped" | 
+/**
+ *  Never started, or interrupted mid-translation: the batch was cancelled
+ *  before this item finished (design D3).
+ */
+"cancelled";
 

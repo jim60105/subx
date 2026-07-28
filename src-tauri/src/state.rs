@@ -11,7 +11,7 @@ use std::sync::Arc;
 use subx_cli::cli::CollectedFiles;
 use subx_cli::config::ConfigService;
 use subx_cli::core::matcher::{MatchEngine, MatchOperation};
-use tokio::sync::Mutex;
+use tokio::sync::{watch, Mutex};
 use tokio::task::AbortHandle;
 
 /// Application-wide managed state container.
@@ -22,6 +22,7 @@ pub struct AppState {
     match_state: Arc<MatchState>,
     convert_state: Arc<ConvertState>,
     sync_state: Arc<SyncState>,
+    translate_state: Arc<TranslateState>,
 }
 
 impl AppState {
@@ -31,6 +32,7 @@ impl AppState {
             match_state: Arc::new(MatchState::default()),
             convert_state: Arc::new(ConvertState::default()),
             sync_state: Arc::new(SyncState::default()),
+            translate_state: Arc::new(TranslateState::default()),
         }
     }
 
@@ -65,6 +67,11 @@ impl AppState {
     /// The sync wizard's single running-detection slot.
     pub fn sync_state(&self) -> Arc<SyncState> {
         Arc::clone(&self.sync_state)
+    }
+
+    /// The translate wizard's backend-owned plan storage.
+    pub fn translate_state(&self) -> Arc<TranslateState> {
+        Arc::clone(&self.translate_state)
     }
 }
 
@@ -518,6 +525,294 @@ impl SyncState {
     pub async fn is_running(&self) -> bool {
         let inner = self.inner.lock().await;
         inner.detecting || inner.running.is_some()
+    }
+}
+
+/// Backend-owned translate wizard state: at most one plan, at most one batch.
+///
+/// Shaped like [`ConvertState`] (single plan/execution slot, epoch-guarded
+/// commit) but cancellation is signalled through a `watch::Sender<bool>`
+/// rather than an `AtomicBool`: the executor races each file's translation
+/// against `Receiver::changed()`, and `watch` — unlike `Notify` — cannot lose
+/// that signal if `cancel` lands before the executor starts waiting, because a
+/// fresh `Receiver::borrow()` always reflects the latest sent value (design D3).
+#[derive(Default)]
+pub struct TranslateState {
+    inner: Mutex<TranslateInner>,
+}
+
+#[derive(Default)]
+struct TranslateInner {
+    /// The single execution slot, reserved *before* the batch starts so a
+    /// losing concurrent caller translates nothing.
+    translating: bool,
+    /// The running batch's cancellation channel (design D3). Replaced each run
+    /// so a cancel from a previous batch cannot stop a later one.
+    cancel: Option<watch::Sender<bool>>,
+    /// The single active plan, replaced by each successful preview.
+    plan: Option<TranslatePlan>,
+    /// Bumped by `cancel`, so a preview that was still resolving output paths
+    /// when the user backed out does not install its plan afterwards.
+    epoch: u64,
+}
+
+/// One planned translation: where it reads from, where it will write, and how
+/// many cues it holds (the Step 1 cost preview).
+pub struct TranslatePlanItem {
+    pub input: PathBuf,
+    pub output: PathBuf,
+    pub cue_count: u32,
+    /// Whether `output` already existed at preview time (design D4). Only
+    /// meaningful in suffix mode; replace mode leaves this `false`.
+    pub output_exists: bool,
+    /// Stable reason code when the item is excluded from execution
+    /// (`translate.unparsable`, `translate.replace_archive_forbidden`,
+    /// `translate.output_collision`, `translate.output_exists`), else `None`.
+    pub skip_reason: Option<String>,
+}
+
+/// A previewed translation run held for execution.
+///
+/// Every option the run needs travels with the plan rather than being
+/// re-sent to `execute_translation` (design D1): `preview_translation` is the
+/// one place that resolves them, so re-previewing with a changed language or
+/// output mode replaces the plan rather than mutating it in place. Owns the
+/// `CollectedFiles` for the same reason `ConvertPlan` does — archive-extracted
+/// inputs live in its temp dirs and must survive until execution reads them.
+pub struct TranslatePlan {
+    id: String,
+    target_language: String,
+    source_language: Option<String>,
+    context: Option<String>,
+    glossary_text: Option<String>,
+    replace_mode: bool,
+    items: Vec<TranslatePlanItem>,
+    collected: CollectedFiles,
+}
+
+impl TranslatePlan {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        target_language: String,
+        source_language: Option<String>,
+        context: Option<String>,
+        glossary_text: Option<String>,
+        replace_mode: bool,
+        items: Vec<TranslatePlanItem>,
+        collected: CollectedFiles,
+    ) -> Self {
+        Self {
+            id: format!("translate-{}", NEXT_PLAN_ID.fetch_add(1, Ordering::Relaxed)),
+            target_language,
+            source_language,
+            context,
+            glossary_text,
+            replace_mode,
+            items,
+            collected,
+        }
+    }
+
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub fn target_language(&self) -> &str {
+        &self.target_language
+    }
+
+    /// Borrows the items, used to build the preview DTO before the plan moves
+    /// into state.
+    pub fn items(&self) -> &[TranslatePlanItem] {
+        &self.items
+    }
+
+    /// Hands back everything a batch needs, including the `CollectedFiles`.
+    ///
+    /// The caller must keep the returned `CollectedFiles` alive across every
+    /// translation `.await`: an archive-sourced item reads from a path inside
+    /// one, and dropping it early deletes the input before it is read.
+    pub fn into_execution(self) -> TranslateExecutionInputs {
+        TranslateExecutionInputs {
+            target_language: self.target_language,
+            source_language: self.source_language,
+            context: self.context,
+            glossary_text: self.glossary_text,
+            replace_mode: self.replace_mode,
+            items: self.items,
+            collected: self.collected,
+        }
+    }
+}
+
+/// Everything [`TranslatePlan::into_execution`] hands the batch executor, as a
+/// named bundle rather than a several-element tuple.
+pub struct TranslateExecutionInputs {
+    pub target_language: String,
+    pub source_language: Option<String>,
+    pub context: Option<String>,
+    pub glossary_text: Option<String>,
+    pub replace_mode: bool,
+    pub items: Vec<TranslatePlanItem>,
+    pub collected: CollectedFiles,
+}
+
+impl TranslateState {
+    /// The epoch a preview should pin itself to, read before it starts working.
+    pub async fn current_epoch(&self) -> u64 {
+        self.inner.lock().await.epoch
+    }
+
+    /// Stores the plan **only if** its epoch is still current — i.e. no `cancel`
+    /// intervened while it was being built. Returns whether it was stored.
+    pub async fn commit_plan(&self, epoch: u64, plan: TranslatePlan) -> bool {
+        let mut inner = self.inner.lock().await;
+        if inner.epoch == epoch {
+            inner.plan = Some(plan);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Removes and returns the active plan if its id matches. A mismatch (or
+    /// absence) means the plan is stale (design D1).
+    pub async fn take_plan_if(&self, plan_id: &str) -> Option<TranslatePlan> {
+        let mut inner = self.inner.lock().await;
+        match &inner.plan {
+            Some(plan) if plan.id == plan_id => inner.plan.take(),
+            _ => None,
+        }
+    }
+
+    /// Reserves the single execution slot, handing back the receiving half of a
+    /// fresh cancellation channel, or `Err` if a batch is already running.
+    ///
+    /// Reserving here — before any file is translated — is what guarantees a
+    /// losing concurrent caller writes nothing at all.
+    pub async fn try_begin_execution(&self) -> Result<watch::Receiver<bool>, ()> {
+        let mut inner = self.inner.lock().await;
+        if inner.translating {
+            return Err(());
+        }
+        inner.translating = true;
+        let (tx, rx) = watch::channel(false);
+        inner.cancel = Some(tx);
+        Ok(rx)
+    }
+
+    /// Releases the execution slot.
+    pub async fn finish_execution(&self) {
+        let mut inner = self.inner.lock().await;
+        inner.translating = false;
+        inner.cancel = None;
+    }
+
+    /// Signals a running batch to stop, discards the pending plan, and advances
+    /// the epoch so an in-flight preview cannot install one (design D3).
+    ///
+    /// Unlike `ConvertState::cancel`, this does not abort a spawned task: the
+    /// batch runs inline in the command's own future, races each file against
+    /// `watch::Receiver::changed()`, and builds its own report — so the running
+    /// invocation resolves normally instead of being torn down.
+    pub async fn cancel(&self) {
+        let mut inner = self.inner.lock().await;
+        if let Some(tx) = &inner.cancel {
+            let _ = tx.send(true);
+        }
+        inner.plan = None;
+        inner.epoch = inner.epoch.wrapping_add(1);
+    }
+
+    /// Whether a batch currently holds the execution slot. Test-facing.
+    #[cfg(test)]
+    pub async fn is_running(&self) -> bool {
+        self.inner.lock().await.translating
+    }
+}
+
+#[cfg(test)]
+mod translate_state_tests {
+    use super::*;
+
+    fn dummy_plan() -> TranslatePlan {
+        TranslatePlan::new(
+            "zh-TW".to_string(),
+            None,
+            None,
+            None,
+            false,
+            Vec::new(),
+            CollectedFiles::new(Vec::new()),
+        )
+    }
+
+    #[tokio::test]
+    async fn a_committed_plan_is_retrievable_by_its_id() {
+        let state = TranslateState::default();
+        let epoch = state.current_epoch().await;
+        let plan = dummy_plan();
+        let id = plan.id().to_string();
+
+        assert!(state.commit_plan(epoch, plan).await);
+        assert!(state.take_plan_if(&id).await.is_some());
+        assert!(
+            state.take_plan_if(&id).await.is_none(),
+            "a plan is executed once; taking it must leave the slot empty"
+        );
+    }
+
+    /// The cancel race: a cancel between the preview finishing and the commit
+    /// bumps the epoch, so the plan the user backed out of is never installed.
+    #[tokio::test]
+    async fn a_plan_is_discarded_when_a_cancel_bumped_the_epoch() {
+        let state = TranslateState::default();
+        let epoch = state.current_epoch().await;
+        state.cancel().await;
+
+        assert!(!state.commit_plan(epoch, dummy_plan()).await);
+    }
+
+    #[tokio::test]
+    async fn a_reserved_slot_rejects_a_second_execution() {
+        let state = TranslateState::default();
+        let rx = state.try_begin_execution().await.expect("the first run reserves the slot");
+
+        assert!(state.try_begin_execution().await.is_err());
+        assert!(!*rx.borrow(), "a fresh run starts uncancelled");
+
+        state.finish_execution().await;
+        assert!(!state.is_running().await);
+        assert!(state.try_begin_execution().await.is_ok());
+    }
+
+    /// Cancelling sets the *running* batch's channel; a batch started afterwards
+    /// gets a fresh one, or every later run would stop immediately.
+    #[tokio::test]
+    async fn cancel_stops_the_running_batch_but_not_the_next_one() {
+        let state = TranslateState::default();
+        let running = state.try_begin_execution().await.unwrap();
+
+        state.cancel().await;
+        assert!(*running.borrow());
+
+        state.finish_execution().await;
+        let next = state.try_begin_execution().await.unwrap();
+        assert!(!*next.borrow());
+    }
+
+    /// A receiver created before the send still observes it: this is the
+    /// property that makes `watch` safe against the lost-wakeup race a
+    /// `Notify`-based signal would have (design D3).
+    #[tokio::test]
+    async fn a_receiver_subscribed_before_the_send_still_sees_it() {
+        let state = TranslateState::default();
+        let mut rx = state.try_begin_execution().await.unwrap();
+
+        state.cancel().await;
+
+        rx.changed().await.expect("the sender is still alive");
+        assert!(*rx.borrow());
     }
 }
 

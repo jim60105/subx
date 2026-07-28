@@ -49,18 +49,15 @@ describe("home task-entry hub", () => {
     expect(onOpenTask).toHaveBeenCalledWith("sync");
   });
 
-  // @covers app-shell/desktop-application-launches-with-the-home-task-entry-hub#unimplemented-features-are-visibly-disabled
-  it("marks unimplemented tasks as coming soon and does not navigate", async () => {
+  it("opens the translate wizard from its card", async () => {
     const onOpenTask = vi.fn();
     renderWithI18n(<HomeScreen onOpenTask={onOpenTask} />);
 
-    // Translate is the last card still to be built; the other three now open.
+    // Translate was the last card to be built; every hub card is now live.
     const translate = screen.getByRole("button", { name: /Translate/ });
-    expect(translate).toBeDisabled();
-    expect(translate).toHaveTextContent("Coming soon");
-
+    expect(translate).toBeEnabled();
     await userEvent.click(translate);
 
-    expect(onOpenTask).not.toHaveBeenCalled();
+    expect(onOpenTask).toHaveBeenCalledWith("translate");
   });
 });

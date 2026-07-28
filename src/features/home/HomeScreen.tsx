@@ -20,7 +20,7 @@ const TASKS: TaskDefinition[] = [
   { id: "match", icon: <MatchIcon />, screen: "match" },
   { id: "convert", icon: <ConvertIcon />, screen: "convert" },
   { id: "sync", icon: <SyncIcon />, screen: "sync" },
-  { id: "translate", icon: <TranslateIcon /> },
+  { id: "translate", icon: <TranslateIcon />, screen: "translate" },
 ];
 
 interface HomeScreenProps {

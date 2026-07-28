@@ -36,6 +36,8 @@ Two CLI-inline facts shape the design: output resolution (`resolve_output_path`,
 
 ### D1: Plan state mirrors convert's, and for the same ownership reason
 
+Step 1 and Step 2 are two commands, as in convert. `list_translate_inputs(paths)` scans the sources for their names and cue counts and reports the configured `translation.default_target_language`; it takes **no options**, because Step 1 runs before Step 2 offers anywhere to type a target language, and a plan cannot be resolved without one — a single fused command would fail Step 1 with `translate.no_target_language` on any install that has not set the configuration default, with no field on screen to fix it.
+
 `preview_translation(paths, options)` collects sources once, parses each file for its cue count (which doubles as early parse validation — unparsable files are flagged in the preview instead of failing mid-run), resolves every output path per the mirrored CLI rules, detects intra-plan output collisions (see below), and stores items + `CollectedFiles` in a `TranslateState` (single active plan, epoch, executor slot). `execute_translation(plan_id, item_ids, channel)` consumes it; stale IDs yield `translate.stale_plan`. The `CollectedFiles` must live in the plan: archive-extracted inputs sit in its temp dirs and are read at execution time. Re-previewing (changed language or output mode re-resolves every path) replaces the plan. The guard machinery is a third copy of the match pattern; if this change lands after convert, extracting a shared `SingleSlotState` helper in `state.rs` is fair game during implementation, but the specs do not require it.
 
 ### D2: The command layer owns the per-file loop; the engine owns everything within a file
@@ -54,7 +56,7 @@ Overwrite protection alone does not cover *intra-plan* collisions: the archive-o
 
 ### D5: Provider and config are resolved at execution start, through the test seam
 
-`service.reload()` first, then the `AiProviderFactory` seam builds the provider once per run; `TranslationEngine::new(provider, translation.batch_size)`. A missing/invalid provider maps to `translate.ai_not_configured` with the Settings hint code — same UX contract as match's equivalent. The engine is constructed before the first file so a configuration problem fails the run in one step, not once per file. Target-language resolution mirrors the CLI's precedence (per-run value, else `translation.default_target_language`, else `translate.no_target_language` — normally unreachable because the UI blocks, but the backend is the boundary).
+`service.reload()` first, then the `AiProviderFactory` seam builds the provider once per run; `TranslationEngine::new(provider, translation.batch_size)`. A missing/invalid provider maps to `translate.ai_not_configured` with the Settings hint code — same UX contract as match's equivalent. The engine is constructed before the first file so a configuration problem fails the run in one step, not once per file. Target-language resolution mirrors the CLI's precedence (per-run value, else `translation.default_target_language`, else `translate.no_target_language`). The UI blocks first and blocks it *on the options step*, where the field lives: Step 2 prefills from the scan's `defaultTargetLanguage` and, while the effective language is still empty, shows `translate.no_target_language` with the next action disabled (D1). The backend keeps enforcing it because it is the boundary, not because the wizard relies on it for the message.
 
 ### D6: Error codes
 

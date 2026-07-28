@@ -1,0 +1,81 @@
+{
+  "steps": {
+    "sources": "來源",
+    "options": "選項",
+    "translate": "翻譯",
+    "report": "結果"
+  },
+  "sources": {
+    "title": "選擇要翻譯的檔案",
+    "description": "加入想要翻譯的字幕。資料夾、單一檔案與壓縮檔都可以。",
+    "dropzone": "將檔案或資料夾拖曳到這裡",
+    "dropHint": "或使用下方按鈕",
+    "browseFiles": "瀏覽檔案",
+    "browseFolder": "瀏覽資料夾",
+    "listLabel": "已選來源",
+    "empty": "尚未加入任何來源。",
+    "remove": "移除 {{name}}",
+    "scan": {
+      "scanning": "正在掃描來源…",
+      "count": "共 {{total}} 句字幕",
+      "cues": "{{count}} 句"
+    },
+    "filesLabel": "找到的字幕檔",
+    "continue": "繼續"
+  },
+  "options": {
+    "title": "設定語言與詞彙表",
+    "description": "以下每個檔案都會顯示翻譯結果實際寫入的位置。",
+    "targetLanguageLabel": "翻譯成",
+    "targetLanguagePlaceholder": "例如：zh-TW",
+    "sourceLanguageLabel": "來源語言（選填）",
+    "sourceLanguagePlaceholder": "留空則自動偵測",
+    "contextLabel": "情境說明（選填）",
+    "contextPlaceholder": "提供翻譯的領域或語氣指引",
+    "glossaryLabel": "詞彙表（選填）",
+    "glossaryPlaceholder": "Alice = 愛麗絲",
+    "glossaryHint": "每行一筆，格式為「來源 = 目標」或「來源 -> 目標」。",
+    "mode": {
+      "label": "輸出方式",
+      "suffix": "以語言後綴建立新檔案",
+      "replace": "取代原始檔案",
+      "replaceNote": "若在設定中開啟備份功能，會先建立備份副本。"
+    },
+    "overwriteToggle": "覆蓋既有檔案",
+    "overwriteHint": "開啟後會重新納入翻譯輸出已存在的檔案。",
+    "terminologyNote": "翻譯時每個檔案還會額外送出一次請求，用來擷取一致的專有名詞。",
+    "previewing": "正在準備預覽…",
+    "listLabel": "預定的翻譯",
+    "selection": "包含 {{name}}",
+    "outputLabel": "將寫入到",
+    "cueCount": "{{count}} 句",
+    "overwrite": "會覆蓋既有檔案",
+    "back": "上一步",
+    "continue": "繼續"
+  },
+  "run": {
+    "title": "開始翻譯",
+    "summary": "已選取 {{count}} 個檔案",
+    "start": "立即翻譯",
+    "starting": "正在開始…",
+    "progress": "正在翻譯第 {{index}} / {{total}} 個 · {{name}}",
+    "elapsed": "已耗時：{{seconds}} 秒",
+    "cancel": "取消",
+    "openSettings": "開啟設定",
+    "restart": "重新開始",
+    "retry": "重試"
+  },
+  "report": {
+    "title": "結果",
+    "summary": "{{success}} 個已翻譯 · {{failure}} 個失敗",
+    "cancelled": "你已停止批次處理，其餘檔案沒有開始翻譯。",
+    "status": {
+      "translated": "已翻譯",
+      "failed": "失敗",
+      "skipped": "已略過",
+      "cancelled": "未開始"
+    },
+    "backupCreated": "備份已儲存到 {{path}}",
+    "finish": "完成"
+  }
+}

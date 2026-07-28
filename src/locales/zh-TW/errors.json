@@ -45,7 +45,18 @@
     "sync.offset_exceeds_max": "這個偏移量超過你設定允許的範圍。",
     "sync.output_exists": "該路徑已經有檔案存在。",
     "sync.output_is_input": "輸出路徑會覆蓋正在同步的那份字幕。",
-    "sync.detection_warning": "分析完成，但有需要留意的地方。"
+    "sync.detection_warning": "分析完成，但有需要留意的地方。",
+    "translate.no_subtitles": "找不到可翻譯的字幕檔。",
+    "translate.no_target_language": "尚未提供目標語言。",
+    "translate.invalid_target_language": "目標語言不可包含路徑分隔符號。",
+    "translate.stale_plan": "這份翻譯計畫已經過期。",
+    "translate.translation_in_progress": "已經有一項翻譯正在執行。",
+    "translate.ai_not_configured": "尚未設定 AI 服務供應商。",
+    "translate.output_exists": "該路徑已經有檔案存在。",
+    "translate.output_collision": "另一個檔案已經會寫入這個路徑。",
+    "translate.replace_archive_forbidden": "從壓縮檔解出的檔案無法就地取代。",
+    "translate.unparsable": "無法解析這個字幕檔。",
+    "translate.empty_cue_fallback": "翻譯結果中有部分字幕行是空白的。"
   },
   "hints": {
     "core.retry": "請再試一次。如果持續失敗，請查看技術細節。",
@@ -76,6 +87,11 @@
     "sync.vad_unavailable.hint": "請返回上一步改為自行輸入偏移量。",
     "sync.offset_exceeds_max.hint": "請改用較小的偏移量，或在設定檔中調高 sync.max_offset_seconds。",
     "sync.output_exists.hint": "請改選其他路徑，或確認要覆蓋既有檔案。",
-    "sync.output_is_input.hint": "請選擇與所選字幕不同的輸出路徑。"
+    "sync.output_is_input.hint": "請選擇與所選字幕不同的輸出路徑。",
+    "translate.no_subtitles.hint": "請加入資料夾、字幕檔，或內含字幕的壓縮檔。",
+    "translate.no_target_language.hint": "請輸入目標語言，或在設定檔中設定 translation.default_target_language。",
+    "translate.invalid_target_language.hint": "請移除目標語言中的 / 或 \\ 字元。",
+    "translate.stale_plan.hint": "請返回上一步重新準備翻譯。",
+    "translate.ai_not_configured.hint": "請開啟設定選擇 AI 服務供應商並填入金鑰。"
   }
 }

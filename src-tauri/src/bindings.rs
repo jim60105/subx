@@ -45,6 +45,10 @@ pub fn specta_builder<R: Runtime>() -> Builder<R> {
             crate::commands::sync::detect_sync_offset,
             crate::commands::sync::cancel_sync_detection,
             crate::commands::sync::apply_sync_offset,
+            crate::commands::translate::list_translate_inputs,
+            crate::commands::translate::preview_translation,
+            crate::commands::translate::execute_translation,
+            crate::commands::translate::cancel_translation,
         ])
         // Still empty. The match wizard reports progress over a per-invocation
         // `tauri::ipc::Channel` (`MatchProgress`), not a `tauri_specta::Event`:

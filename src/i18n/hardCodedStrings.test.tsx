@@ -27,9 +27,20 @@ import { SyncApplyStep } from "../features/sync/SyncApplyStep";
 import { SyncDetectStep } from "../features/sync/SyncDetectStep";
 import { SyncInputsStep } from "../features/sync/SyncInputsStep";
 import { SyncMethodStep } from "../features/sync/SyncMethodStep";
+import { TranslateOptionsStep } from "../features/translate/TranslateOptionsStep";
+import { TranslateReportStep } from "../features/translate/TranslateReportStep";
+import { TranslateRunStep } from "../features/translate/TranslateRunStep";
+import { TranslateSourcesStep } from "../features/translate/TranslateSourcesStep";
 import { ThemeProvider } from "../theme/ThemeProvider";
 import { i18n, renderWithI18n, setupI18n } from "../test/renderWithI18n";
-import type { ConfigDto, ConvertPlanDto, MatchPlanDto, SyncDefaultsDto } from "../types/ipc";
+import type {
+  ConfigDto,
+  ConvertPlanDto,
+  MatchPlanDto,
+  SyncDefaultsDto,
+  TranslatePlanDto,
+  TranslationReportDto,
+} from "../types/ipc";
 
 const CONFIG: ConfigDto = {
   ai: {
@@ -157,6 +168,23 @@ const SYNC_DEFAULTS: SyncDefaultsDto = {
   defaultMethod: "auto",
   vadSensitivity: 0.5,
   maxOffsetMs: 60_000,
+};
+
+/** The translate equivalent: chrome only, no file names to read as prose. */
+const EMPTY_TRANSLATE_PLAN: TranslatePlanDto = {
+  planId: "translate-1",
+  targetLanguage: "zh-TW",
+  outputMode: "suffix",
+  items: [],
+};
+
+/** An empty report: renders the chrome (title, summary, finish) with no
+ * per-item outcome data that would read as untranslated prose. */
+const EMPTY_TRANSLATE_REPORT: TranslationReportDto = {
+  outcomes: [],
+  successCount: 0,
+  failureCount: 0,
+  cancelled: false,
 };
 
 /**
@@ -335,6 +363,69 @@ const SCREENS = [
           onConfirmOverwrite={() => {}}
           onRestart={() => {}}
         />,
+      ),
+  },
+  {
+    name: "TranslateSourcesStep",
+    render: () =>
+      renderWithI18n(
+        <TranslateSourcesStep
+          sources={[]}
+          scan={null}
+          isScanning={false}
+          scanError={undefined}
+          onBrowseFiles={() => {}}
+          onBrowseFolder={() => {}}
+          onRemoveSource={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "TranslateOptionsStep",
+    render: () =>
+      renderWithI18n(
+        <TranslateOptionsStep
+          plan={EMPTY_TRANSLATE_PLAN}
+          isPreviewing={false}
+          previewError={undefined}
+          targetLanguage="zh-TW"
+          sourceLanguage=""
+          context=""
+          glossaryText=""
+          outputMode="suffix"
+          overwrite={false}
+          selectedIds={new Set()}
+          onTargetLanguageChange={() => {}}
+          onSourceLanguageChange={() => {}}
+          onContextChange={() => {}}
+          onGlossaryTextChange={() => {}}
+          onOutputModeChange={() => {}}
+          onOverwriteChange={() => {}}
+          onToggle={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "TranslateRunStep",
+    render: () =>
+      renderWithI18n(
+        <TranslateRunStep
+          selectedCount={0}
+          isTranslating={false}
+          progress={null}
+          translateError={undefined}
+          onTranslate={() => {}}
+          onCancel={() => {}}
+          onOpenSettings={() => {}}
+          onRestart={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "TranslateReportStep",
+    render: () =>
+      renderWithI18n(
+        <TranslateReportStep report={EMPTY_TRANSLATE_REPORT} onFinish={() => {}} />,
       ),
   },
   {

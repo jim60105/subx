@@ -28,7 +28,7 @@ use crate::state::AppState;
 /// `mock_context` starts with an empty ACL, so every command under test has to
 /// be allowed explicitly. `the_allowlist_matches_the_declaration` keeps this
 /// list from drifting away from the builder.
-const COMMANDS: [&str; 16] = [
+const COMMANDS: [&str; 20] = [
     "ping",
     "get_config",
     "set_config_value",
@@ -45,6 +45,10 @@ const COMMANDS: [&str; 16] = [
     "detect_sync_offset",
     "cancel_sync_detection",
     "apply_sync_offset",
+    "list_translate_inputs",
+    "preview_translation",
+    "execute_translation",
+    "cancel_translation",
 ];
 
 /// A mock app carrying the real command registration over the given service.
@@ -395,6 +399,61 @@ fn detect_sync_offset_deserializes_its_arguments_over_ipc() {
         error["code"].is_string(),
         "the arguments must deserialize before the real failure is reported: {error}"
     );
+}
+
+/// `list_translate_inputs` is reachable over IPC with paths alone — no
+/// options object, and in particular no target language, which Step 1 has no
+/// way to supply — and rejects a scan that found nothing translatable.
+// @covers translate-workflow/multi-source-selection-with-cue-count-preview#no-subtitles-block-progress
+#[test]
+fn list_translate_inputs_takes_paths_only_and_rejects_empty_sources() {
+    let app = app_with(service_with_key());
+
+    let error = invoke(&webview(&app), "list_translate_inputs", json!({ "paths": [] }))
+        .expect_err("sources holding no subtitles must be rejected");
+
+    assert_eq!(error["code"], "translate.no_subtitles");
+    assert_eq!(error["hintCode"], "translate.no_subtitles.hint");
+}
+
+/// `preview_translation` deserializes the nested options object the frontend
+/// sends — camel-cased, with an explicit `null` for "use the configured
+/// default" language — and rejects a scan that found nothing translatable.
+#[test]
+fn preview_translation_deserializes_its_options_and_rejects_empty_sources() {
+    let app = app_with(service_with_key());
+
+    let error = invoke(
+        &webview(&app),
+        "preview_translation",
+        json!({
+            "paths": [],
+            "options": {
+                "targetLanguage": "zh-TW",
+                "sourceLanguage": null,
+                "context": null,
+                "glossaryText": null,
+                "outputMode": "suffix",
+                "overwrite": false,
+            }
+        }),
+    )
+    .expect_err("sources holding no subtitles must be rejected");
+
+    assert_eq!(error["code"], "translate.no_subtitles");
+    assert_eq!(error["hintCode"], "translate.no_subtitles.hint");
+}
+
+/// `cancel_translation` reaches the webview and resolves with no payload even
+/// when nothing is running — cancelling twice must be harmless.
+#[test]
+fn cancel_translation_answers_over_ipc() {
+    let app = app_with(service_with_key());
+
+    let response =
+        invoke(&webview(&app), "cancel_translation", json!({})).expect("cancel must succeed");
+
+    assert_eq!(response, Value::Null);
 }
 
 /// An unregistered command must be rejected, which is what makes the

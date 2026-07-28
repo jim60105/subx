@@ -1,0 +1,206 @@
+.translate-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.translate-options__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.translate-options__title {
+  margin: 0;
+  font-size: var(--text-xl);
+  color: var(--text-primary);
+}
+
+.translate-options__description {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.translate-options__controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.translate-options__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.translate-options__field--wide {
+  grid-column: 1 / -1;
+}
+
+.translate-options__field-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.translate-options__field-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.translate-options__input-text {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  background: var(--surface-hover);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.translate-options__textarea {
+  min-height: 5rem;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  resize: vertical;
+  background: var(--surface-hover);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.translate-options__mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: center;
+  padding: var(--space-3);
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.translate-options__radio {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.translate-options__mode-note {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.translate-options__toggle {
+  display: flex;
+  flex-basis: 100%;
+  gap: var(--space-2);
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.translate-options__toggle-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.translate-options__toggle-name {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.translate-options__toggle-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.translate-options__note {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.translate-options__status {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.translate-options__items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.translate-options__item {
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.translate-options__item[data-excluded="true"] {
+  opacity: 0.6;
+}
+
+.translate-options__item-main {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  cursor: pointer;
+}
+
+.translate-options__item-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.translate-options__input {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.translate-options__output {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.translate-options__cues {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.translate-options__flag {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  border-radius: var(--radius-pill);
+}
+
+.translate-options__flag--excluded {
+  color: var(--text-muted);
+  background: var(--surface-hover);
+}
+
+.translate-options__flag--overwrite {
+  color: var(--accent-text);
+  background: var(--accent-gradient-soft);
+}

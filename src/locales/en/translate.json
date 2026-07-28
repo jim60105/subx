@@ -1,0 +1,81 @@
+{
+  "steps": {
+    "sources": "Sources",
+    "options": "Options",
+    "translate": "Translate",
+    "report": "Report"
+  },
+  "sources": {
+    "title": "Choose what to translate",
+    "description": "Add the subtitles you want translated. Folders, individual files, and archives all work.",
+    "dropzone": "Drag files or folders here",
+    "dropHint": "or use the buttons below",
+    "browseFiles": "Browse files",
+    "browseFolder": "Browse folder",
+    "listLabel": "Selected sources",
+    "empty": "No sources added yet.",
+    "remove": "Remove {{name}}",
+    "scan": {
+      "scanning": "Scanning sources…",
+      "count": "{{total}} cues total",
+      "cues": "{{count}} cues"
+    },
+    "filesLabel": "Subtitle files found",
+    "continue": "Continue"
+  },
+  "options": {
+    "title": "Set the language and glossary",
+    "description": "Every file below shows exactly where its translation will be written.",
+    "targetLanguageLabel": "Translate to",
+    "targetLanguagePlaceholder": "e.g. zh-TW",
+    "sourceLanguageLabel": "Source language (optional)",
+    "sourceLanguagePlaceholder": "Detected automatically if left blank",
+    "contextLabel": "Context (optional)",
+    "contextPlaceholder": "Domain or tone guidance for the translation",
+    "glossaryLabel": "Glossary (optional)",
+    "glossaryPlaceholder": "Alice = 愛麗絲",
+    "glossaryHint": "One entry per line, as \"source = target\" or \"source -> target\".",
+    "mode": {
+      "label": "Output",
+      "suffix": "New file with a language suffix",
+      "replace": "Replace the original file",
+      "replaceNote": "A backup copy is made first when backups are enabled in Settings."
+    },
+    "overwriteToggle": "Overwrite existing files",
+    "overwriteHint": "Turn this on to re-include files whose translated output already exists.",
+    "terminologyNote": "Translating also sends one extra request per file to extract consistent terminology.",
+    "previewing": "Preparing the preview…",
+    "listLabel": "Planned translations",
+    "selection": "Include {{name}}",
+    "outputLabel": "Will be written to",
+    "cueCount": "{{count}} cues",
+    "overwrite": "Replaces an existing file",
+    "back": "Back",
+    "continue": "Continue"
+  },
+  "run": {
+    "title": "Translate the files",
+    "summary": "{{count}} files selected",
+    "start": "Translate now",
+    "starting": "Starting…",
+    "progress": "Translating {{index}} of {{total}} · {{name}}",
+    "elapsed": "Elapsed: {{seconds}}s",
+    "cancel": "Cancel",
+    "openSettings": "Open Settings",
+    "restart": "Start over",
+    "retry": "Retry"
+  },
+  "report": {
+    "title": "Results",
+    "summary": "{{success}} translated · {{failure}} failed",
+    "cancelled": "You stopped the batch, so the remaining files were not started.",
+    "status": {
+      "translated": "Translated",
+      "failed": "Failed",
+      "skipped": "Skipped",
+      "cancelled": "Not started"
+    },
+    "backupCreated": "Backup saved to {{path}}",
+    "finish": "Finish"
+  }
+}

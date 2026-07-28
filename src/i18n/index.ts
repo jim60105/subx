@@ -8,6 +8,7 @@ import enHome from "../locales/en/home.json";
 import enMatch from "../locales/en/match.json";
 import enSettings from "../locales/en/settings.json";
 import enSync from "../locales/en/sync.json";
+import enTranslate from "../locales/en/translate.json";
 import enWizard from "../locales/en/wizard.json";
 import zhTWCommon from "../locales/zh-TW/common.json";
 import zhTWConvert from "../locales/zh-TW/convert.json";
@@ -16,6 +17,7 @@ import zhTWHome from "../locales/zh-TW/home.json";
 import zhTWMatch from "../locales/zh-TW/match.json";
 import zhTWSettings from "../locales/zh-TW/settings.json";
 import zhTWSync from "../locales/zh-TW/sync.json";
+import zhTWTranslate from "../locales/zh-TW/translate.json";
 import zhTWWizard from "../locales/zh-TW/wizard.json";
 
 import { DEFAULT_LANGUAGE, resolveInitialLanguage, writeStoredLanguage } from "./languages";
@@ -34,6 +36,7 @@ export const resources = {
     match: enMatch,
     settings: enSettings,
     sync: enSync,
+    translate: enTranslate,
     wizard: enWizard,
   },
   "zh-TW": {
@@ -44,6 +47,7 @@ export const resources = {
     match: zhTWMatch,
     settings: zhTWSettings,
     sync: zhTWSync,
+    translate: zhTWTranslate,
     wizard: zhTWWizard,
   },
 } as const;
@@ -55,7 +59,7 @@ export function initI18n(language: SupportedLanguage = resolveInitialLanguage())
       lng: language,
       fallbackLng: DEFAULT_LANGUAGE,
       defaultNS: "common",
-      ns: ["common", "convert", "errors", "home", "match", "settings", "sync", "wizard"],
+      ns: ["common", "convert", "errors", "home", "match", "settings", "sync", "translate", "wizard"],
       interpolation: { escapeValue: false },
     });
   }

@@ -400,3 +400,171 @@ pub struct SyncApplyResultDto {
     /// otherwise (design D5).
     pub overwritten: bool,
 }
+
+/// Where a translation run writes its output (design Context, D4).
+///
+/// `Suffix` is the default: `<stem>.<target-language>.<ext>` beside the input
+/// (beside the originating archive for extracted files). `Replace` writes the
+/// input path itself and is refused for archive-extracted subtitles.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub enum TranslateOutputModeDto {
+    Suffix,
+    Replace,
+}
+
+/// One subtitle the Step 1 scan found, with the cost preview it exists for.
+///
+/// `unparsable` is the scan-time equivalent of the plan's
+/// `translate.unparsable` skip reason: the file is listed rather than dropped,
+/// but it contributes no cues and will not run.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TranslateScanItemDto {
+    pub name: String,
+    pub cue_count: u32,
+    pub unparsable: bool,
+}
+
+/// What Step 1 renders, returned by `list_translate_inputs`.
+///
+/// Deliberately option-free: the scan exists so the wizard can show the size
+/// of the coming AI job *before* the options step, and the target language —
+/// which a plan cannot be resolved without — is only entered there. Folding
+/// the scan into `preview_translation` would make Step 1 depend on a value the
+/// user has no way to supply yet, dead-ending the wizard whenever
+/// `translation.default_target_language` is unset.
+///
+/// `default_target_language` carries the configured default up to Step 2 so
+/// that step can prefill its input without a plan having been built first.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TranslateScanResult {
+    pub files: Vec<TranslateScanItemDto>,
+    pub default_target_language: Option<String>,
+}
+
+/// The options a translation preview is computed from.
+///
+/// `target_language` is optional for the same reason `ConvertOptionsDto`'s
+/// `target_format` is: a `null` resolves `translation.default_target_language`
+/// from the shared configuration (design D5), and the resulting plan echoes
+/// back what was used. `overwrite` is a plan-level toggle (design D4): off,
+/// a suffix-mode item whose output already exists is excluded; on, it is
+/// re-included. It has no effect in replace mode, which is gated by the
+/// backup setting and the archive prohibition instead.
+#[derive(Debug, Clone, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TranslateOptionsDto {
+    pub target_language: Option<String>,
+    pub source_language: Option<String>,
+    pub context: Option<String>,
+    /// `source = target` (or `source -> target`) lines, one per entry; parsed
+    /// with the crate's public `parse_glossary_text()` at execution time.
+    pub glossary_text: Option<String>,
+    pub output_mode: TranslateOutputModeDto,
+    pub overwrite: bool,
+}
+
+/// One planned translation, referenced by the frontend via `id` only.
+///
+/// `cue_count` gives Step 1 its cost preview before any AI request is sent.
+/// `id` is the item's index in the backend-held plan. `skip_reason` carries a
+/// stable code (`translate.unparsable`, `translate.replace_archive_forbidden`,
+/// `translate.output_collision`, `translate.output_exists`) when the item
+/// cannot run; such items are excluded from execution (design D1, D4).
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TranslateItemDto {
+    pub id: u32,
+    pub input_name: String,
+    pub input_path: String,
+    pub output_path: String,
+    pub cue_count: u32,
+    pub output_exists: bool,
+    pub skip_reason: Option<String>,
+}
+
+/// The plan Step 2 renders, returned by `preview_translation`.
+///
+/// `plan_id` ties a later `execute_translation` back to this exact preview; a
+/// newer preview replaces it and the old id becomes stale (design D1).
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TranslatePlanDto {
+    pub plan_id: String,
+    /// The language actually used, including when the request left it to the
+    /// configuration (design D5).
+    pub target_language: String,
+    pub output_mode: TranslateOutputModeDto,
+    pub items: Vec<TranslateItemDto>,
+}
+
+/// Where a batch is, as reported to Step 3 (design D3).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub enum TranslateStage {
+    Translating,
+    /// The batch stopped, whether it finished or was cancelled. The report the
+    /// command resolves with is what says which.
+    Finished,
+}
+
+/// A progress message pushed over the execution `Channel`.
+///
+/// Per file, never finer: `translate_subtitle` reports nothing from inside
+/// itself (progress prints go to stderr, invisible here), so a percentage
+/// would be invented (design Non-Goals).
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TranslateProgress {
+    pub stage: TranslateStage,
+    /// 1-based position of `file_name` in the batch; equals `total` on `Finished`.
+    pub index: u32,
+    pub total: u32,
+    pub file_name: String,
+}
+
+/// What became of one item in the batch.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub enum TranslationStatusDto {
+    Translated,
+    Failed,
+    /// Excluded by the plan (`skip_reason`) and refused by the executor.
+    Skipped,
+    /// Never started, or interrupted mid-translation: the batch was cancelled
+    /// before this item finished (design D3).
+    Cancelled,
+}
+
+/// One item's outcome in the Step 4 report.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TranslationOutcomeDto {
+    pub input_name: String,
+    pub output_path: String,
+    pub status: TranslationStatusDto,
+    /// Present only when replace mode created a backup copy before writing
+    /// (design D2).
+    pub backup_path: Option<String>,
+    /// Why the item failed, localizable through the shared error path.
+    pub error: Option<ErrorDto>,
+    /// A non-fatal problem — today only the engine's empty-cue-fallback signal
+    /// under `translate.empty_cue_fallback`, which the crate discards and the
+    /// GUI must not, since it would otherwise misstate what the output holds
+    /// (design D6).
+    pub warning: Option<ErrorDto>,
+}
+
+/// The final report returned by `execute_translation`.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TranslationReportDto {
+    pub outcomes: Vec<TranslationOutcomeDto>,
+    pub success_count: u32,
+    pub failure_count: u32,
+    /// True when the user stopped the batch; the `Cancelled` outcomes are the
+    /// items that were never started or were interrupted mid-translation.
+    pub cancelled: bool,
+}

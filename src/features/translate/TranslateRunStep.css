@@ -1,0 +1,73 @@
+.translate-run {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.translate-run__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.translate-run__title {
+  margin: 0;
+  font-size: var(--text-xl);
+  color: var(--text-primary);
+}
+
+.translate-run__summary {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.translate-run__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.translate-run__button {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--surface-hover);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+}
+
+.translate-run__button--primary {
+  color: var(--text-on-accent);
+  background: var(--accent-gradient-strong);
+  border-color: transparent;
+}
+
+.translate-run__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.translate-run__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.translate-run__progress-text {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.translate-run__elapsed {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.translate-run__error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}

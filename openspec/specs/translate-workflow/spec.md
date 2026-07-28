@@ -1,6 +1,10 @@
-# translate-workflow Delta
+# translate-workflow Specification
 
-## ADDED Requirements
+## Purpose
+
+The end-to-end GUI translation flow: multi-source selection with a cue-count preview, language/glossary/context options with output-mode resolution and conflict handling, and batch execution with per-file progress, cancellation, and a per-item report. The wizard wraps the `subx-cli` crate's `TranslationEngine`; the backend owns the canonical plan and the frontend refers to items by identifier only.
+
+## Requirements
 
 ### Requirement: Multi-source selection with cue-count preview
 
@@ -10,6 +14,11 @@ The Translate wizard SHALL accept multiple sources — folders, individual subti
 
 - **WHEN** the user adds a folder, a loose subtitle file, and a zip archive containing subtitles as sources
 - **THEN** the scan preview lists every subtitle found across all sources, each with its parsed cue count
+
+#### Scenario: Scanning does not require a target language
+
+- **WHEN** sources are added while no target language has been chosen and the shared configuration sets no `translation.default_target_language`
+- **THEN** the scan still lists the subtitles found with their cue counts, because the target language is only asked for on the options step
 
 #### Scenario: No subtitles block progress
 

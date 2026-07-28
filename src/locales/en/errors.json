@@ -45,7 +45,18 @@
     "sync.offset_exceeds_max": "That offset is larger than your settings allow.",
     "sync.output_exists": "A file already exists at that path.",
     "sync.output_is_input": "The output would replace the subtitle being synced.",
-    "sync.detection_warning": "The analysis finished with a warning."
+    "sync.detection_warning": "The analysis finished with a warning.",
+    "translate.no_subtitles": "No translatable subtitle files were found.",
+    "translate.no_target_language": "No target language was provided.",
+    "translate.invalid_target_language": "The target language must not contain a path separator.",
+    "translate.stale_plan": "This translation plan is out of date.",
+    "translate.translation_in_progress": "A translation is already running.",
+    "translate.ai_not_configured": "No AI provider is configured yet.",
+    "translate.output_exists": "A file already exists at that path.",
+    "translate.output_collision": "Another file already writes to this path.",
+    "translate.replace_archive_forbidden": "Files extracted from an archive cannot be replaced in place.",
+    "translate.unparsable": "The subtitle file could not be parsed.",
+    "translate.empty_cue_fallback": "One or more lines were left empty in the translation."
   },
   "hints": {
     "core.retry": "Try the action again. If it keeps failing, check the technical details.",
@@ -76,6 +87,11 @@
     "sync.vad_unavailable.hint": "Go back and enter the offset yourself instead.",
     "sync.offset_exceeds_max.hint": "Use a smaller offset, or raise sync.max_offset_seconds in your configuration.",
     "sync.output_exists.hint": "Choose another path, or confirm replacing the existing file.",
-    "sync.output_is_input.hint": "Pick an output path different from the subtitle you selected."
+    "sync.output_is_input.hint": "Pick an output path different from the subtitle you selected.",
+    "translate.no_subtitles.hint": "Add a folder, a subtitle file or an archive that contains subtitles.",
+    "translate.no_target_language.hint": "Enter a target language, or set translation.default_target_language in your configuration.",
+    "translate.invalid_target_language.hint": "Remove any / or \\ characters from the target language.",
+    "translate.stale_plan.hint": "Go back and prepare the translation again.",
+    "translate.ai_not_configured.hint": "Open Settings to choose an AI provider and add your key."
   }
 }

@@ -42,6 +42,17 @@ export type {
   SyncDefaultsDto,
   SyncDetectionDto,
   SyncMethodDto,
+  TranslateItemDto,
+  TranslateOptionsDto,
+  TranslateOutputModeDto,
+  TranslatePlanDto,
+  TranslateProgress,
+  TranslateScanItemDto,
+  TranslateScanResult,
+  TranslateStage,
+  TranslationOutcomeDto,
+  TranslationReportDto,
+  TranslationStatusDto,
 } from "./bindings";
 
 /**
