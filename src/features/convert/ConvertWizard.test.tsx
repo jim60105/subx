@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -86,6 +86,17 @@ function renderWizard() {
       <ConvertWizard />
     </I18nextProvider>,
   );
+}
+
+/**
+ * The shell's action bar. Controls that moved out of the panel are queried
+ * through it, so one drifting back inside fails the test rather than passing
+ * unnoticed.
+ */
+function actionBar(): HTMLElement {
+  const element = document.querySelector(".wizard__actions");
+  if (element === null) throw new Error("the wizard rendered no action bar");
+  return element as HTMLElement;
 }
 
 /** Drives Step 1 up to an enabled Continue button, then clicks it. */
@@ -230,7 +241,7 @@ describe("the convert wizard", () => {
     await user.click(await screen.findByRole("checkbox", { name: "Include two.srt" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
 
-    await user.click(await screen.findByRole("button", { name: "Convert now" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Convert now" }));
 
     expect(api.executeConversion).toHaveBeenCalledWith(
       "convert-1",
@@ -250,7 +261,7 @@ describe("the convert wizard", () => {
     renderWizard();
     await reachRun(user);
 
-    await user.click(await screen.findByRole("button", { name: "Convert now" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Convert now" }));
 
     expect(await screen.findByText("Converting 2 of 3 · two.srt")).toBeInTheDocument();
 
@@ -265,9 +276,9 @@ describe("the convert wizard", () => {
     vi.mocked(api.executeConversion).mockReturnValue(pending.promise);
     renderWizard();
     await reachRun(user);
-    await user.click(await screen.findByRole("button", { name: "Convert now" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Convert now" }));
 
-    await user.click(await screen.findByRole("button", { name: "Cancel" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Cancel" }));
     expect(api.cancelConversion).toHaveBeenCalled();
 
     pending.resolve({
@@ -292,7 +303,7 @@ describe("the convert wizard", () => {
     renderWizard();
     await reachRun(user);
 
-    await user.click(await screen.findByRole("button", { name: "Convert now" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Convert now" }));
 
     expect(await screen.findByText("1 converted · 1 failed")).toBeInTheDocument();
     expect(screen.getByText("Converted")).toBeInTheDocument();
@@ -311,12 +322,35 @@ describe("the convert wizard", () => {
     renderWizard();
     await reachRun(user);
 
-    await user.click(await screen.findByRole("button", { name: "Convert now" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Convert now" }));
 
     expect(await screen.findByText("This conversion plan is out of date.")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Finish" }));
+    await user.click(within(actionBar()).getByRole("button", { name: "Finish" }));
 
     expect(screen.getByText("Choose what to convert")).toBeInTheDocument();
+  });
+
+  /// Only a stale plan has a distinct recovery. Any other convert failure has
+  /// none, and the bar must not invent one.
+  it("offers no forward action when the batch fails for any other reason", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.executeConversion).mockRejectedValue({
+      code: "convert.conversion_failed",
+      message: "the batch could not start",
+      hintCode: null,
+    });
+    renderWizard();
+    await reachRun(user);
+
+    await user.click(await within(actionBar()).findByRole("button", { name: "Convert now" }));
+
+    await waitFor(() =>
+      expect(
+        within(actionBar()).queryByRole("button", { name: "Convert now" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(within(actionBar()).queryByRole("button", { name: "Finish" })).not.toBeInTheDocument();
+    expect(document.querySelectorAll(".wizard__actions-end button")).toHaveLength(0);
   });
 
   it("discards the plan when the user steps back from the preview", async () => {

@@ -40,6 +40,7 @@
       "finalizing": "Preparing results"
     },
     "cancel": "Cancel",
+    "running": "Analyzing…",
     "retry": "Try again",
     "openSettings": "Open settings"
   },

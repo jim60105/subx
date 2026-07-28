@@ -6,7 +6,6 @@ import "./TranslateReportStep.css";
 
 interface TranslateReportStepProps {
   report: TranslationReportDto | null;
-  onFinish: () => void;
 }
 
 /**
@@ -14,7 +13,7 @@ interface TranslateReportStepProps {
  * backup path when one was made, an empty-cue-fallback warning when the
  * engine gave up on a line, and the failure code (with its hint) otherwise.
  */
-export function TranslateReportStep({ report, onFinish }: TranslateReportStepProps) {
+export function TranslateReportStep({ report }: TranslateReportStepProps) {
   const { t } = useTranslation("translate");
 
   if (report === null) return null;
@@ -52,16 +51,6 @@ export function TranslateReportStep({ report, onFinish }: TranslateReportStepPro
           </li>
         ))}
       </ul>
-
-      <div className="translate-report__actions">
-        <button
-          type="button"
-          className="translate-report__button translate-report__button--primary"
-          onClick={onFinish}
-        >
-          {t("report.finish")}
-        </button>
-      </div>
     </div>
   );
 }

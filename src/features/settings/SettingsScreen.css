@@ -147,10 +147,13 @@
   box-shadow: var(--shadow-raised);
 }
 
+/* The save button sits inline-end-most, on the same side as every wizard's
+   primary action, so committing work is always the same reach. */
 .settings__actions {
   display: flex;
   gap: var(--space-3);
   align-items: center;
+  justify-content: flex-end;
 }
 
 .settings__dirty {

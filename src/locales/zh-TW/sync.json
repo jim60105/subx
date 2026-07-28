@@ -52,7 +52,6 @@
     "title": "確認偏移量",
     "description": "下方數值就是實際會套用的值。若結果接近但不夠精準，可以直接調整。",
     "running": "正在分析音訊…… {{seconds}} 秒",
-    "cancel": "取消",
     "retry": "重試",
     "detected": "偵測到的偏移量",
     "confidence": "信心度",

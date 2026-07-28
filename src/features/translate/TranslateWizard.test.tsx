@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -107,6 +107,17 @@ function renderWizard() {
     </I18nextProvider>,
   );
   return { ...view, onOpenSettings };
+}
+
+/**
+ * The shell's action bar. Controls that moved out of the panel are queried
+ * through it, so one drifting back inside fails the test rather than passing
+ * unnoticed.
+ */
+function actionBar(): HTMLElement {
+  const element = document.querySelector(".wizard__actions");
+  if (element === null) throw new Error("the wizard rendered no action bar");
+  return element as HTMLElement;
 }
 
 /** Drives Step 1 up to an enabled Continue button, then clicks it. */
@@ -357,7 +368,7 @@ describe("the translate wizard", () => {
     renderWizard();
     await reachRun(user);
 
-    await user.click(await screen.findByRole("button", { name: "Translate now" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Translate now" }));
 
     expect(await screen.findByText("Translating 2 of 3 · two.srt")).toBeInTheDocument();
 
@@ -372,9 +383,9 @@ describe("the translate wizard", () => {
     vi.mocked(api.executeTranslation).mockReturnValue(pending.promise);
     renderWizard();
     await reachRun(user);
-    await user.click(await screen.findByRole("button", { name: "Translate now" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Translate now" }));
 
-    await user.click(await screen.findByRole("button", { name: "Cancel" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Cancel" }));
     expect(api.cancelTranslation).toHaveBeenCalled();
 
     pending.resolve({
@@ -396,7 +407,7 @@ describe("the translate wizard", () => {
     renderWizard();
     await reachRun(user);
 
-    await user.click(await screen.findByRole("button", { name: "Translate now" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Translate now" }));
 
     expect(await screen.findByText("1 translated · 1 failed")).toBeInTheDocument();
     expect(screen.getByText("Translated")).toBeInTheDocument();
@@ -415,9 +426,9 @@ describe("the translate wizard", () => {
     const { onOpenSettings } = renderWizard();
     await reachRun(user);
 
-    await user.click(await screen.findByRole("button", { name: "Translate now" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Translate now" }));
 
-    const settingsButton = await screen.findByRole("button", { name: "Open Settings" });
+    const settingsButton = await within(actionBar()).findByRole("button", { name: "Open Settings" });
     await user.click(settingsButton);
 
     expect(onOpenSettings).toHaveBeenCalled();
@@ -436,10 +447,10 @@ describe("the translate wizard", () => {
     renderWizard();
     await reachRun(user);
 
-    await user.click(await screen.findByRole("button", { name: "Translate now" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Translate now" }));
 
     expect(await screen.findByText("This translation plan is out of date.")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Start over" }));
+    await user.click(within(actionBar()).getByRole("button", { name: "Start over" }));
 
     expect(screen.getByText("Choose what to translate")).toBeInTheDocument();
   });

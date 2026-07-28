@@ -49,6 +49,7 @@
     "removingOriginals": "每個原始檔案會在轉換成功後刪除。",
     "start": "立即轉換",
     "starting": "正在開始…",
+    "converting": "轉換中……",
     "progress": "正在轉換第 {{index}} / {{total}} 個 · {{name}}",
     "cancel": "取消",
     "report": {

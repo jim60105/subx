@@ -10,10 +10,11 @@ export interface WizardStep {
 
 export type WizardStepState = "completed" | "active" | "upcoming";
 
-interface WizardNavAction {
+export interface WizardNavAction {
   label: string;
   disabled?: boolean;
-  onClick: () => void;
+  /** Omitted only by a disabled placeholder, such as an in-progress label. */
+  onClick?: () => void;
 }
 
 interface WizardShellProps {
@@ -21,7 +22,11 @@ interface WizardShellProps {
   /** Zero-based index of the active step. */
   activeStep: number;
   children: ReactNode;
+  /** Inline-start slot: retreat only. */
   back?: WizardNavAction;
+  /** Inline-end cluster, before `next`: cancel, escape hatches — never forward motion. */
+  secondary?: WizardNavAction;
+  /** Inline-end-most slot: the primary, forward action. */
   next?: WizardNavAction;
 }
 
@@ -33,9 +38,24 @@ export function stepState(index: number, activeStep: number): WizardStepState {
 
 /**
  * Layout shared by every multi-step feature: a step indicator, a content slot,
- * and navigation controls whose labels and enabled state the feature owns.
+ * and an action bar whose labels and enabled state the feature owns.
+ *
+ * The bar has three fixed positions — `back` at the inline start, then
+ * `secondary` and `next` clustered at the inline end with `next` last — and is
+ * rendered on every step, including steps that declare no action at all. That
+ * is what keeps the primary control in one place: it sits outside the
+ * scrollable content panel, so neither switching steps nor scrolling the body
+ * moves it. Features route every forward action through `next` rather than
+ * drawing buttons inside the panel.
  */
-export function WizardShell({ steps, activeStep, children, back, next }: WizardShellProps) {
+export function WizardShell({
+  steps,
+  activeStep,
+  children,
+  back,
+  secondary,
+  next,
+}: WizardShellProps) {
   const { t } = useTranslation("wizard");
 
   return (
@@ -66,16 +86,26 @@ export function WizardShell({ steps, activeStep, children, back, next }: WizardS
 
       <div className="wizard__content">{children}</div>
 
-      {(back || next) && (
-        <div className="wizard__actions">
-          {back && (
+      <div className="wizard__actions">
+        {back && (
+          <button
+            type="button"
+            className="wizard__button"
+            disabled={back.disabled}
+            onClick={back.onClick}
+          >
+            {back.label}
+          </button>
+        )}
+        <div className="wizard__actions-end">
+          {secondary && (
             <button
               type="button"
               className="wizard__button"
-              disabled={back.disabled}
-              onClick={back.onClick}
+              disabled={secondary.disabled}
+              onClick={secondary.onClick}
             >
-              {back.label}
+              {secondary.label}
             </button>
           )}
           {next && (
@@ -89,7 +119,7 @@ export function WizardShell({ steps, activeStep, children, back, next }: WizardS
             </button>
           )}
         </div>
-      )}
+      </div>
     </section>
   );
 }

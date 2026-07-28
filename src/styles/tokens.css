@@ -43,6 +43,14 @@
   --space-6: 2rem;
   --space-7: 3rem;
 
+  /*
+   * Control heights. These are the authority, not a description: the controls
+   * set `min-height` from them, so a bar that reserves space for a button can
+   * never drift out of step with the button it reserves it for.
+   */
+  --control-height: 36px;
+  --control-height-lg: 44px;
+
   /* Shape */
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -55,7 +63,7 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Titlebar window controls */
-  --titlebar-btn-size: 36px;
+  --titlebar-btn-size: var(--control-height);
   --titlebar-close-hover: var(--danger);
   --titlebar-btn-gap: 0px;
 }

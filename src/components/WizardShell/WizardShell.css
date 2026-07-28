@@ -83,14 +83,35 @@
   box-shadow: var(--shadow-panel);
 }
 
+/*
+ * Rendered on every step, empty or not, so the primary control keeps one
+ * position throughout a wizard. `min-height` reserves the button's box even
+ * when no slot is filled; `margin-inline-start: auto` on the end cluster is
+ * what pins `next` to the inline end and, equally, keeps a lone `back` at the
+ * inline start instead of letting it slide into the primary position.
+ */
 .wizard__actions {
   display: flex;
-  justify-content: flex-end;
   gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--control-height-lg);
+}
+
+.wizard__actions-end {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin-inline-start: auto;
 }
 
 .wizard__button {
-  padding: var(--space-3) var(--space-5);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height-lg);
+  box-sizing: border-box;
+  padding: 0 var(--space-5);
   font-weight: 600;
   cursor: pointer;
   background: var(--surface);

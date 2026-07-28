@@ -52,7 +52,6 @@
     "title": "Review the offset",
     "description": "The value below is what will be applied. Adjust it if the result is close but not exact.",
     "running": "Analysing the audio… {{seconds}}s",
-    "cancel": "Cancel",
     "retry": "Try again",
     "detected": "Detected offset",
     "confidence": "Confidence",

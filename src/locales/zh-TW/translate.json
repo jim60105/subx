@@ -58,6 +58,7 @@
     "summary": "已選取 {{count}} 個檔案",
     "start": "立即翻譯",
     "starting": "正在開始…",
+    "translating": "翻譯中……",
     "progress": "正在翻譯第 {{index}} / {{total}} 個 · {{name}}",
     "elapsed": "已耗時：{{seconds}} 秒",
     "cancel": "取消",

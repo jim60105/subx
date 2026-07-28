@@ -10,6 +10,7 @@ vi.mock("@tauri-apps/api/webview", () => ({
 }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn() }));
 
+import { open } from "@tauri-apps/plugin-dialog";
 import App from "./App";
 import { commands } from "./types/bindings";
 import { renderWithI18n, setupI18n } from "./test/renderWithI18n";
@@ -48,7 +49,7 @@ describe("app shell", () => {
     // The Match feature now opens the wizard's first step.
     expect(screen.getByRole("heading", { name: "Choose your sources" })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: /Back/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Back to home/ }));
     expect(screen.getByRole("heading", { name: "What would you like to do?" })).toBeInTheDocument();
   });
 
@@ -64,7 +65,7 @@ describe("app shell", () => {
       screen.getByRole("heading", { name: "Choose what to convert" }),
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: /Back/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Back to home/ }));
     expect(screen.getByRole("heading", { name: "What would you like to do?" })).toBeInTheDocument();
   });
 
@@ -88,7 +89,7 @@ describe("app shell", () => {
       screen.getByRole("heading", { name: "Choose the video and subtitle" }),
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: /Back/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Back to home/ }));
     expect(screen.getByRole("heading", { name: "What would you like to do?" })).toBeInTheDocument();
   });
 
@@ -104,10 +105,57 @@ describe("app shell", () => {
       screen.getByRole("heading", { name: "Choose what to translate" }),
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: /Back/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Back to home/ }));
     expect(screen.getByRole("heading", { name: "What would you like to do?" })).toBeInTheDocument();
   });
 
+  // @covers app-shell/navigation-between-home-and-feature-screens#brand-is-inert-on-the-hub
+  it("leaves the brand as plain text on the hub", () => {
+    const { container } = renderWithI18n(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+
+    expect(container.querySelector(".app-header__brand")?.tagName).toBe("DIV");
+    expect(screen.queryByRole("button", { name: /Back to home/ })).not.toBeInTheDocument();
+  });
+
+  // @covers app-shell/navigation-between-home-and-feature-screens#brand-returns-home-from-a-mid-flow-wizard-step
+  it("returns home from a wizard step past the first, and re-enters fresh", async () => {
+    mockIPC((command) => {
+      if (command === "get_sync_defaults") {
+        return { defaultMethod: "auto", vadSensitivity: 40, maxOffsetMs: 60_000 };
+      }
+      throw new Error(`unexpected command: ${command}`);
+    });
+    vi.mocked(open).mockResolvedValue("/m/episode.srt");
+
+    renderWithI18n(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /Sync timing/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Choose subtitle" }));
+    await screen.findByTitle("/m/episode.srt");
+    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(
+      await screen.findByRole("heading", { name: "How should the offset be found?" }),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Back to home/ }));
+    expect(screen.getByRole("heading", { name: "What would you like to do?" })).toBeInTheDocument();
+
+    // Leaving is leaving: the wizard is not resumed where it was left.
+    await userEvent.click(screen.getByRole("button", { name: /Sync timing/ }));
+    expect(
+      screen.getByRole("heading", { name: "Choose the video and subtitle" }),
+    ).toBeInTheDocument();
+  });
+
+  // @covers app-shell/navigation-between-home-and-feature-screens#brand-returns-home-from-settings
   it("opens settings from the header and returns to the hub", async () => {
     mockIPC((command) => {
       if (command === "get_config") {
@@ -133,7 +181,7 @@ describe("app shell", () => {
     await userEvent.click(screen.getByRole("button", { name: "Settings" }));
     expect(await screen.findByRole("heading", { name: "Settings" })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: /Back/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Back to home/ }));
     expect(screen.getByRole("heading", { name: "What would you like to do?" })).toBeInTheDocument();
   });
 

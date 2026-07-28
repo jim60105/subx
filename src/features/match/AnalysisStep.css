@@ -48,24 +48,3 @@
 .analysis-step__stage[data-state="done"] {
   color: var(--accent-text);
 }
-
-.analysis-step__actions {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.analysis-step__button {
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
-  background: var(--surface-hover);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
-}
-
-.analysis-step__button--primary {
-  color: var(--text-on-accent);
-  background: var(--accent-gradient-strong);
-  border-color: transparent;
-}

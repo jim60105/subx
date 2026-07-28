@@ -4,6 +4,9 @@
   gap: var(--space-4);
   align-items: flex-start;
   width: 100%;
+  /* Grid items stretch, but a <button>'s own box does not follow suit in every
+     engine — without this the cards in a row end up at different heights. */
+  height: 100%;
   padding: var(--space-5);
   text-align: start;
   cursor: pointer;

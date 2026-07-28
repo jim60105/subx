@@ -3,6 +3,7 @@
   "tagline": "AI-powered subtitle tooling",
   "actions": {
     "back": "Back",
+    "home": "Back to home",
     "next": "Next",
     "cancel": "Cancel",
     "retry": "Retry",

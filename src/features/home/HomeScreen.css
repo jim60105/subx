@@ -21,8 +21,21 @@
   color: var(--text-secondary);
 }
 
+/*
+ * Fixed two columns rather than `auto-fit`: there are exactly four tasks, and
+ * auto-fit reflowed them into an unbalanced 3 + 1 at common window widths.
+ * `minmax(0, 1fr)` keeps a long description from pushing its column past its
+ * share. Below 40rem two 280px cards plus the gap and the main padding no
+ * longer fit, so the grid stacks.
+ */
 .home__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
+}
+
+@media (width <= 40rem) {
+  .home__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

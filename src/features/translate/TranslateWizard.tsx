@@ -2,8 +2,9 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { WizardShell } from "../../components/WizardShell/WizardShell";
-import type { WizardStep } from "../../components/WizardShell/WizardShell";
+import type { WizardNavAction, WizardStep } from "../../components/WizardShell/WizardShell";
 import { pickFiles, pickFolder, subscribeToDroppedPaths } from "../../platform/filePickers";
+import { isErrorDto } from "../../types/ipc";
 import { TranslateOptionsStep } from "./TranslateOptionsStep";
 import { TranslateReportStep } from "./TranslateReportStep";
 import { TranslateRunStep } from "./TranslateRunStep";
@@ -15,10 +16,14 @@ interface TranslateWizardProps {
   onOpenSettings: () => void;
 }
 
-interface NavAction {
-  label: string;
-  disabled?: boolean;
-  onClick: () => void;
+/** Whether the failure is a missing AI provider, which links to Settings. */
+function isNotConfigured(error: unknown): boolean {
+  return isErrorDto(error) && error.code === "translate.ai_not_configured";
+}
+
+/** A stale plan is the one failure with a distinct recovery: preview again. */
+function isStalePlan(error: unknown): boolean {
+  return isErrorDto(error) && error.code === "translate.stale_plan";
 }
 
 /**
@@ -52,8 +57,11 @@ export function TranslateWizard({ onOpenSettings }: TranslateWizardProps) {
   const steps: WizardStep[] = TRANSLATE_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }));
   const activeStep = TRANSLATE_STEPS.indexOf(wizard.step);
 
-  let back: NavAction | undefined;
-  let next: NavAction | undefined;
+  // Every action the wizard offers, on every step, lives in the shell's bar so
+  // the primary control never moves; the step components only render state.
+  let back: WizardNavAction | undefined;
+  let secondary: WizardNavAction | undefined;
+  let next: WizardNavAction | undefined;
   if (wizard.step === "sources") {
     next = {
       label: t("sources.continue"),
@@ -69,10 +77,36 @@ export function TranslateWizard({ onOpenSettings }: TranslateWizardProps) {
       disabled: wizard.selectedCount === 0 || wizard.isPreviewing,
       onClick: wizard.toTranslate,
     };
+  } else if (wizard.step === "translate") {
+    if (wizard.isTranslating) {
+      secondary = { label: t("run.cancel"), onClick: () => void wizard.cancel() };
+      next = { label: t("run.translating"), disabled: true };
+    } else if (wizard.translateError !== undefined) {
+      if (isNotConfigured(wizard.translateError)) {
+        secondary = { label: t("run.openSettings"), onClick: onOpenSettings };
+      }
+      next = isStalePlan(wizard.translateError)
+        ? { label: t("run.restart"), onClick: wizard.restart }
+        : { label: t("run.retry"), onClick: () => void wizard.translate() };
+    } else {
+      next = {
+        label: t("run.start"),
+        disabled: wizard.selectedCount === 0,
+        onClick: () => void wizard.translate(),
+      };
+    }
+  } else {
+    next = { label: t("report.finish"), onClick: wizard.restart };
   }
 
   return (
-    <WizardShell steps={steps} activeStep={activeStep} back={back} next={next}>
+    <WizardShell
+      steps={steps}
+      activeStep={activeStep}
+      back={back}
+      secondary={secondary}
+      next={next}
+    >
       {wizard.step === "sources" && (
         <TranslateSourcesStep
           sources={wizard.sources}
@@ -111,15 +145,9 @@ export function TranslateWizard({ onOpenSettings }: TranslateWizardProps) {
           isTranslating={wizard.isTranslating}
           progress={wizard.progress}
           translateError={wizard.translateError}
-          onTranslate={() => void wizard.translate()}
-          onCancel={() => void wizard.cancel()}
-          onOpenSettings={onOpenSettings}
-          onRestart={wizard.restart}
         />
       )}
-      {wizard.step === "report" && (
-        <TranslateReportStep report={wizard.report} onFinish={wizard.restart} />
-      )}
+      {wizard.step === "report" && <TranslateReportStep report={wizard.report} />}
     </WizardShell>
   );
 }

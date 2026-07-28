@@ -17,8 +17,6 @@ function renderStep(isDetecting: boolean) {
       offsetMs={0}
       offsetExceedsMax={false}
       onOffsetChange={() => {}}
-      onCancel={() => {}}
-      onRetry={() => {}}
     />,
   );
 }

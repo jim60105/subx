@@ -21,10 +21,10 @@ vi.mock("@tauri-apps/api/window", () => ({
   }),
 }));
 
-function renderHeader(onBack?: () => void, onOpenSettings?: () => void) {
+function renderHeader(onNavigateHome?: () => void, onOpenSettings?: () => void) {
   return renderWithI18n(
     <ThemeProvider>
-      <AppHeader onBack={onBack} onOpenSettings={onOpenSettings} />
+      <AppHeader onNavigateHome={onNavigateHome} onOpenSettings={onOpenSettings} />
     </ThemeProvider>,
   );
 }
@@ -35,21 +35,43 @@ describe("AppHeader", () => {
     await setupI18n("en");
   });
 
-  it("shows the back affordance only on a feature screen", () => {
-    renderHeader();
-    expect(screen.queryByRole("button", { name: /Back/ })).not.toBeInTheDocument();
+  it("makes the brand interactive only on a feature screen", () => {
+    const { container: hub } = renderHeader();
+    expect(hub.querySelector(".app-header__brand")).not.toHaveAttribute("role", "button");
+    expect(screen.queryByRole("button", { name: /Back to home/ })).not.toBeInTheDocument();
 
     renderHeader(() => {});
-    expect(screen.getByRole("button", { name: /Back/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Back to home/ })).toBeInTheDocument();
   });
 
-  it("returns to the hub when back is used", async () => {
-    const onBack = vi.fn();
-    renderHeader(onBack);
+  /// WCAG 2.5.3: the accessible name has to contain the visible one, or a
+  /// voice-control user who says "click SubX" reaches nothing. An `aria-label`
+  /// would replace the brand text rather than extend it.
+  it("keeps the visible brand text inside the accessible name", () => {
+    renderHeader(() => {});
+    const brand = screen.getByRole("button", { name: /Back to home/ });
 
-    await userEvent.click(screen.getByRole("button", { name: /Back/ }));
+    expect(brand).not.toHaveAttribute("aria-label");
+    expect(brand).toHaveAccessibleName(expect.stringContaining("SubX"));
+    expect(brand).toHaveAttribute("title", "Back to home");
+  });
 
-    expect(onBack).toHaveBeenCalledOnce();
+  it("returns to the hub when the brand is used", async () => {
+    const onNavigateHome = vi.fn();
+    renderHeader(onNavigateHome);
+
+    await userEvent.click(screen.getByRole("button", { name: /Back to home/ }));
+
+    expect(onNavigateHome).toHaveBeenCalledOnce();
+  });
+
+  /// The brand replaced a button labelled "Back", which read as step-level
+  /// retreat although it abandoned the whole feature. Only the wizards' own
+  /// back slot may carry that label now.
+  it("renders no separate back button", () => {
+    renderHeader(() => {});
+
+    expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
   });
 
   it("renders the shared language and theme controls", () => {
@@ -78,11 +100,11 @@ describe("AppHeader", () => {
 
   it("renders its own strings in Traditional Chinese after a language switch", async () => {
     renderHeader(() => {});
-    expect(screen.getByRole("button", { name: /Back/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Back to home/ })).toBeInTheDocument();
 
     await act(() => changeLanguage("zh-TW"));
 
-    expect(screen.getByRole("button", { name: /上一步/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /回到首頁/ })).toBeInTheDocument();
     expect(screen.getByLabelText("主題")).toBeInTheDocument();
     expect(screen.getByLabelText("語言")).toBeInTheDocument();
     expect(screen.getByText("AI 字幕工具")).toBeInTheDocument();
@@ -99,6 +121,19 @@ describe("AppHeader", () => {
       await userEvent.dblClick(header);
       expect(mockToggleMaximize).toHaveBeenCalledOnce();
     }
+  });
+
+  // @covers app-shell/appheader-floating-chrome-and-control-layout#dragging-the-brand-does-not-move-the-window
+  it("keeps the brand out of the drag region so pressing it cannot drag the window", async () => {
+    renderHeader(() => {});
+    const brand = screen.getByRole("button", { name: /Back to home/ });
+
+    expect(brand).not.toHaveAttribute("data-tauri-drag-region");
+    expect(brand.querySelector("[data-tauri-drag-region]")).toBeNull();
+
+    mockToggleMaximize.mockClear();
+    await userEvent.dblClick(brand);
+    expect(mockToggleMaximize).not.toHaveBeenCalled();
   });
 
   // @covers custom-titlebar/header-drag-region-for-window-repositioning#header-buttons-remain-clickable

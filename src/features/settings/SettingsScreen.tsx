@@ -44,6 +44,7 @@ export function SettingsScreen() {
             />
 
             <div className="settings__actions">
+              {form.isDirty && <span className="settings__dirty">{t("unsavedChanges")}</span>}
               <button
                 type="button"
                 className="settings-button settings-button--primary"
@@ -52,7 +53,6 @@ export function SettingsScreen() {
               >
                 {form.isSaving ? t("actions.saving") : t("actions.save")}
               </button>
-              {form.isDirty && <span className="settings__dirty">{t("unsavedChanges")}</span>}
             </div>
 
             {form.saveError !== undefined && <ErrorNotice error={form.saveError} />}

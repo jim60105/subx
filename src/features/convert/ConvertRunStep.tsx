@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 
 import { ErrorNotice } from "../../components/ErrorNotice/ErrorNotice";
-import { isErrorDto } from "../../types/ipc";
 import type {
   ConversionReportDto,
   ConvertFormatDto,
@@ -17,23 +16,16 @@ interface ConvertRunStepProps {
   progress: ConvertProgress | null;
   report: ConversionReportDto | null;
   convertError: unknown;
-  onConvert: () => void;
-  onCancel: () => void;
-  onRestart: () => void;
-}
-
-/** A stale plan is the one failure with a distinct recovery: preview again. */
-function isStalePlan(error: unknown): boolean {
-  return isErrorDto(error) && error.code === "convert.stale_plan";
 }
 
 /**
- * Step 3: run the batch and report what happened to every item.
+ * Step 3: what is about to run, how far it has got, and what came of it.
  *
  * Progress is per file because that is the only granularity the crate reports;
  * cancelling stops before the next file rather than interrupting the current
  * one, so the report still accounts for every selected item — as converted,
- * failed, or never started.
+ * failed, or never started. Starting, cancelling and finishing are the
+ * wizard's action bar.
  */
 export function ConvertRunStep({
   targetFormat,
@@ -43,12 +35,8 @@ export function ConvertRunStep({
   progress,
   report,
   convertError,
-  onConvert,
-  onCancel,
-  onRestart,
 }: ConvertRunStepProps) {
   const { t } = useTranslation("convert");
-  const idle = !isConverting && report === null && convertError === undefined;
 
   return (
     <div className="convert-run">
@@ -65,19 +53,6 @@ export function ConvertRunStep({
         </p>
       </header>
 
-      {idle && (
-        <div className="convert-run__actions">
-          <button
-            type="button"
-            className="convert-run__button convert-run__button--primary"
-            disabled={selectedCount === 0}
-            onClick={onConvert}
-          >
-            {t("run.start")}
-          </button>
-        </div>
-      )}
-
       {isConverting && (
         <div className="convert-run__progress">
           <p className="convert-run__progress-text" role="status">
@@ -89,28 +64,12 @@ export function ConvertRunStep({
                   name: progress.fileName,
                 })}
           </p>
-          <div className="convert-run__actions">
-            <button type="button" className="convert-run__button" onClick={onCancel}>
-              {t("run.cancel")}
-            </button>
-          </div>
         </div>
       )}
 
       {convertError !== undefined && (
         <div className="convert-run__error">
           <ErrorNotice error={convertError} role="status" />
-          {isStalePlan(convertError) && (
-            <div className="convert-run__actions">
-              <button
-                type="button"
-                className="convert-run__button convert-run__button--primary"
-                onClick={onRestart}
-              >
-                {t("run.report.finish")}
-              </button>
-            </div>
-          )}
         </div>
       )}
 
@@ -150,15 +109,6 @@ export function ConvertRunStep({
               </li>
             ))}
           </ul>
-          <div className="convert-run__actions">
-            <button
-              type="button"
-              className="convert-run__button convert-run__button--primary"
-              onClick={onRestart}
-            >
-              {t("run.report.finish")}
-            </button>
-          </div>
         </section>
       )}
     </div>

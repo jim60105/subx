@@ -2,17 +2,17 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { WizardShell } from "../../components/WizardShell/WizardShell";
-import type { WizardStep } from "../../components/WizardShell/WizardShell";
+import type { WizardNavAction, WizardStep } from "../../components/WizardShell/WizardShell";
 import { pickFiles, pickFolder, subscribeToDroppedPaths } from "../../platform/filePickers";
+import { isErrorDto } from "../../types/ipc";
 import { ConvertOptionsStep } from "./ConvertOptionsStep";
 import { ConvertRunStep } from "./ConvertRunStep";
 import { ConvertSourcesStep } from "./ConvertSourcesStep";
 import { CONVERT_STEPS, useConvertWizard } from "./useConvertWizard";
 
-interface NavAction {
-  label: string;
-  disabled?: boolean;
-  onClick: () => void;
+/** A stale plan is the one failure with a distinct recovery: preview again. */
+function isStalePlan(error: unknown): boolean {
+  return isErrorDto(error) && error.code === "convert.stale_plan";
 }
 
 /**
@@ -44,8 +44,11 @@ export function ConvertWizard() {
   const steps: WizardStep[] = CONVERT_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }));
   const activeStep = CONVERT_STEPS.indexOf(wizard.step);
 
-  let back: NavAction | undefined;
-  let next: NavAction | undefined;
+  // Every action the wizard offers, on every step, lives in the shell's bar so
+  // the primary control never moves; the step components only render state.
+  let back: WizardNavAction | undefined;
+  let secondary: WizardNavAction | undefined;
+  let next: WizardNavAction | undefined;
   if (wizard.step === "sources") {
     next = {
       label: t("sources.continue"),
@@ -61,10 +64,29 @@ export function ConvertWizard() {
       disabled: wizard.selectedCount === 0 || wizard.isPreviewing,
       onClick: wizard.toRun,
     };
+  } else if (wizard.isConverting) {
+    secondary = { label: t("run.cancel"), onClick: () => void wizard.cancel() };
+    next = { label: t("run.converting"), disabled: true };
+  } else if (wizard.report !== null || isStalePlan(wizard.convertError)) {
+    next = { label: t("run.report.finish"), onClick: wizard.restart };
+  } else if (wizard.convertError === undefined) {
+    next = {
+      label: t("run.start"),
+      disabled: wizard.selectedCount === 0,
+      onClick: () => void wizard.convert(),
+    };
   }
+  // Any other convert failure has no forward move today, and this change is
+  // about placement only — it must not invent one.
 
   return (
-    <WizardShell steps={steps} activeStep={activeStep} back={back} next={next}>
+    <WizardShell
+      steps={steps}
+      activeStep={activeStep}
+      back={back}
+      secondary={secondary}
+      next={next}
+    >
       {wizard.step === "sources" && (
         <ConvertSourcesStep
           sources={wizard.sources}
@@ -98,9 +120,6 @@ export function ConvertWizard() {
           progress={wizard.progress}
           report={wizard.report}
           convertError={wizard.convertError}
-          onConvert={() => void wizard.convert()}
-          onCancel={() => void wizard.cancel()}
-          onRestart={wizard.restart}
         />
       )}
     </WizardShell>

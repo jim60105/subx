@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -35,6 +35,16 @@ function renderWizard() {
       <SyncWizard />
     </I18nextProvider>,
   );
+}
+
+/**
+ * The shell's action bar. Queries about *where* a control lives are scoped to
+ * it, so a control drifting back into the scrolling panel fails the test.
+ */
+function actionBar(): HTMLElement {
+  const bar = document.querySelector(".wizard__actions");
+  if (bar === null) throw new Error("the wizard rendered no action bar");
+  return bar as HTMLElement;
 }
 
 /** Fills a slot through the native picker, which is mocked per click. */
@@ -231,7 +241,7 @@ describe("the sync wizard", () => {
     expect(screen.getByText("1.250 seconds")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Continue" }));
-    await user.click(await screen.findByRole("button", { name: "Save" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Save" }));
 
     // A null output path is what asks the backend for the default `_synced`
     // name; the field was left as proposed.
@@ -247,7 +257,9 @@ describe("the sync wizard", () => {
     renderWizard();
     await reachReview(user);
 
-    await user.click(await screen.findByRole("button", { name: "Cancel" }));
+    // Back is this step's cancel; it was never anything else, and a second
+    // button with the same destination was only ever noise.
+    await user.click(await within(actionBar()).findByRole("button", { name: "Back" }));
 
     expect(api.cancelSyncDetection).toHaveBeenCalled();
     expect(await screen.findByRole("group", { name: "Offset method" })).toBeInTheDocument();
@@ -270,7 +282,7 @@ describe("the sync wizard", () => {
 
     await user.clear(field);
     await user.type(field, "/m/elsewhere.srt");
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(within(actionBar()).getByRole("button", { name: "Save" }));
 
     expect(api.applySyncOffset).toHaveBeenCalledWith(SUBTITLE, 1_500, "/m/elsewhere.srt", false);
   });
@@ -286,14 +298,40 @@ describe("the sync wizard", () => {
     renderWizard();
     await reachReview(user);
     await user.click(await screen.findByRole("button", { name: "Continue" }));
-    await user.click(await screen.findByRole("button", { name: "Save" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Save" }));
 
     expect(await screen.findByText("A file already exists at that path.")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Replace the existing file" }));
+    await user.click(within(actionBar()).getByRole("button", { name: "Replace the existing file" }));
 
     expect(api.applySyncOffset).toHaveBeenLastCalledWith(SUBTITLE, 1_500, null, true);
     expect(await screen.findByText("/m/episode_synced.srt")).toBeInTheDocument();
+  });
+
+  /// Only `output_exists` earns a confirmation. Every other write failure keeps
+  /// Save as its retry, because the output path is still editable and pointing
+  /// somewhere else is the recovery — losing that button would strand the user.
+  it("keeps Save as the retry when the write fails for any other reason", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.applySyncOffset).mockRejectedValueOnce({
+      code: "sync.write_failed",
+      message: "could not write the output file",
+      hintCode: null,
+    });
+    renderWizard();
+    await reachReview(user);
+    await user.click(await within(actionBar()).findByRole("button", { name: "Continue" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Save" }));
+
+    expect(
+      within(actionBar()).queryByRole("button", { name: "Replace the existing file" }),
+    ).not.toBeInTheDocument();
+
+    await user.clear(screen.getByRole("textbox", { name: "Save to" }));
+    await user.type(screen.getByRole("textbox", { name: "Save to" }), "/m/writable.srt");
+    await user.click(within(actionBar()).getByRole("button", { name: "Save" }));
+
+    expect(api.applySyncOffset).toHaveBeenLastCalledWith(SUBTITLE, 1_500, "/m/writable.srt", false);
   });
 
   /// The confirmation is permission to replace *the file the user was warned
@@ -309,21 +347,21 @@ describe("the sync wizard", () => {
     renderWizard();
     await reachReview(user);
     await user.click(await screen.findByRole("button", { name: "Continue" }));
-    await user.click(await screen.findByRole("button", { name: "Save" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Save" }));
     expect(
-      await screen.findByRole("button", { name: "Replace the existing file" }),
+      await within(actionBar()).findByRole("button", { name: "Replace the existing file" }),
     ).toBeInTheDocument();
 
     await user.clear(screen.getByRole("textbox", { name: "Save to" }));
     await user.type(screen.getByRole("textbox", { name: "Save to" }), "/m/other.srt");
 
     expect(
-      screen.queryByRole("button", { name: "Replace the existing file" }),
+      within(actionBar()).queryByRole("button", { name: "Replace the existing file" }),
     ).not.toBeInTheDocument();
 
     // The new path earns its own existence check rather than inheriting the
     // old one's permission to overwrite.
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(within(actionBar()).getByRole("button", { name: "Save" }));
     expect(api.applySyncOffset).toHaveBeenLastCalledWith(SUBTITLE, 1_500, "/m/other.srt", false);
   });
 
@@ -343,7 +381,7 @@ describe("the sync wizard", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Go back and enter the offset yourself instead.")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Try again" }));
+    await user.click(within(actionBar()).getByRole("button", { name: "Try again" }));
 
     await waitFor(() => expect(api.detectSyncOffset).toHaveBeenCalledTimes(2));
   });
@@ -353,9 +391,9 @@ describe("the sync wizard", () => {
     renderWizard();
     await reachReview(user);
     await user.click(await screen.findByRole("button", { name: "Continue" }));
-    await user.click(await screen.findByRole("button", { name: "Save" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Save" }));
 
-    await user.click(await screen.findByRole("button", { name: "Finish" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Finish" }));
 
     expect(screen.getByText("Choose the video and subtitle")).toBeInTheDocument();
     expect(screen.getByText("No subtitle chosen.")).toBeInTheDocument();

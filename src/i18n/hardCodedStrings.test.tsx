@@ -36,6 +36,7 @@ import { i18n, renderWithI18n, setupI18n } from "../test/renderWithI18n";
 import type {
   ConfigDto,
   ConvertPlanDto,
+  ExecutionReportDto,
   MatchPlanDto,
   SyncDefaultsDto,
   TranslatePlanDto,
@@ -178,13 +179,32 @@ const EMPTY_TRANSLATE_PLAN: TranslatePlanDto = {
   items: [],
 };
 
-/** An empty report: renders the chrome (title, summary, finish) with no
- * per-item outcome data that would read as untranslated prose. */
-const EMPTY_TRANSLATE_REPORT: TranslationReportDto = {
-  outcomes: [],
-  successCount: 0,
+/*
+ * The report fixtures carry one outcome each. Since the wizards took over the
+ * navigation buttons these panels are outcome lists and nothing else, so an
+ * empty report renders only its heading — too little for the "did this screen
+ * actually render?" floor below to mean anything.
+ */
+const TRANSLATE_REPORT: TranslationReportDto = {
+  outcomes: [
+    {
+      inputName: "ep01.srt",
+      outputPath: "/tmp/ep01.zh-TW.srt",
+      status: "translated",
+      backupPath: null,
+      error: null,
+      warning: null,
+    },
+  ],
+  successCount: 1,
   failureCount: 0,
   cancelled: false,
+};
+
+const EXECUTION_REPORT: ExecutionReportDto = {
+  outcomes: [{ subtitleName: "ep01.srt", targetPath: "/tmp/ep01.srt", applied: true, error: null }],
+  successCount: 1,
+  failureCount: 0,
 };
 
 /**
@@ -219,9 +239,6 @@ const SCREENS = [
         <AnalysisStep
           stage="analyzing"
           error={undefined}
-          onCancel={() => {}}
-          onRetry={() => {}}
-          onOpenSettings={() => {}}
         />,
       ),
   },
@@ -238,12 +255,9 @@ const SCREENS = [
       renderWithI18n(
         <ExecuteStep
           mode="rename"
-          selectedCount={0}
-          isExecuting={false}
-          report={null}
+          selectedCount={1}
+          report={EXECUTION_REPORT}
           executeError={undefined}
-          onExecute={() => {}}
-          onRestart={() => {}}
         />,
       ),
   },
@@ -291,9 +305,6 @@ const SCREENS = [
           progress={null}
           report={null}
           convertError={undefined}
-          onConvert={() => {}}
-          onCancel={() => {}}
-          onRestart={() => {}}
         />,
       ),
   },
@@ -342,8 +353,6 @@ const SCREENS = [
           offsetMs={0}
           offsetExceedsMax={false}
           onOffsetChange={() => {}}
-          onCancel={() => {}}
-          onRetry={() => {}}
         />,
       ),
   },
@@ -354,14 +363,9 @@ const SCREENS = [
         <SyncApplyStep
           offsetMs={0}
           outputPath=""
-          isApplying={false}
           applyResult={null}
           applyError={undefined}
-          canConfirmOverwrite={false}
           onOutputPathChange={() => {}}
-          onApply={() => {}}
-          onConfirmOverwrite={() => {}}
-          onRestart={() => {}}
         />,
       ),
   },
@@ -410,14 +414,10 @@ const SCREENS = [
     render: () =>
       renderWithI18n(
         <TranslateRunStep
-          selectedCount={0}
-          isTranslating={false}
+          selectedCount={1}
+          isTranslating={true}
           progress={null}
           translateError={undefined}
-          onTranslate={() => {}}
-          onCancel={() => {}}
-          onOpenSettings={() => {}}
-          onRestart={() => {}}
         />,
       ),
   },
@@ -425,7 +425,7 @@ const SCREENS = [
     name: "TranslateReportStep",
     render: () =>
       renderWithI18n(
-        <TranslateReportStep report={EMPTY_TRANSLATE_REPORT} onFinish={() => {}} />,
+        <TranslateReportStep report={TRANSLATE_REPORT} />,
       ),
   },
   {

@@ -40,6 +40,7 @@
       "finalizing": "整理結果"
     },
     "cancel": "取消",
+    "running": "分析中……",
     "retry": "再試一次",
     "openSettings": "開啟設定"
   },

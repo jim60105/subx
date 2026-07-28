@@ -2,19 +2,13 @@ import { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { WizardShell } from "../../components/WizardShell/WizardShell";
-import type { WizardStep } from "../../components/WizardShell/WizardShell";
+import type { WizardNavAction, WizardStep } from "../../components/WizardShell/WizardShell";
 import { pickFile, subscribeToDroppedPaths } from "../../platform/filePickers";
 import { SyncApplyStep } from "./SyncApplyStep";
 import { SyncDetectStep } from "./SyncDetectStep";
 import { SyncInputsStep } from "./SyncInputsStep";
 import { SyncMethodStep } from "./SyncMethodStep";
 import { SYNC_STEPS, useSyncWizard } from "./useSyncWizard";
-
-interface NavAction {
-  label: string;
-  disabled?: boolean;
-  onClick: () => void;
-}
 
 /**
  * Extensions the crate reads as subtitles.
@@ -71,8 +65,11 @@ export function SyncWizard() {
   const steps: WizardStep[] = SYNC_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }));
   const activeStep = SYNC_STEPS.indexOf(wizard.step);
 
-  let back: NavAction | undefined;
-  let next: NavAction | undefined;
+  // Every action the wizard offers, on every step, lives in the shell's bar so
+  // the primary control never moves; the step components only render state.
+  let back: WizardNavAction | undefined;
+  let secondary: WizardNavAction | undefined;
+  let next: WizardNavAction | undefined;
   if (wizard.step === "inputs") {
     next = {
       label: t("inputs.continue"),
@@ -88,22 +85,56 @@ export function SyncWizard() {
     };
   } else if (wizard.step === "detect") {
     // Going back abandons the detection rather than leaving it running behind
-    // the user; the wizard re-runs it if they come forward again.
+    // the user; it is this step's cancel as well as its retreat.
     back = { label: t("detect.back"), onClick: wizard.backToMethod };
-    next = {
-      label: t("detect.continue"),
-      disabled:
-        wizard.isDetecting ||
-        wizard.offsetExceedsMax ||
-        (wizard.method === "auto" && wizard.detection === null),
-      onClick: wizard.toApply,
-    };
-  } else if (wizard.applyResult === null) {
+    next =
+      !wizard.isDetecting && wizard.detectError !== undefined
+        ? { label: t("detect.retry"), onClick: wizard.toDetect }
+        : {
+            label: t("detect.continue"),
+            // One formula for the whole step, not one per phase: manual mode
+            // never produces a `detection`, and re-deriving this from
+            // `detection !== null` would leave it with no way forward.
+            disabled:
+              wizard.isDetecting ||
+              wizard.offsetExceedsMax ||
+              (wizard.method === "auto" && wizard.detection === null),
+            onClick: wizard.toApply,
+          };
+  } else if (wizard.applyResult !== null) {
+    next = { label: t("apply.report.finish"), onClick: wizard.restart };
+  } else {
     back = { label: t("apply.back"), disabled: wizard.isApplying, onClick: wizard.backToDetect };
+    const save: WizardNavAction = {
+      label: wizard.isApplying ? t("apply.applying") : t("apply.start"),
+      disabled: wizard.isApplying,
+      onClick: () => void wizard.apply(),
+    };
+    if (wizard.canConfirmOverwrite) {
+      // A refused overwrite has two ways out: replace the file, or edit the
+      // output path and save again. Replacing is the decisive move and takes
+      // the primary slot; saving stands aside rather than disappearing.
+      secondary = save;
+      next = {
+        label: t("apply.confirmOverwrite"),
+        disabled: wizard.isApplying,
+        onClick: () => void wizard.confirmOverwrite(),
+      };
+    } else {
+      // Every other failure keeps `apply.start` as its retry — the output path
+      // is still editable, which is what makes retrying meaningful.
+      next = save;
+    }
   }
 
   return (
-    <WizardShell steps={steps} activeStep={activeStep} back={back} next={next}>
+    <WizardShell
+      steps={steps}
+      activeStep={activeStep}
+      back={back}
+      secondary={secondary}
+      next={next}
+    >
       {wizard.step === "inputs" && (
         <SyncInputsStep
           mediaPath={wizard.mediaPath}
@@ -138,22 +169,15 @@ export function SyncWizard() {
           offsetMs={wizard.offsetMs}
           offsetExceedsMax={wizard.offsetExceedsMax}
           onOffsetChange={wizard.setOffsetMs}
-          onCancel={wizard.backToMethod}
-          onRetry={wizard.toDetect}
         />
       )}
       {wizard.step === "apply" && (
         <SyncApplyStep
           offsetMs={wizard.offsetMs}
           outputPath={wizard.proposedOutputPath}
-          isApplying={wizard.isApplying}
           applyResult={wizard.applyResult}
           applyError={wizard.applyError}
-          canConfirmOverwrite={wizard.canConfirmOverwrite}
           onOutputPathChange={wizard.setOutputPath}
-          onApply={() => void wizard.apply()}
-          onConfirmOverwrite={() => void wizard.confirmOverwrite()}
-          onRestart={wizard.restart}
         />
       )}
     </WizardShell>

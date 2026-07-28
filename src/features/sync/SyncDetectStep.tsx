@@ -15,8 +15,6 @@ interface SyncDetectStepProps {
   offsetMs: number;
   offsetExceedsMax: boolean;
   onOffsetChange: (offsetMs: number) => void;
-  onCancel: () => void;
-  onRetry: () => void;
 }
 
 /**
@@ -49,7 +47,8 @@ function useElapsedSeconds(running: boolean): number {
  * not a risk — what gets applied is the reviewed value, whether detection
  * produced it or the user typed it. Confidence and the engine's warnings are
  * shown rather than acted on: a threshold to refuse on would be product policy
- * the crate makes no claim about.
+ * the crate makes no claim about. Retrying and abandoning the detection are
+ * the wizard's action bar.
  */
 export function SyncDetectStep({
   method,
@@ -60,8 +59,6 @@ export function SyncDetectStep({
   offsetMs,
   offsetExceedsMax,
   onOffsetChange,
-  onCancel,
-  onRetry,
 }: SyncDetectStepProps) {
   const { t } = useTranslation("sync");
   const elapsed = useElapsedSeconds(isDetecting);
@@ -81,22 +78,12 @@ export function SyncDetectStep({
             {t("detect.running", { seconds: elapsed })}
           </p>
           <span className="sync-detect__spinner" aria-hidden="true" />
-          <button type="button" className="sync-detect__button" onClick={onCancel}>
-            {t("detect.cancel")}
-          </button>
         </div>
       )}
 
       {!isDetecting && detectError !== undefined && (
         <div className="sync-detect__error">
           <ErrorNotice error={detectError} role="status" />
-          <button
-            type="button"
-            className="sync-detect__button sync-detect__button--primary"
-            onClick={onRetry}
-          >
-            {t("detect.retry")}
-          </button>
         </div>
       )}
 

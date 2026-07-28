@@ -15,7 +15,7 @@ export default function App() {
   return (
     <div className="app">
       <AppHeader
-        onBack={screen === "home" ? undefined : () => setScreen("home")}
+        onNavigateHome={screen === "home" ? undefined : () => setScreen("home")}
         onOpenSettings={screen === "settings" ? undefined : () => setScreen("settings")}
       />
       <main className="app__main">

@@ -1,10 +1,4 @@
-# app-shell Specification
-
-## Purpose
-
-The desktop application frame: the Tauri 2 window, the home task-entry hub, client-side navigation between the hub and feature screens, the reusable multi-step `WizardShell` layout, and the thin Rust command layer through which the frontend reaches the `subx-cli` crate.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Desktop application launches with the home task-entry hub
 
@@ -93,29 +87,6 @@ The frontend SHALL provide a reusable `WizardShell` component that renders a num
 - **WHEN** a step's content is taller than the content panel and the user scrolls it
 - **THEN** the content scrolls inside the panel while the action bar and its primary control stay at the same on-screen position
 
-### Requirement: Thin Tauri command-layer structure
-
-The Rust backend SHALL be organized so Tauri commands contain no business logic: `commands/` modules translate DTOs, call `subx-cli` crate APIs, and emit events; DTOs live in `dto.rs`; shared state in `state.rs`; error mapping in `error.rs`. All commands SHALL return `Result<T, ErrorDto>` where `ErrorDto` carries a stable machine-readable `code`, an English `message`, and an optional `hint_code`.
-
-#### Scenario: Command failure yields a structured error
-
-- **WHEN** any Tauri command fails
-- **THEN** the frontend receives an `ErrorDto` with a stable `code` usable as a localization key, and the raw message available for detail display
-
-#### Scenario: Crate access is confined to the command layer
-
-- **WHEN** the `subx-cli` dependency is replaced by an equivalent crate exposing the same APIs
-- **THEN** only `src-tauri` code (imports and `Cargo.toml`) requires changes; the frontend is unaffected
-
-### Requirement: Application launches successfully under Wayland
-
-The desktop application SHALL start and render its window when running under a Wayland session, including on NVIDIA GPU + Wayland configurations where WebKitGTK's DMABUF renderer is known to conflict with the NVIDIA driver.
-
-#### Scenario: Launch on NVIDIA + Wayland
-
-- **WHEN** the application is launched on Linux with `XDG_SESSION_TYPE=wayland` and an NVIDIA GPU driver
-- **THEN** the window opens and renders without crashing with a Wayland protocol error (e.g. "Error 71 dispatching to Wayland display")
-
 ### Requirement: AppHeader floating chrome and control layout
 
 The application header (`AppHeader`) SHALL render header controls (**the interactive brand block that returns to the home hub**, language picker, theme picker, settings button, **and window control buttons**) with a unified control height of 36px. **The header SHALL NOT render a separate back button; the brand block is the only home affordance.** The header SHALL establish a primary stacking context (`z-index: 100`) and popover menus SHALL use `z-index: 1000` to ensure floating dropdown menus render above page main content and step indicators without clipping. Header buttons SHALL avoid nested `backdrop-filter` declarations inside the blurred header container to prevent WebKit GPU compositing layer bugs. **The header SHALL carry the `data-tauri-drag-region` attribute to enable window dragging on its empty space.**
@@ -135,6 +106,8 @@ The application header (`AppHeader`) SHALL render header controls (**the interac
 - **WHEN** a feature screen is open and the user presses and drags on the brand block
 - **THEN** the brand behaves as a button and does not initiate a window drag
 
+## ADDED Requirements
+
 ### Requirement: Uniform primary-action placement across feature screens
 
 Every feature screen SHALL place its primary forward action at the same on-screen position — the inline end of the screen's action row, at the bottom of the layout — so that a user completing a task clicks in one place throughout. Wizard screens SHALL satisfy this through `WizardShell`'s action bar; non-wizard screens with a commit action SHALL align that action row to the inline end.
@@ -153,4 +126,3 @@ Every feature screen SHALL place its primary forward action at the same on-scree
 
 - **WHEN** the Settings screen renders its save action
 - **THEN** that action row is aligned to the inline end, matching the wizards' primary-action side
-

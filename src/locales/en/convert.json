@@ -49,6 +49,7 @@
     "removingOriginals": "Each original will be deleted once its conversion succeeds.",
     "start": "Convert now",
     "starting": "Starting…",
+    "converting": "Converting…",
     "progress": "Converting {{index}} of {{total}} · {{name}}",
     "cancel": "Cancel",
     "report": {

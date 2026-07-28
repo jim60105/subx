@@ -73,22 +73,6 @@
   align-items: flex-start;
 }
 
-.sync-detect__button {
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  cursor: pointer;
-  background: var(--surface-hover);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
-}
-
-.sync-detect__button--primary {
-  color: var(--text-on-accent);
-  background: var(--accent-gradient-strong);
-  border-color: transparent;
-}
-
 .sync-detect__facts {
   display: flex;
   flex-wrap: wrap;

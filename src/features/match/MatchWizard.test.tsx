@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -44,6 +44,17 @@ function renderWizard(onOpenSettings: () => void = () => {}) {
       <MatchWizard onOpenSettings={onOpenSettings} />
     </I18nextProvider>,
   );
+}
+
+/**
+ * The shell's action bar. Controls that moved out of the panel are queried
+ * through it, so one drifting back inside fails the test rather than passing
+ * unnoticed.
+ */
+function actionBar(): HTMLElement {
+  const element = document.querySelector(".wizard__actions");
+  if (element === null) throw new Error("the wizard rendered no action bar");
+  return element as HTMLElement;
 }
 
 /** Drives Step 1 up to an enabled Analyze button, then clicks it. */
@@ -117,7 +128,7 @@ describe("the match wizard", () => {
     renderWizard();
     await reachAnalysis(user);
 
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(within(actionBar()).getByRole("button", { name: "Cancel" }));
 
     expect(api.cancelAnalysis).toHaveBeenCalledOnce();
     expect(await screen.findByText("Choose your sources")).toBeInTheDocument();
@@ -130,7 +141,7 @@ describe("the match wizard", () => {
     renderWizard();
     await reachAnalysis(user);
 
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(within(actionBar()).getByRole("button", { name: "Cancel" }));
     expect(await screen.findByText("Choose your sources")).toBeInTheDocument();
 
     // The original analysis resolves late; the cancelled generation drops it.
@@ -151,7 +162,7 @@ describe("the match wizard", () => {
     renderWizard(onOpenSettings);
     await reachAnalysis(user);
 
-    await user.click(await screen.findByRole("button", { name: "Open settings" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Open settings" }));
     expect(onOpenSettings).toHaveBeenCalledOnce();
   });
 
@@ -176,7 +187,7 @@ describe("the match wizard", () => {
     // Deselect the second match, then continue and apply.
     await user.click(await screen.findByRole("checkbox", { name: "Include show.tc.srt" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
-    await user.click(await screen.findByRole("button", { name: "Apply now" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Apply now" }));
 
     await waitFor(() => expect(api.executeSelected).toHaveBeenCalledWith("plan-1", [0]));
   });
@@ -203,11 +214,35 @@ describe("the match wizard", () => {
     renderWizard();
     await reachAnalysis(user);
     await user.click(await screen.findByRole("button", { name: "Continue" }));
-    await user.click(await screen.findByRole("button", { name: "Apply now" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Apply now" }));
 
     // The stale-plan error surfaces a restart that returns to Step 1.
-    await user.click(await screen.findByRole("button", { name: "Finish" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Finish" }));
     expect(await screen.findByText("Choose your sources")).toBeInTheDocument();
+  });
+
+  /// Only a stale plan has a distinct recovery. Any other execute failure has
+  /// none — stepping back is the way out — and the bar must not invent one.
+  it("offers no forward action when execution fails for any other reason", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.executeSelected).mockRejectedValue({
+      code: "match.execution_failed",
+      message: "the filesystem refused the move",
+      hintCode: null,
+    });
+    renderWizard();
+    await reachAnalysis(user);
+    await user.click(await screen.findByRole("button", { name: "Continue" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Apply now" }));
+
+    await waitFor(() =>
+      expect(within(actionBar()).queryByRole("button", { name: "Apply now" })).not.toBeInTheDocument(),
+    );
+    expect(within(actionBar()).queryByRole("button", { name: "Finish" })).not.toBeInTheDocument();
+    // Back is all that is left, and it is at the inline start, not the primary
+    // position — the bar's end cluster is empty.
+    expect(within(actionBar()).getByRole("button", { name: "Back" })).toBeEnabled();
+    expect(document.querySelectorAll(".wizard__actions-end button")).toHaveLength(0);
   });
 
   it("reports each item after a successful run", async () => {
@@ -215,7 +250,7 @@ describe("the match wizard", () => {
     renderWizard();
     await reachAnalysis(user);
     await user.click(await screen.findByRole("button", { name: "Continue" }));
-    await user.click(await screen.findByRole("button", { name: "Apply now" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Apply now" }));
 
     const results = await screen.findByText("Results");
     expect(results).toBeInTheDocument();
@@ -267,7 +302,7 @@ describe("the match wizard", () => {
     renderWizard();
     await reachAnalysis(user);
     await user.click(await screen.findByRole("button", { name: "Continue" }));
-    await user.click(await screen.findByRole("button", { name: "Apply now" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Apply now" }));
 
     expect(await screen.findByText("Failed")).toBeInTheDocument();
     expect(screen.getByText("Done")).toBeInTheDocument();
@@ -283,8 +318,8 @@ describe("the match wizard", () => {
     renderWizard();
     await reachAnalysis(user);
 
-    expect(screen.queryByRole("button", { name: "Open settings" })).not.toBeInTheDocument();
-    await user.click(await screen.findByRole("button", { name: "Try again" }));
+    expect(within(actionBar()).queryByRole("button", { name: "Open settings" })).not.toBeInTheDocument();
+    await user.click(await within(actionBar()).findByRole("button", { name: "Try again" }));
 
     // The retry uses the resolving default mock and reaches review.
     expect(await screen.findByText("Review the matches")).toBeInTheDocument();

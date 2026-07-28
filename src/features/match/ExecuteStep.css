@@ -22,32 +22,6 @@
   color: var(--text-secondary);
 }
 
-.execute-step__actions {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.execute-step__button {
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
-  background: var(--surface-hover);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
-}
-
-.execute-step__button--primary {
-  color: var(--text-on-accent);
-  background: var(--accent-gradient-strong);
-  border-color: transparent;
-}
-
-.execute-step__button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
 .execute-step__report {
   display: flex;
   flex-direction: column;

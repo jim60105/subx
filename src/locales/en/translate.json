@@ -58,6 +58,7 @@
     "summary": "{{count}} files selected",
     "start": "Translate now",
     "starting": "Starting…",
+    "translating": "Translating…",
     "progress": "Translating {{index}} of {{total}} · {{name}}",
     "elapsed": "Elapsed: {{seconds}}s",
     "cancel": "Cancel",
