@@ -69,7 +69,11 @@ jobs:
         run: |
           TAG="${{ github.ref_name }}"
           VERSION="${{ steps.release_notes.outputs.version }}"
-          RELEASE_ID=$(gh api "repos/${{ github.repository }}/releases/tags/${TAG}" --jq '.id' 2>/dev/null || true)
+          RELEASE_ID=$(gh api "repos/${{ github.repository }}/releases/tags/${TAG}" --jq '.id' 2>/dev/null) || RELEASE_ID=""
+          # Validate that the ID is numeric; gh api may leak JSON error bodies to stdout on 404.
+          if ! [[ "$RELEASE_ID" =~ ^[0-9]+$ ]]; then
+            RELEASE_ID=""
+          fi
           if [ -z "$RELEASE_ID" ]; then
             RELEASE_ID=$(gh api "repos/${{ github.repository }}/releases" \
               -f tag_name="${TAG}" \
