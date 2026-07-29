@@ -36,6 +36,30 @@ SubX 為 [subx-cli](https://github.com/jim60105/subx-cli) 提供桌面圖形使�
 <!-- screenshot: settings panel -->
 *螢幕截圖即將推出*
 
+## 下載
+
+SubX 的預建安裝套件發布於 [GitHub Releases](https://github.com/jim60105/subx/releases) 頁面。每個版本皆提供支援桌面作業系統的發行檔案：
+
+- **Linux (x86_64, arm64)** — `.AppImage`、`.deb` 與 `.tar.gz` 套件。
+- **macOS (Apple Silicon arm64, Intel x86_64)** — `.dmg` 磁碟影像檔與 `.app.tar.gz` 封存檔。
+- **Windows (x86_64)** — `.msi` 安裝程式與 `.exe` 安裝檔。
+
+### 系統需求與安裝說明
+
+Linux 版本需要 `glibc` 2.39 或更高版本（適用於 Ubuntu 24.04+、Debian 13+、Fedora 40+ 或同等新版發行版）。使用較舊版本發行版的作業系統，請參考下方的[從原始碼建構](#從原始碼建構)章節。
+
+SubX 發行套件未進行數位簽署，作業系統會在首次啟動時顯示標準安全提示：
+
+- **macOS Gatekeeper** — 若 macOS 顯示應用程式已損毀且無法開啟的提示，請執行下列命令移除隔離屬性：
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/SubX.app
+  ```
+- **Windows SmartScreen** — 在 SmartScreen 對話框中按一下**更多資訊**，接著選擇**仍要執行**。
+- **建構來源驗證** — 你可以使用 GitHub CLI 驗證下載檔案的 GitHub Actions 建構來源證明：
+  ```bash
+  gh attestation verify <file> --repo jim60105/subx
+  ```
+
 ## 從原始碼建構
 
 ### 先決條件

@@ -36,6 +36,30 @@ Features for subtitle synchronization (Sync wizard) and translation (Translate w
 <!-- screenshot: settings panel -->
 *Screenshot coming soon*
 
+## Download
+
+Pre-built installation packages for SubX are available on the [GitHub Releases](https://github.com/jim60105/subx/releases) page. Each release contains artifacts for supported desktop operating systems:
+
+- **Linux (x86_64, arm64)**: `.AppImage`, `.deb`, and `.tar.gz` bundles.
+- **macOS (Apple Silicon arm64, Intel x86_64)**: `.dmg` disk images and `.app.tar.gz` archives.
+- **Windows (x86_64)**: `.msi` installers and standalone `.exe` setup packages.
+
+### System Requirements & Installation Caveats
+
+Linux releases require `glibc` 2.39 or higher (found in Ubuntu 24.04+, Debian 13+, Fedora 40+, or equivalent modern distributions). Users on older distributions should follow the [Building from Source](#building-from-source) section below.
+
+SubX distribution packages are unsigned. Operating systems will present standard security prompts on initial launch:
+
+- **macOS Gatekeeper**: If macOS reports that the application is damaged and cannot be opened, remove the quarantine attribute with:
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/SubX.app
+  ```
+- **Windows SmartScreen**: Click **More info** on the SmartScreen dialog, then select **Run anyway**.
+- **Build Provenance**: You can independently verify any downloaded asset against GitHub Actions build provenance attestations by running:
+  ```bash
+  gh attestation verify <file> --repo jim60105/subx
+  ```
+
 ## Building from Source
 
 ### Prerequisites

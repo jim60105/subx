@@ -115,12 +115,12 @@ procedure:
 ```
 
 A waiver is rejected if it omits either field, names a scenario that no longer
-exists, or names one that a test in fact annotates. Exactly one scenario is
+exists, or names one that a test in fact annotates. Two scenarios are
 waived today.
 
 ### Manual Wayland smoke test
 
-The one waived scenario — the app launching on NVIDIA + Wayland without a
+The first waived scenario — the app launching on NVIDIA + Wayland without a
 WebKitGTK DMABUF crash — is verified by hand:
 
 1. On a Linux machine with an NVIDIA GPU running a Wayland session
@@ -132,6 +132,30 @@ WebKitGTK DMABUF crash — is verified by hand:
 The pure part of the workaround — which environment overrides each target needs
 — is unit-tested in `src-tauri/src/platform.rs`; only the window actually
 opening cannot be asserted headless.
+
+### Manual release installation verification
+
+The second waived scenario (`release-pipeline/every-supported-desktop-target-is-built-from-a-pinned-environment#the-published-bundle-installs-and-launches-on-each-platform`)
+covers cross-platform package installation and launch verification:
+
+1. **Per-platform installation and launch check**:
+   - **Linux**: Install the `.deb` package (`sudo dpkg -i subx_*.deb`) or run the `.AppImage` (`chmod +x SubX_*.AppImage && ./SubX_*.AppImage`). Launch SubX and verify that the version reported matches the release tag.
+   - **macOS**: Open `.dmg` and drag `SubX.app` to `/Applications`. If macOS Gatekeeper blocks launch ("SubX is damaged and can't be opened"), clear the quarantine attribute:
+     ```bash
+     xattr -dr com.apple.quarantine /Applications/SubX.app
+     ```
+     Launch SubX and verify that the version reported matches the release tag.
+   - **Windows**: Run the `.msi` or `.exe` installer. If Windows SmartScreen displays a warning ("Windows protected your PC"), click **More info** → **Run anyway**. Launch SubX and verify that the version reported matches the release tag.
+2. **Windows installer license display check**:
+   - During Windows installation, visually confirm that the license step displays the GPL license text cleanly without markdown formatting glitches or truncation.
+3. **Maintainer publish checklist**:
+   - Wait for `ci.yml` to complete with a green pass on the release tag commit SHA.
+   - Confirm all five target build outputs (macOS arm64, macOS x86_64, Linux x86_64, Linux arm64, Windows x86_64) are attached to the draft release.
+   - Perform installation and launch verification on available test machines.
+   - Publish the draft release on GitHub.
+4. **Post-publish flaw handling**:
+   - If a critical bug or packaging flaw is identified after publishing, **do not** silently replace published assets under the existing tag.
+   - Edit the release notes to document the issue or yank/delete the release assets and publish a patch release (e.g. `v0.1.1`).
 
 ## Adding a feature
 

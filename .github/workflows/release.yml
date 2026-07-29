@@ -1,0 +1,176 @@
+# Multi-platform desktop release workflow for SubX.
+#
+# Draft-then-publish contract:
+# 1. Triggered on tag push (`v*`) or manual dispatch (`workflow_dispatch`).
+# 2. On tag push, `prepare` job validates tag vs package.json version, extracts
+#    CHANGELOG notes, and creates/reuses a draft release via GitHub API.
+# 3. `build` matrix builds 5 desktop targets (macOS arm64/x86_64, Linux x86_64/arm64,
+#    Windows x86_64) and uploads artifacts into the draft release.
+# 4. The release remains a draft when CI finishes. Maintainers publish the draft
+#    manually after verifying CI (`ci.yml`) is green for the commit SHA.
+#
+# Verification gates are NOT re-run in this workflow because `ci.yml` runs on every
+# push (including tag pushes) and executes the full verification suite concurrently.
+#
+# Manual `workflow_dispatch` builds all 5 targets as a dry run and uploads workflow
+# artifacts without creating a GitHub release or publishing anything.
+#
+# No Rust build cache (`Swatinem/rust-cache`) is used here (D5): release builds are
+# infrequent, so caching release targets would evict the high-frequency CI cache
+# from GitHub's 10 GB repository cache budget.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    if: github.event_name == 'push'
+    outputs:
+      release_id: ${{ steps.create_release.outputs.release_id }}
+      version: ${{ steps.check_tag.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 'lts/*'
+          cache: npm
+      - name: Check release tag
+        id: check_tag
+        shell: bash
+        run: node scripts/check-release-tag.mjs "${{ github.ref_name }}"
+      - name: Render release notes
+        id: release_notes
+        shell: bash
+        run: |
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"
+          node scripts/release-notes.mjs "${VERSION}" > release-notes.md
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Create or reuse draft release
+        id: create_release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          VERSION="${{ steps.release_notes.outputs.version }}"
+          RELEASE_ID=$(gh api "repos/${{ github.repository }}/releases/tags/${TAG}" --jq '.id' 2>/dev/null || true)
+          if [ -z "$RELEASE_ID" ]; then
+            RELEASE_ID=$(gh api "repos/${{ github.repository }}/releases" \
+              -f tag_name="${TAG}" \
+              -f name="SubX ${VERSION}" \
+              -F draft=true \
+              -F body=@release-notes.md \
+              --jq '.id')
+          fi
+          echo "release_id=${RELEASE_ID}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: prepare
+    if: always() && (needs.prepare.result == 'success' || needs.prepare.result == 'skipped')
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-15
+          - target: x86_64-apple-darwin
+            os: macos-15
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-24.04
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+          - target: x86_64-pc-windows-msvc
+            os: windows-2025
+    env:
+      APPIMAGE_EXTRACT_AND_RUN: 1
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 'lts/*'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      # System dependencies for Linux bundler targets.
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libgtk-3-dev \
+            file \
+            xdg-utils \
+            libxdo-dev
+      - name: Install Node dependencies
+        shell: bash
+        run: npm ci
+      # Deliberately no Swatinem/rust-cache per D5 to preserve the repository's Actions cache budget.
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v1
+        id: tauri
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          releaseId: ${{ needs.prepare.outputs.release_id }}
+          releaseDraft: true
+          uploadWorkflowArtifacts: true
+          uploadUpdaterJson: false
+          retryAttempts: 3
+          args: --target ${{ matrix.target }}
+      - name: Filter build artifacts for attestation
+        id: filter_artifacts
+        shell: bash
+        run: |
+          ARTIFACTS_JSON='${{ steps.tauri.outputs.artifactPaths }}'
+          FILTERED_FILES=""
+          if [ -n "$ARTIFACTS_JSON" ] && [ "$ARTIFACTS_JSON" != "null" ]; then
+            FILTERED_FILES=$(echo "$ARTIFACTS_JSON" | jq -r '.[]' | while read -r item; do
+              if [ -f "$item" ]; then
+                echo "$item"
+              fi
+            done)
+          fi
+
+          if [ -n "$FILTERED_FILES" ]; then
+            echo "has_files=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "paths<<EOF"
+              echo "$FILTERED_FILES"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "has_files=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Attest build provenance
+        if: steps.filter_artifacts.outputs.has_files == 'true'
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: ${{ steps.filter_artifacts.outputs.paths }}
