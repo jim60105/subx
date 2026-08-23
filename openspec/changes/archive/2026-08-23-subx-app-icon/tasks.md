@@ -42,4 +42,4 @@ Every scenario below is mechanically checkable; no waiver in `scripts/spec-cover
 - [x] 4.3 Note the new commands in the Build & Validation section of `CLAUDE.md`.
 - [x] 4.4 Run `npm run verify` and confirm the whole chain passes, including `spec:trace` reporting no unverified `app-icon` scenario.
 - [x] 4.5 Build a bundle locally (`npm run tauri build`) and confirm the new icon appears on the desktop entry and in the window switcher, not just in the file tree.
-- [ ] 4.6 Archive with `openspec archive --skip-specs` once 4.1–4.5 pass.
+- [x] 4.6 Archive with `openspec archive --skip-specs` once 4.1–4.5 pass.
