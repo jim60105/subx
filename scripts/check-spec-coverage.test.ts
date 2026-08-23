@@ -122,7 +122,7 @@ describe("collectScenarios", () => {
   it("takes the capability from the directory name and reads every spec", () => {
     writeSpec("demo", SAMPLE_SPEC);
     writeSpec("other", "### Requirement: Other\n#### Scenario: Other thing\n");
-    const scenarios = collectScenarios(path.join(root, "openspec", "specs"));
+    const scenarios = collectScenarios(root, "openspec/specs");
     expect(scenarios.map((s) => s.id)).toEqual([
       "demo/things-work#a-thing-works",
       "demo/things-work#another-thing-works",
@@ -135,13 +135,13 @@ describe("collectScenarios", () => {
       "demo",
       "### Requirement: Things work\n#### Scenario: A thing works\n#### Scenario: A thing works!\n",
     );
-    expect(() => collectScenarios(path.join(root, "openspec", "specs"))).toThrow(
+    expect(() => collectScenarios(root, "openspec/specs")).toThrow(
       /Duplicate scenario ID/,
     );
   });
 
   it("reports a missing spec directory rather than reporting zero scenarios", () => {
-    expect(() => collectScenarios(path.join(root, "nope"))).toThrow(/not found/);
+    expect(() => collectScenarios(root, "nope")).toThrow(/not found/);
   });
 });
 
@@ -439,5 +439,146 @@ describe("loadConfig", () => {
     expect(config.specDir).toBe("openspec/specs");
     expect(config.testRoots).toEqual([]);
     expect(config.waivers).toEqual([]);
+  });
+});
+
+describe("path input validation", () => {
+  it("rejects a --config argument that has no value", () => {
+    const { code, err } = runChecker(["--config"]);
+    expect(code).toBe(1);
+    expect(err).toContain("missing value for --config");
+  });
+
+  // @covers verification-gates/path-inputs-to-the-checker-are-resolved-and-validated#a-non-file-or-missing-config-path-is-rejected
+  it("rejects a config path that is a directory or does not exist, without reading it", () => {
+    const scriptsDir = path.join(root, "scripts");
+    fs.mkdirSync(scriptsDir, { recursive: true });
+    const { code, err } = runChecker(["--config", scriptsDir]);
+    expect(code).toBe(1);
+    expect(err).toContain("does not exist or is not a regular file");
+
+    const { code: code2, err: err2 } = runChecker(["--config", path.join(root, "missing.json")]);
+    expect(code2).toBe(1);
+    expect(err2).toContain("does not exist or is not a regular file");
+  });
+
+  // @covers verification-gates/path-inputs-to-the-checker-are-resolved-and-validated#a-valid-config-path-is-accepted
+  it("accepts a config path that is an existing regular file and continues", () => {
+    writeSpec("demo", "### Requirement: Things work\n#### Scenario: A thing works\n- **WHEN** a thing happens\n- **THEN** it works\n");
+    writeTest(
+      "src/demo.test.ts",
+      ["// @covers demo/things-work#a-thing-works", 'it("works", () => {});'].join("\n"),
+    );
+    const configPath = writeConfig({ testRoots: ["src"] });
+    const { code, out } = runChecker(["--config", configPath]);
+    expect(code).toBe(0);
+    expect(out).toContain("1 verified, 0 waived, 0 unverified");
+  });
+
+  // @covers verification-gates/path-inputs-to-the-checker-are-resolved-and-validated#a-test-root-that-escapes-the-repository-root-is-rejected
+  it("rejects a test root that escapes the repository root", () => {
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "spec-coverage-outside-"));
+    writeSpec("demo", SAMPLE_SPEC);
+    const relRoot = path.relative(root, outsideDir);
+    const configPath = writeConfig({ testRoots: [relRoot] });
+    const { code, err } = runChecker(["--config", configPath]);
+    expect(code).toBe(1);
+    expect(err).toContain("resolves outside the repository root");
+    fs.rmSync(outsideDir, { recursive: true, force: true });
+
+    // A non-existent escaping root is rejected lexically, not skipped.
+    const configPath2 = writeConfig({ testRoots: ["../missing-root"] });
+    const { code: code2, err: err2 } = runChecker(["--config", configPath2]);
+    expect(code2).toBe(1);
+    expect(err2).toContain("resolves outside the repository root");
+  });
+
+  // @covers verification-gates/path-inputs-to-the-checker-are-resolved-and-validated#a-test-root-inside-the-repository-root-is-accepted
+  it("walks a test root that stays inside the repository root", () => {
+    writeSpec("demo", "### Requirement: Things work\n#### Scenario: A thing works\n- **WHEN** a thing happens\n- **THEN** it works\n");
+    writeTest(
+      "src/demo.test.ts",
+      ["// @covers demo/things-work#a-thing-works", 'it("works", () => {});'].join("\n"),
+    );
+    const configPath = writeConfig({ testRoots: ["src"] });
+    const { code, out } = runChecker(["--config", configPath]);
+    expect(code).toBe(0);
+    expect(out).toContain("1 verified, 0 waived, 0 unverified");
+  });
+
+  // @covers verification-gates/path-inputs-to-the-checker-are-resolved-and-validated#a-symlinked-test-root-pointing-outside-the-repository-root-is-rejected
+  it("rejects a symlinked test root that points outside the repository root", () => {
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "spec-coverage-outside-"));
+    fs.symlinkSync(outsideDir, path.join(root, "linked-outside"));
+    writeSpec("demo", SAMPLE_SPEC);
+    const configPath = writeConfig({ testRoots: ["linked-outside"] });
+    const { code, err } = runChecker(["--config", configPath]);
+    expect(code).toBe(1);
+    expect(err).toContain("resolves outside the repository root");
+    fs.rmSync(outsideDir, { recursive: true, force: true });
+  });
+
+  // @covers verification-gates/path-inputs-to-the-checker-are-resolved-and-validated#a-spec-directory-that-escapes-the-repository-root-is-rejected
+  it("rejects a spec directory that escapes the repository root", () => {
+    const outsideSpecDir = fs.mkdtempSync(path.join(os.tmpdir(), "spec-coverage-escapes-"));
+    writeSpec("demo", SAMPLE_SPEC);
+    const relSpecDir = path.relative(root, outsideSpecDir);
+    const configPath = writeConfig({ specDir: relSpecDir });
+    const { code, err } = runChecker(["--config", configPath]);
+    expect(code).toBe(1);
+    expect(err).toContain("resolves outside the repository root");
+    fs.rmSync(outsideSpecDir, { recursive: true, force: true });
+
+    // A non-existent escaping spec directory is rejected lexically.
+    const configPath2 = writeConfig({ specDir: "../missing-specs" });
+    const { code: code2, err: err2 } = runChecker(["--config", configPath2]);
+    expect(code2).toBe(1);
+    expect(err2).toContain("resolves outside the repository root");
+  });
+
+  // @covers verification-gates/path-inputs-to-the-checker-are-resolved-and-validated#a-symlinked-test-file-inside-a-test-root-that-points-outside-the-repository-root-is-rejected
+  it("rejects a symlinked test file inside a test root that points outside the repository root", () => {
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "spec-coverage-outside-"));
+    fs.writeFileSync(
+      path.join(outsideDir, "leak.ts"),
+      ["// @covers demo/things-work#a-thing-works", 'it("leak", () => {});'].join("\n"),
+    );
+    writeSpec("demo", SAMPLE_SPEC);
+    writeTest("src/real.ts", 'it("real", () => {});\n');
+    fs.symlinkSync(path.join(outsideDir, "leak.ts"), path.join(root, "src", "leak.ts"));
+    const configPath = writeConfig({ testRoots: ["src"] });
+    const { code, err } = runChecker(["--config", configPath]);
+    expect(code).toBe(1);
+    expect(err).toContain("resolves outside the repository root");
+    fs.rmSync(outsideDir, { recursive: true, force: true });
+  });
+
+  // @covers verification-gates/path-inputs-to-the-checker-are-resolved-and-validated#a-symlinked-spec-file-that-points-outside-the-repository-root-is-rejected
+  it("rejects a symlinked spec.md that points outside the repository root", () => {
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "spec-coverage-outside-"));
+    fs.writeFileSync(path.join(outsideDir, "spec.md"), "### Requirement: Other\n#### Scenario: Other thing\n");
+    const specDir = path.join(root, "openspec", "specs", "other");
+    fs.mkdirSync(specDir, { recursive: true });
+    fs.symlinkSync(path.join(outsideDir, "spec.md"), path.join(specDir, "spec.md"));
+    writeSpec("demo", SAMPLE_SPEC);
+    const configPath = writeConfig();
+    const { code, err } = runChecker(["--config", configPath]);
+    expect(code).toBe(1);
+    expect(err).toContain("resolves outside the repository root");
+    fs.rmSync(outsideDir, { recursive: true, force: true });
+  });
+
+  // @covers verification-gates/path-inputs-to-the-checker-are-resolved-and-validated#a-symlinked-config-file-derives-the-repository-root-from-the-link-s-location
+  it("derives the repository root from a symlinked config file's location", () => {
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "spec-coverage-config-"));
+    const outsideConfig = path.join(outsideDir, "spec-coverage.config.json");
+    fs.writeFileSync(outsideConfig, JSON.stringify({ specDir: "openspec/specs", testRoots: ["src"], waivers: [] }));
+    const scriptsDir = path.join(root, "scripts");
+    fs.mkdirSync(scriptsDir, { recursive: true });
+    const linkPath = path.join(scriptsDir, "spec-coverage.config.json");
+    fs.symlinkSync(outsideConfig, linkPath);
+    const config = loadConfig(linkPath);
+    expect(config.root).toBe(root);
+    fs.rmSync(outsideDir, { recursive: true, force: true });
   });
 });

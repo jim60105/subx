@@ -79,6 +79,35 @@ export function parseSpec(content, capability) {
   return scenarios;
 }
 
+/** Canonicalize an existing path, or fall back to lexical resolution. */
+function canonicalOrResolve(p) {
+  return fs.existsSync(p) ? fs.realpathSync(p) : path.resolve(p);
+}
+
+/** Throw when `candidate` escapes `canonicalRoot`, using a separator-safe relative check. */
+function rejectIfEscapes(canonicalRoot, candidate, label) {
+  const rel = path.relative(canonicalRoot, candidate);
+  if (rel === ".." || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)) {
+    throw new Error(`Path "${label}" resolves outside the repository root "${canonicalRoot}"`);
+  }
+}
+
+/**
+ * Resolve `sub` against `root`. Lexical containment is enforced for every
+ * resolved path (existing or not), and existing paths get a second,
+ * symlink-safe check after `fs.realpathSync` canonicalization.
+ */
+function resolveWithin(root, sub) {
+  const lexicalRoot = path.resolve(root);
+  const resolved = path.resolve(root, sub);
+  rejectIfEscapes(lexicalRoot, resolved, sub);
+  if (!fs.existsSync(resolved)) return resolved;
+  const canonicalRoot = canonicalOrResolve(root);
+  const canonical = fs.realpathSync(resolved);
+  rejectIfEscapes(canonicalRoot, canonical, sub);
+  return canonical;
+}
+
 /**
  * Collect every scenario under `specDir`, taking the capability from each
  * immediate subdirectory's name.
@@ -87,18 +116,22 @@ export function parseSpec(content, capability) {
  * a single annotation would otherwise silently satisfy both, which destroys the
  * one-scenario-one-link guarantee the whole checker exists to provide.
  */
-export function collectScenarios(specDir) {
-  if (!fs.existsSync(specDir)) {
+export function collectScenarios(root, specDir) {
+  const specPath = resolveWithin(root, specDir);
+  if (!fs.existsSync(specPath)) {
     throw new Error(`Spec directory not found: ${specDir}`);
   }
 
   const scenarios = [];
   const seen = new Map();
+  const canonicalRoot = canonicalOrResolve(root);
 
-  for (const entry of fs.readdirSync(specDir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+  for (const entry of fs.readdirSync(specPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
     if (!entry.isDirectory()) continue;
-    const specFile = path.join(specDir, entry.name, "spec.md");
-    if (!fs.existsSync(specFile)) continue;
+    const specFileRaw = path.join(specPath, entry.name, "spec.md");
+    if (!fs.existsSync(specFileRaw)) continue;
+    const specFile = fs.realpathSync(specFileRaw);
+    rejectIfEscapes(canonicalRoot, specFile, `${entry.name}/spec.md`);
 
     for (const scenario of parseSpec(fs.readFileSync(specFile, "utf8"), entry.name)) {
       const previous = seen.get(scenario.id);
@@ -116,15 +149,35 @@ export function collectScenarios(specDir) {
   return scenarios;
 }
 
-/** Recursively list files under `dir` whose extension is in `extensions`. */
-function walk(dir, extensions, out = []) {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-    const full = path.join(dir, entry.name);
+/**
+ * Recursively list files under `dir` whose extension is in `extensions`.
+ *
+ * The input path is canonicalized and containment-checked against `root` before
+ * any filesystem access, so an unsanitized path cannot list files outside the
+ * repository root.
+ */
+function walk(dir, extensions, out = [], root = null) {
+  let canonicalDir = dir;
+  let canonicalRoot = null;
+  if (fs.existsSync(dir)) {
+    canonicalDir = fs.realpathSync(dir);
+  }
+  if (root) {
+    canonicalRoot = canonicalOrResolve(root);
+    rejectIfEscapes(canonicalRoot, canonicalDir, dir);
+  }
+  for (const entry of fs.readdirSync(canonicalDir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    const full = path.join(canonicalDir, entry.name);
     if (entry.isDirectory()) {
       if (entry.name === "node_modules" || entry.name === "target" || entry.name === ".git") continue;
-      walk(full, extensions, out);
+      walk(full, extensions, out, root);
     } else if (extensions.includes(path.extname(entry.name))) {
-      out.push(full);
+      let file = full;
+      if (canonicalRoot && fs.existsSync(full)) {
+        file = fs.realpathSync(full);
+        rejectIfEscapes(canonicalRoot, file, entry.name);
+      }
+      out.push(file);
     }
   }
   return out;
@@ -203,10 +256,10 @@ export function scanAnnotations(root, testRoots, testExtensions) {
   const annotations = [];
 
   for (const testRoot of testRoots) {
-    const absoluteRoot = path.resolve(root, testRoot);
+    const absoluteRoot = resolveWithin(root, testRoot);
     if (!fs.existsSync(absoluteRoot)) continue;
 
-    for (const file of walk(absoluteRoot, testExtensions)) {
+    for (const file of walk(absoluteRoot, testExtensions, undefined, root)) {
       const ext = path.extname(file);
       const lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
       lines.forEach((line, index) => {
@@ -351,9 +404,21 @@ export function formatReport({ results, counts }) {
   return lines.join("\n");
 }
 
-/** Read the checker's configuration; the repository root is the config's parent directory. */
+/**
+ * Read the checker's configuration; the repository root is the config's parent
+ * directory. The path is validated and canonicalized before the read, so an
+ * unsanitized path cannot be used as a filesystem path.
+ *
+ * A config file that is a symlink is accepted (statSync follows links); the
+ * repository root is derived from the symlink's location, not its target, so a
+ * linked config still anchors the check to the repository where it was invoked.
+ */
 export function loadConfig(configPath) {
-  const raw = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  const resolved = path.resolve(configPath);
+  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
+    throw new Error(`Config path "${configPath}" does not exist or is not a regular file`);
+  }
+  const raw = JSON.parse(fs.readFileSync(fs.realpathSync(resolved), "utf8"));
   return {
     root: path.resolve(path.dirname(configPath), ".."),
     specDir: raw.specDir ?? "openspec/specs",
@@ -371,13 +436,21 @@ export function run(argv, stdout = console.log, stderr = console.error) {
     path.dirname(fileURLToPath(import.meta.url)),
     "spec-coverage.config.json",
   );
-  const configPath = configIndex === -1 ? defaultConfig : path.resolve(argv[configIndex + 1]);
+  let configPath;
+  if (configIndex === -1) {
+    configPath = defaultConfig;
+  } else if (configIndex + 1 >= argv.length) {
+    stderr("spec-coverage: missing value for --config");
+    return 1;
+  } else {
+    configPath = path.resolve(argv[configIndex + 1]);
+  }
 
   let config;
   let outcome;
   try {
     config = loadConfig(configPath);
-    const scenarios = collectScenarios(path.resolve(config.root, config.specDir));
+    const scenarios = collectScenarios(config.root, config.specDir);
     const annotations = scanAnnotations(config.root, config.testRoots, config.testExtensions);
     outcome = validate(scenarios, annotations, config.waivers);
   } catch (error) {

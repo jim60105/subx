@@ -53,7 +53,7 @@ export interface Config {
 export function slugify(text: string): string;
 export function scenarioId(capability: string, requirement: string, scenario: string): string;
 export function parseSpec(content: string, capability: string): Scenario[];
-export function collectScenarios(specDir: string): Scenario[];
+export function collectScenarios(root: string, specDir: string): Scenario[];
 export function scanAnnotations(
   root: string,
   testRoots: string[],
