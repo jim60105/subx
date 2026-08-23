@@ -1,7 +1,7 @@
 <!--
   SubX application icon — "Crossband", full-bleed master.
 
-  Source of truth: openspec/changes/subx-app-icon/design.md §1.4 (Construction spec).
+  Source of truth: openspec/changes/archive/2026-08-23-subx-app-icon/design.md §1.4 (Construction spec).
   Every coordinate below is taken verbatim from that table. Do not re-derive,
   re-round or "improve" a number here; change design.md first.
 

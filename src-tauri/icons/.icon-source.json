@@ -2,11 +2,11 @@
   "sources": {
     "master": {
       "path": "assets/brand/subx-icon.svg",
-      "sha256": "d2312c0278fae153b3f7fd11cb33d10f18b5462e755b8237b27a2c6282bfad34"
+      "sha256": "d5d171d5d32cb288a2afcc56658aada1c119a3a6fe40cf0e80370a45ae5a6826"
     },
     "macos": {
       "path": "assets/brand/subx-icon-macos.svg",
-      "sha256": "36c788f5c856ada24d9709a617020cf461081745bfc14e4c6102dbccfe4f499c"
+      "sha256": "0bd5440e479de452f75ba19307784da35202feacb6fe3daf19f198f105d4f9ae"
     }
   },
   "outputs": {

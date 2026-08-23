@@ -115,7 +115,7 @@ enforces, without any automated check noticing the mark going soft at small
 sizes. After changing either constant, render the master and the macOS source
 at 16px (`npx tauri icon <source> -o <dir>`, then inspect `32x32.png` or
 `icon.ico`'s 16px frame) and confirm the mark still reads as a clean X, not a
-smudge. At authoring time (see `openspec/changes/subx-app-icon/tasks.md` task
+smudge. At authoring time (see `openspec/changes/archive/2026-08-23-subx-app-icon/tasks.md` task
 1.4), the master's 16px render was a legible X — the weave's residue survives
 as a mid-tone seam rather than disappearing cleanly, which is faithful to the
 mark rather than a defect. The macOS-inset source is measurably softer at 16px

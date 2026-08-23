@@ -1,7 +1,7 @@
 <!--
   SubX application icon — "Crossband", macOS variant. Feeds icon.icns only.
 
-  Source of truth: openspec/changes/subx-app-icon/design.md §1.4 and D2.
+  Source of truth: openspec/changes/archive/2026-08-23-subx-app-icon/design.md §1.4 and D2.
   `tauri icon` applies no platform inset — it renders the source verbatim into
   every slot — so a full-bleed tile ships on macOS as an un-inset square that
   reads visibly larger and squarer than its Big Sur neighbours. This file is the

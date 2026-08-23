@@ -3,7 +3,7 @@
   consumes this file; it exists so the README and header work later start from a
   drawing that is already in register with the master.
 
-  Source of truth: openspec/changes/subx-app-icon/design.md §1.4 (geometry) and
+  Source of truth: openspec/changes/archive/2026-08-23-subx-app-icon/design.md §1.4 (geometry) and
   §1.7 (why this variant drops the weave). Same viewBox and the same four
   constants as the master: t = 68, R_long = 150, R_short = 105, g = 22.
 
