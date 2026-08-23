@@ -18,7 +18,9 @@
     "spec:trace": "node scripts/check-spec-coverage.mjs",
     "bindings:generate": "cargo test --manifest-path src-tauri/Cargo.toml export_bindings",
     "bindings:check": "npm run bindings:generate && git ls-files --error-unmatch src/types/bindings.ts && git diff --exit-code src/types/bindings.ts",
-    "verify": "tsc --noEmit && npm run test:coverage && npm run test:rust:coverage && npm run spec:trace && npm run bindings:check"
+    "icons:generate": "node scripts/generate-icons.mjs",
+    "icons:check": "node scripts/check-icon-source.mjs",
+    "verify": "tsc --noEmit && npm run test:coverage && npm run test:rust:coverage && npm run spec:trace && npm run bindings:check && npm run icons:check"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

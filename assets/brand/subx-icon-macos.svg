@@ -1,0 +1,53 @@
+<!--
+  SubX application icon — "Crossband", macOS variant. Feeds icon.icns only.
+
+  Source of truth: openspec/changes/subx-app-icon/design.md §1.4 and D2.
+  `tauri icon` applies no platform inset — it renders the source verbatim into
+  every slot — so a full-bleed tile ships on macOS as an un-inset square that
+  reads visibly larger and squarer than its Big Sur neighbours. This file is the
+  master group, copied verbatim, wrapped in one transform that scales it to the
+  Big Sur icon-grid body ratio 824/1024 = 0.80469:
+
+    body 412 x 412, corner radius 92.1, band 54.7, R_long 120.7
+
+  Not one coordinate is re-derived; scaling the group scales the stroke widths
+  with the geometry. The canvas around the tile is transparent; the tile itself
+  stays fully opaque (design.md §1.8).
+
+  The four constants are unchanged: t = 68, R_long = 150, R_short = 105, g = 22.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- CSS custom property accent-gradient-strong from src/styles/tokens.css; 0,0 -> 1,1 is CSS 135deg. -->
+    <linearGradient id="plate" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c64916"/>
+      <stop offset="1" stop-color="#b7410e"/>
+    </linearGradient>
+    <!--
+      The weave. Identical to the master. Mask content is resolved in the user
+      space of the element that references it, so the knockout rides the wrapper
+      transform along with Band A and stays in register at any scale.
+    -->
+    <mask id="weave" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect x="0" y="0" width="512" height="512" fill="#ffffff"/>
+      <line x1="181.75" y1="181.75" x2="330.25" y2="330.25" stroke="#000000" stroke-width="112" stroke-linecap="butt"/>
+    </mask>
+  </defs>
+
+  <g transform="translate(256,256) scale(0.80469) translate(-256,-256)">
+    <!-- Backplate: full-bleed rounded square, rx 114.5 = 22.36% of the canvas. -->
+    <rect x="0" y="0" width="512" height="512" rx="114.5" fill="url(#plate)"/>
+
+    <!--
+      Inner rim, inset by half its stroke width (6 / 2 = 3) so nothing bleeds past
+      the tile edge; rx reduced by the same 3 to 111.5. See design.md §1.6.
+    -->
+    <rect x="3" y="3" width="506" height="506" rx="111.5" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="6"/>
+
+    <!-- Band A — long, ascending, the media track. Carries the weave knockout. -->
+    <line x1="149.93" y1="362.07" x2="362.07" y2="149.93" stroke="#ffffff" stroke-width="68" stroke-linecap="round" mask="url(#weave)"/>
+
+    <!-- Band B — short, descending, the subtitle cue. Unmasked, drawn on top. -->
+    <line x1="181.75" y1="181.75" x2="330.25" y2="330.25" stroke="#ffffff" stroke-width="68" stroke-linecap="round"/>
+  </g>
+</svg>

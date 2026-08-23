@@ -16,7 +16,7 @@ npm run tauri dev          # run dev app
 npm run verify             # complete verification suite — mandatory before pushing
 ```
 
-`npm run verify` executes: `tsc --noEmit` → `npm run test:coverage` → `npm run test:rust:coverage` → `npm run spec:trace` → `npm run bindings:check`.
+`npm run verify` executes: `tsc --noEmit` → `npm run test:coverage` → `npm run test:rust:coverage` → `npm run spec:trace` → `npm run bindings:check` → `npm run icons:check`.
 
 Narrower verification commands:
 ```bash
@@ -24,6 +24,7 @@ npx vitest run <path-to-test>                         # run specific frontend te
 cargo test --manifest-path src-tauri/Cargo.toml       # backend tests (fast, no coverage)
 npm run spec:trace -- --report                        # list scenario IDs and status
 npm run bindings:generate                             # regenerate src/types/bindings.ts
+npm run icons:generate                                # regenerate src-tauri/icons/ from assets/brand/
 ```
 
 Note: CI runs on `push` only; `npm run verify` is the primary verification gate.

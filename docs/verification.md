@@ -26,6 +26,7 @@ Individually:
 | `npm run test:rust:coverage` | Backend tests, ≥ 85 % lines / regions / functions |
 | `npm run spec:trace` | Every spec scenario traces to a test or a waiver |
 | `npm run bindings:check` | The committed IPC bindings match the Rust definitions |
+| `npm run icons:check` | The committed app icons match their `assets/brand/` sources |
 
 The frontend floor is declared in `vite.config.ts` (`test.coverage.thresholds`).
 The backend floor is the `cov` alias in `src-tauri/.cargo/config.toml`; run it
@@ -62,6 +63,66 @@ Commands reject rather than resolving a tagged result, which keeps the frontend'
 existing `catch` path. TypeScript types no `catch` binding, so `isErrorDto` in
 `src/types/ipc.ts` is the one runtime narrowing — defined against the *generated*
 `ErrorDto`, so a change to the Rust error shape breaks it at compile time.
+
+## Icon regeneration
+
+The application icon set under `src-tauri/icons/` is generated output, never
+hand-edited. Its source of truth is two SVGs under `assets/brand/`:
+
+- `subx-icon.svg` — the full-bleed master. Feeds every icon slot except one.
+- `subx-icon-macos.svg` — the identical mark inset to the macOS icon-grid body
+  ratio (824/1024). `tauri icon` applies no platform-specific inset of its own,
+  so a full-bleed tile would ship on macOS visibly larger and squarer than the
+  icons beside it. This second source feeds `icon.icns` only.
+
+```bash
+npm run icons:generate   # regenerate src-tauri/icons/ from assets/brand/
+npm run icons:check      # fail if a source was edited without regenerating
+```
+
+`icons:generate` runs `tauri icon` twice — once per source — and copies the
+second pass's `icon.icns` over the first pass's. It writes a generation record,
+`src-tauri/icons/.icon-source.json`, holding each source's SHA-256 and which
+source produced each output slot. The copy is guarded: if the macOS pass
+produces no usable `icon.icns`, generation throws rather than silently leaving
+the master's full-bleed one in place — a skipped copy would otherwise be
+indistinguishable in the committed output from a correct run. Android and iOS
+output, which this desktop-only project has no target for, is deleted by its
+known subpaths (not by removing the directories wholesale) so a future
+`tauri-cli` version that starts emitting something new fails loudly instead of
+silently leaving stray files behind.
+
+**Why the gate watches source digests instead of diffing regenerated output.**
+The same shape of gate that `bindings:check` uses — regenerate, then diff
+against the committed set — was measured against the icon set first. Every PNG
+and `icon.ico` came back byte-identical across two runs from the same source,
+but `icon.icns` did not: roughly 71,953 of ~74,000 bytes differed between runs,
+because `iconutil`'s internal member ordering and packing are not stable run to
+run. A regenerate-and-diff gate is therefore only partially trustworthy, and
+only on the one platform (`ubuntu-latest`) CI actually runs on — contributors
+regenerating locally are not guaranteed the same result. `icons:check`
+recomputes each source SVG's digest and compares it against the generation
+record instead: it catches the realistic failure (the SVG was edited and the
+icons were not regenerated) without depending on `icon.icns` reproducibility.
+`scripts/app-icon.test.ts` separately asserts the structural properties —
+declared pixel sizes, no stock Tauri artwork, no unshipped platform output —
+that a byte-diff would otherwise have caught.
+
+**Manual step: re-check 16px whenever `t` or `g` changes.** The mark's stroke
+weight (`t`) and weave-knockout gap (`g`) — see `design.md` §1.4 — can be
+re-tuned while still clearing the 12.5%-of-canvas floor `scripts/app-icon.test.ts`
+enforces, without any automated check noticing the mark going soft at small
+sizes. After changing either constant, render the master and the macOS source
+at 16px (`npx tauri icon <source> -o <dir>`, then inspect `32x32.png` or
+`icon.ico`'s 16px frame) and confirm the mark still reads as a clean X, not a
+smudge. At authoring time (see `openspec/changes/subx-app-icon/tasks.md` task
+1.4), the master's 16px render was a legible X — the weave's residue survives
+as a mid-tone seam rather than disappearing cleanly, which is faithful to the
+mark rather than a defect. The macOS-inset source is measurably softer at 16px
+(its mark is inset to ~7px and its arms fragment into disconnected pixel
+clusters) — an accepted consequence of the macOS grid inset rather than a bug,
+worth re-confirming if the inset ratio ever changes, since macOS Finder's list
+view renders at 16pt.
 
 ## Traceability: the `@covers` annotation
 

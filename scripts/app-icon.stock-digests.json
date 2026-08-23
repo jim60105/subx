@@ -1,0 +1,18 @@
+{
+  "src-tauri/icons/128x128.png": "19b4fec485db7df51a691fcce72a3dd6f983e754fc4262da7154e4a4c688f69e",
+  "src-tauri/icons/128x128@2x.png": "6c7660390d65217fe8de0892862254f47aee77e0af7096c75b8bfe168c5403f7",
+  "src-tauri/icons/32x32.png": "1c6782dc65c8111c12cbc1882a0fea5e71ab8e51b18da2ce9580f5c88860ed02",
+  "src-tauri/icons/Square107x107Logo.png": "54f7a0f58c96a4b023c1edc4b53fc443e27dace50e345f6936fa29bc20f785ca",
+  "src-tauri/icons/Square142x142Logo.png": "fec1e2080ca73cd4c4a123b23b1cd364059a8a8efeba3076e21dfefed390693b",
+  "src-tauri/icons/Square150x150Logo.png": "65fb570cb0e61ffce02ad67784cb200a0bf058400300980a46fa0d0c8f43a77a",
+  "src-tauri/icons/Square284x284Logo.png": "ea0b7c5d4b1d1ab9c91d2f7c9b069c8dfbf4557b0649a5777d47332cde610262",
+  "src-tauri/icons/Square30x30Logo.png": "cc72279c41b4ed343e8db7e7541ceef7b6b23edaa83d4e7338421dfcb8d63c33",
+  "src-tauri/icons/Square310x310Logo.png": "9733a89c539115de3c49bd06720bfc99639d9a918f5df48a810e267cf3554119",
+  "src-tauri/icons/Square44x44Logo.png": "10be9840e58fb018eb9029601d42008e16c0c9cfa66b8f9467fee94f600160d4",
+  "src-tauri/icons/Square71x71Logo.png": "2937fc83324cd9a1fddcfefd5927c791af31996a6840bfb3e2f1d578ad4129de",
+  "src-tauri/icons/Square89x89Logo.png": "12aed0e7ee06cb631427dc9da72c0c7ecf03857fbc4884d0c31f78314feb6c7f",
+  "src-tauri/icons/StoreLogo.png": "91a54024dd47230991546088f2e75d3e3199b3ccc9fe40f3f6b7d3bf1cbf7776",
+  "src-tauri/icons/icon.icns": "3dc10493b7de48a61de58f768f8a5708d3a44a068c148cedf0502b9b9b71ba5d",
+  "src-tauri/icons/icon.ico": "392206b573a809997f3ff16fe68f456a52e931c372107eade9572b329bbe3321",
+  "src-tauri/icons/icon.png": "273cd669e07c455ad1c7c095890a37984652157cee73128a867300067dfb80e7"
+}

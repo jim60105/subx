@@ -1,0 +1,58 @@
+<!--
+  SubX application icon — "Crossband", full-bleed master.
+
+  Source of truth: openspec/changes/subx-app-icon/design.md §1.4 (Construction spec).
+  Every coordinate below is taken verbatim from that table. Do not re-derive,
+  re-round or "improve" a number here; change design.md first.
+
+  The four constants:
+    t       = 68   band thickness                     13.28% of the 512 canvas
+    R_long  = 150  long band cap-centre radius from the tile centre
+    R_short = 105  short band cap-centre radius       (ratio 0.700)
+    g       = 22   weave knockout gap, each side       4.30% of the canvas
+  Derived: cap radius t/2 = 34; axis offset R/sqrt(2); knockout width t + 2g = 112.
+
+  Draw order: tile -> inner rim -> Band A (masked) -> Band B (on top).
+  This file is deliberately plain geometry only: no effect primitives, no
+  embedded raster, no typography, no reference reaching outside the file.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- CSS custom property accent-gradient-strong from src/styles/tokens.css; 0,0 -> 1,1 is CSS 135deg. -->
+    <linearGradient id="plate" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c64916"/>
+      <stop offset="1" stop-color="#b7410e"/>
+    </linearGradient>
+    <!--
+      The weave. Band B's line, fattened to t + 2g = 112 and butt-capped, is
+      painted black over a white canvas so it knocks a clean g-wide gap out of
+      Band A on either side of the crossing. It must be a mask, not a gap painted
+      in a flat colour: the plate is a gradient, so a painted gap would not match
+      what sits behind it (design.md §1.4).
+    -->
+    <mask id="weave" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect x="0" y="0" width="512" height="512" fill="#ffffff"/>
+      <line x1="181.75" y1="181.75" x2="330.25" y2="330.25" stroke="#000000" stroke-width="112" stroke-linecap="butt"/>
+    </mask>
+  </defs>
+
+  <!-- Backplate: full-bleed rounded square, rx 114.5 = 22.36% of the canvas. -->
+  <rect x="0" y="0" width="512" height="512" rx="114.5" fill="url(#plate)"/>
+
+  <!--
+    Inner rim. Required by design.md §1.6: the plate alone measures 2.89:1 against
+    the Win11 dark taskbar (#202124) and fails the 3:1 non-text bar; composited
+    over the light stop this rim reads ~#cf663b at 4.31:1 and carries the edge.
+    Judgement call: SVG strokes straddle the path, so the rect is inset by half
+    the stroke width (6 / 2 = 3) to x=3 y=3 with width/height 512 - 6 = 506, and
+    rx is reduced by the same 3 to 111.5 so the rim stays concentric with the
+    tile corner. Nothing of the stroke bleeds past the tile edge.
+  -->
+  <rect x="3" y="3" width="506" height="506" rx="111.5" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="6"/>
+
+  <!-- Band A — long, ascending, the media track. Carries the weave knockout. -->
+  <line x1="149.93" y1="362.07" x2="362.07" y2="149.93" stroke="#ffffff" stroke-width="68" stroke-linecap="round" mask="url(#weave)"/>
+
+  <!-- Band B — short, descending, the subtitle cue. Unmasked, drawn on top. -->
+  <line x1="181.75" y1="181.75" x2="330.25" y2="330.25" stroke="#ffffff" stroke-width="68" stroke-linecap="round"/>
+</svg>

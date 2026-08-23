@@ -1,0 +1,31 @@
+{
+  "sources": {
+    "master": {
+      "path": "assets/brand/subx-icon.svg",
+      "sha256": "d2312c0278fae153b3f7fd11cb33d10f18b5462e755b8237b27a2c6282bfad34"
+    },
+    "macos": {
+      "path": "assets/brand/subx-icon-macos.svg",
+      "sha256": "36c788f5c856ada24d9709a617020cf461081745bfc14e4c6102dbccfe4f499c"
+    }
+  },
+  "outputs": {
+    "128x128.png": "master",
+    "128x128@2x.png": "master",
+    "32x32.png": "master",
+    "64x64.png": "master",
+    "Square107x107Logo.png": "master",
+    "Square142x142Logo.png": "master",
+    "Square150x150Logo.png": "master",
+    "Square284x284Logo.png": "master",
+    "Square30x30Logo.png": "master",
+    "Square310x310Logo.png": "master",
+    "Square44x44Logo.png": "master",
+    "Square71x71Logo.png": "master",
+    "Square89x89Logo.png": "master",
+    "StoreLogo.png": "master",
+    "icon.icns": "macos",
+    "icon.ico": "master",
+    "icon.png": "master"
+  }
+}
