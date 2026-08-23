@@ -1,12 +1,16 @@
 <div align="center">
 
-# SubX
+  <img src="assets/brand/subx-icon.svg" alt="SubX" width="180" />
 
-[![CI](https://github.com/jim60105/subx/actions/workflows/ci.yml/badge.svg)](https://github.com/jim60105/subx/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/jim60105/subx/graph/badge.svg)](https://codecov.io/gh/jim60105/subx)
+  # SubX
 
-[English](./README.md) | 中文
+  **AI 字幕工具**
 
-[subx-cli](https://github.com/jim60105/subx-cli) 的桌面 GUI — AI 驅動的字幕配對、轉換、同步與翻譯。
+  [subx-cli](https://github.com/jim60105/subx-cli) 的桌面 GUI — 字幕配對、格式轉換、時間軸校正與翻譯。
+
+  [![CI](https://github.com/jim60105/subx/actions/workflows/ci.yml/badge.svg)](https://github.com/jim60105/subx/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/jim60105/subx/graph/badge.svg)](https://codecov.io/gh/jim60105/subx)
+
+  [English](./README.md) | 中文
 
 </div>
 

@@ -1,12 +1,16 @@
 <div align="center">
 
-# SubX
+  <img src="assets/brand/subx-icon.svg" alt="SubX" width="180" />
 
-[![CI](https://github.com/jim60105/subx/actions/workflows/ci.yml/badge.svg)](https://github.com/jim60105/subx/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/jim60105/subx/graph/badge.svg)](https://codecov.io/gh/jim60105/subx)
+  # SubX
 
-English | [中文](./README.zh-TW.md)
+  **AI-powered subtitle tooling**
 
-Desktop GUI for [subx-cli](https://github.com/jim60105/subx-cli) — AI-powered subtitle matching, conversion, sync, and translation.
+  Desktop GUI for [subx-cli](https://github.com/jim60105/subx-cli) — subtitle matching, format conversion, synchronization, and translation.
+
+  [![CI](https://github.com/jim60105/subx/actions/workflows/ci.yml/badge.svg)](https://github.com/jim60105/subx/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/jim60105/subx/graph/badge.svg)](https://codecov.io/gh/jim60105/subx)
+
+  English | [中文](./README.zh-TW.md)
 
 </div>
 
