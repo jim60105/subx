@@ -24,6 +24,9 @@ SubX 為 [subx-cli](https://github.com/jim60105/subx-cli) 提供桌面圖形使�
 
 ## 螢幕截圖
 
+<!-- screenshot: home screen (dark) -->
+<img src="docs/screenshots/home-zh-TW-dark.png" alt="SubX 首頁（深色）" />
+
 <!-- screenshot: home screen -->
 <img src="docs/screenshots/home-zh-TW.png" alt="SubX 首頁" />
 

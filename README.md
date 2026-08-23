@@ -24,6 +24,9 @@ Features for subtitle synchronization (Sync wizard) and translation (Translate w
 
 ## Screenshots
 
+<!-- screenshot: home screen (dark) -->
+<img src="docs/screenshots/home-en-dark.png" alt="SubX home screen (dark mode)" />
+
 <!-- screenshot: home screen -->
 <img src="docs/screenshots/home-en.png" alt="SubX home screen" />
 
