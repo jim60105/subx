@@ -25,16 +25,16 @@ Features for subtitle synchronization (Sync wizard) and translation (Translate w
 ## Screenshots
 
 <!-- screenshot: home screen -->
-*Screenshot coming soon*
+<img src="docs/screenshots/home-en.png" alt="SubX home screen" />
 
 <!-- screenshot: match wizard -->
-*Screenshot coming soon*
+<img src="docs/screenshots/match-en.png" alt="SubX match wizard" />
 
 <!-- screenshot: convert wizard -->
-*Screenshot coming soon*
+<img src="docs/screenshots/convert-en.png" alt="SubX convert wizard" />
 
 <!-- screenshot: settings panel -->
-*Screenshot coming soon*
+<img src="docs/screenshots/settings-en.png" alt="SubX settings panel" />
 
 ## Download
 

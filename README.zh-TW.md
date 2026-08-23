@@ -25,16 +25,16 @@ SubX 為 [subx-cli](https://github.com/jim60105/subx-cli) 提供桌面圖形使�
 ## 螢幕截圖
 
 <!-- screenshot: home screen -->
-*螢幕截圖即將推出*
+<img src="docs/screenshots/home-zh-TW.png" alt="SubX 首頁" />
 
 <!-- screenshot: match wizard -->
-*螢幕截圖即將推出*
+<img src="docs/screenshots/match-zh-TW.png" alt="SubX 配對精靈" />
 
 <!-- screenshot: convert wizard -->
-*螢幕截圖即將推出*
+<img src="docs/screenshots/convert-zh-TW.png" alt="SubX 轉換精靈" />
 
 <!-- screenshot: settings panel -->
-*螢幕截圖即將推出*
+<img src="docs/screenshots/settings-zh-TW.png" alt="SubX 設定面板" />
 
 ## 下載
 
