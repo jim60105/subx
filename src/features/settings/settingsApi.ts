@@ -32,6 +32,15 @@ export function getConfig(): Promise<ConfigDto> {
   return commands.getConfig();
 }
 
+/**
+ * The tolerant read: on-disk values without the environment-variable overlay
+ * or cross-section validation. Feeds the settings-repair path — it is what
+ * keeps the form editable when the strict read fails.
+ */
+export function getConfigTolerant(): Promise<ConfigDto> {
+  return commands.getConfigTolerant();
+}
+
 export function setConfigValue(field: AiField, value: string): Promise<void> {
   return commands.setConfigValue({ key: CONFIG_KEYS[field], value }).then(() => undefined);
 }

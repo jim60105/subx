@@ -28,9 +28,10 @@ use crate::state::AppState;
 /// `mock_context` starts with an empty ACL, so every command under test has to
 /// be allowed explicitly. `the_allowlist_matches_the_declaration` keeps this
 /// list from drifting away from the builder.
-const COMMANDS: [&str; 20] = [
+const COMMANDS: [&str; 21] = [
     "ping",
     "get_config",
+    "get_config_tolerant",
     "set_config_value",
     "test_ai_connection",
     "list_source_files",
@@ -166,6 +167,26 @@ fn get_config_returns_the_masked_dto_the_frontend_declares() {
     let app = app_with(service_with_key());
     let response = invoke(&webview(&app), "get_config", json!({})).expect("get_config must succeed");
 
+    let ai = &response["ai"];
+    assert_eq!(ai["provider"], "openai");
+    assert_eq!(ai["model"], "gpt-4.1-mini");
+    assert_eq!(ai["apiKeyMasked"], "****1234");
+    assert_eq!(ai["apiKeySet"], true);
+    // The cleartext key must never reach the webview.
+    assert!(
+        !response.to_string().contains("sk-secret-value-1234"),
+        "the cleartext API key crossed the IPC boundary: {response}"
+    );
+}
+
+/// The tolerant read crosses the boundary with the same masked DTO shape, and
+/// the cleartext key must not leak (IPC key security invariant).
+#[test]
+fn get_config_tolerant_returns_the_masked_dto_over_ipc() {
+    let app = app_with(service_with_key());
+
+    let response = invoke(&webview(&app), "get_config_tolerant", json!({}))
+        .expect("get_config_tolerant must succeed");
     let ai = &response["ai"];
     assert_eq!(ai["provider"], "openai");
     assert_eq!(ai["model"], "gpt-4.1-mini");

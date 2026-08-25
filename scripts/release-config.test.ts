@@ -133,7 +133,7 @@ describe("release assembly and privacy", () => {
 describe("build provenance and permissions", () => {
   // @covers release-pipeline/every-published-file-carries-verifiable-build-provenance#each-build-job-attests-the-files-it-produced
   it("attests build provenance for generated files using attest-build-provenance action", () => {
-    expect(WORKFLOW_RAW).toMatch(/uses:\s*actions\/attest-build-provenance@v3/);
+    expect(WORKFLOW_RAW).toMatch(/uses:\s*actions\/attest-build-provenance@v4/);
   });
 
   // @covers release-pipeline/every-published-file-carries-verifiable-build-provenance#only-regular-files-are-submitted-as-subjects
@@ -203,7 +203,7 @@ describe("release workflow flatpak bundle", () => {
     const artifactStep = job.match(/- name: Upload workflow artifact[\s\S]*?(?=\n\s*- name:|$)/);
     expect(artifactStep, "upload-artifact step must be present").not.toBeNull();
     expect(artifactStep![0]).toMatch(/if:\s*github\.event_name == 'workflow_dispatch'/);
-    expect(artifactStep![0]).toMatch(/uses:\s*actions\/upload-artifact@v6/);
+    expect(artifactStep![0]).toMatch(/uses:\s*actions\/upload-artifact@v7/);
     expect(artifactStep![0]).toContain("subx.flatpak");
   });
 
@@ -236,6 +236,6 @@ describe("release workflow flatpak bundle", () => {
   // @covers release-pipeline/releases-include-a-linux-flatpak-bundle#the-bundle-carries-build-provenance
   it("attests the flatpak bundle with build provenance", () => {
     const job = flatpakJobRaw();
-    expect(job).toMatch(/uses:\s*actions\/attest-build-provenance@v3[\s\S]*?subject-path:\s*subx\.flatpak/);
+    expect(job).toMatch(/uses:\s*actions\/attest-build-provenance@v4[\s\S]*?subject-path:\s*subx\.flatpak/);
   });
 });

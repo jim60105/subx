@@ -15,6 +15,7 @@ import "./SettingsScreen.css";
 export function SettingsScreen() {
   const { t } = useTranslation("settings");
   const form = useSettingsForm();
+  const config = form.config;
 
   return (
     <section className="settings">
@@ -31,13 +32,13 @@ export function SettingsScreen() {
 
         {form.loadError !== undefined && <ErrorNotice error={form.loadError} />}
 
-        {form.config === null ? (
-          form.loadError === undefined && <p className="settings__loading">{t("loading")}</p>
+        {config === null && form.loadError === undefined ? (
+          <p className="settings__loading">{t("loading")}</p>
         ) : (
           <>
             <AiSettingsSection
               draft={form.draft}
-              saved={form.config.ai}
+              saved={config!.ai}
               fieldErrors={form.fieldErrors}
               disabled={form.isSaving}
               onChange={form.setField}

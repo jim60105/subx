@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isErrorDto } from "../../types/ipc";
 import type { ConfigDto, ConnectionTestResult } from "../../types/ipc";
-import { AI_FIELDS, getConfig, setConfigValue, testAiConnection } from "./settingsApi";
+import { AI_FIELDS, getConfig, getConfigTolerant, setConfigValue, testAiConnection } from "./settingsApi";
 import type { AiField } from "./settingsApi";
 
 /** The AI form's working copy. `apiKey` is replace-only: empty means "leave as is". */
@@ -31,6 +31,23 @@ export interface SettingsForm {
 }
 
 const EMPTY_DRAFT: AiDraft = { provider: "", model: "", baseUrl: "", apiKey: "" };
+
+/**
+ * Mirror of the CLI crate's `Config::default().ai` (the shared
+ * `~/.config/subx/config.toml` owner). Last-resort values shown when both
+ * the strict and the tolerant read fail (e.g. a corrupted on-disk file). A
+ * Rust test pins this constant against the crate's actual defaults so the
+ * mirror cannot drift silently.
+ */
+export const DEFAULT_CONFIG: ConfigDto = {
+  ai: {
+    provider: "openai",
+    model: "gpt-4.1-mini",
+    baseUrl: "https://api.openai.com/v1",
+    apiKeyMasked: "",
+    apiKeySet: false,
+  },
+};
 
 /** The saved counterpart of a draft field; a stored key is never readable, so it reads as empty. */
 function savedValue(config: ConfigDto, field: AiField): string {
@@ -99,17 +116,58 @@ export function useSettingsForm(): SettingsForm {
   // refetch that would race the action in flight.
   const actionLockRef = useRef(false);
 
+  // Mirrors the latest `config` so the fallback's trigger check sees the
+  // current value, not a stale closure capture.
+  const configRef = useRef<ConfigDto | null>(null);
+  useEffect(() => {
+    configRef.current = config;
+  });
+
+  // Set while the initial load (strict, and its tolerant fallback) is in
+  // flight. The focus listener skips its refetch while bootstrapping, so a
+  // focus event cannot bump the load sequence and orphan the in-flight
+  // tolerant call — the failure mode that would leave the screen with no
+  // config and no form.
+  const bootstrappingRef = useRef(false);
+
   // Initial load, and a re-fetch whenever the window regains focus so an edit
   // made in the CLI shows up on return. Fields the user has already touched are
   // kept: picking up external changes must not throw away work in progress.
   useEffect(() => {
     let cancelled = false;
 
+    // Shared repair path: a strict rejection that lands while no config has
+    // ever loaded falls back to the tolerant read (or the built-in defaults),
+    // so the settings form stays editable instead of the error notice
+    // replacing it.
+    const runTolerantFallback = (error: unknown, seq: number) => {
+      getConfigTolerant().then(
+        (tolerant) => {
+          if (cancelled || seq !== loadSeqRef.current) return;
+          // The whole initial strict+tolerant chain is done: only now is the
+          // screen free of bootstrapping, so a focus refetch may proceed.
+          bootstrappingRef.current = false;
+          setConfig(tolerant);
+          setDraft(draftFrom(tolerant));
+          setLoadError(error);
+        },
+        () => {
+          if (cancelled || seq !== loadSeqRef.current) return;
+          bootstrappingRef.current = false;
+          setConfig(DEFAULT_CONFIG);
+          setDraft(draftFrom(DEFAULT_CONFIG));
+          setLoadError(error);
+        },
+      );
+    };
+
     const load = (isInitial: boolean) => {
       const seq = ++loadSeqRef.current;
+      if (isInitial) bootstrappingRef.current = true;
       getConfig().then(
         (next) => {
           if (cancelled || seq !== loadSeqRef.current) return;
+          if (isInitial) bootstrappingRef.current = false;
           setConfig(next);
           setDraft((current) =>
             isInitial ? draftFrom(next) : mergeDraft(current, next, isFieldDirtyRef.current),
@@ -118,7 +176,17 @@ export function useSettingsForm(): SettingsForm {
         },
         (error) => {
           if (cancelled || seq !== loadSeqRef.current) return;
-          if (isInitial) setLoadError(error);
+          if (isInitial || configRef.current === null) {
+            // No config loaded yet (initial load, or a refetch before the first
+            // successful load): take the repair path. `bootstrappingRef` stays
+            // true until the tolerant result lands, so a focus event cannot orphan
+            // the in-flight tolerant call.
+            runTolerantFallback(error, seq);
+          } else {
+            // A strict reload failed but a config is already on screen: surface a
+            // non-destructive warning (the form and the user's draft are kept).
+            setLoadError(error);
+          }
         },
       );
     };
@@ -126,7 +194,7 @@ export function useSettingsForm(): SettingsForm {
     load(true);
 
     const onFocus = () => {
-      if (!actionLockRef.current) load(false);
+      if (!actionLockRef.current && !bootstrappingRef.current) load(false);
     };
     window.addEventListener("focus", onFocus);
     return () => {
@@ -158,6 +226,12 @@ export function useSettingsForm(): SettingsForm {
     }
 
     setFieldErrors(errors);
+    const allWritesSucceeded = Object.values(errors).every((error) => error === undefined);
+
+    // Every write landed on disk: clear any stale save error now, not after
+    // the re-fetch succeeds — a failing strict re-fetch (e.g. an env-var
+    // overlay) must not mask the successful save.
+    if (allWritesSucceeded) setSaveError(undefined);
 
     const seq = ++loadSeqRef.current;
     try {
@@ -169,10 +243,31 @@ export function useSettingsForm(): SettingsForm {
         setDraft((current) =>
           mergeDraft(current, refreshed, (field) => errors[field] !== undefined),
         );
-        setSaveError(undefined);
       }
     } catch (error) {
-      setSaveError(error);
+      if (seq !== loadSeqRef.current) return errors;
+      if (allWritesSucceeded) {
+        // The strict re-read failed, but every write landed on disk: refresh
+        // the screen from the tolerant read so the saved fields stop showing
+        // as dirty and the key field resets to its masked placeholder.
+        getConfigTolerant().then(
+          (tolerant) => {
+            if (seq !== loadSeqRef.current) return;
+            setConfig(tolerant);
+            setDraft((current) =>
+              mergeDraft(current, tolerant, (field) => errors[field] !== undefined),
+            );
+          },
+          () => {
+            // The tolerant read also failed (corrupted on-disk file): keep the
+            // current config and the user's draft.
+          },
+        );
+      } else {
+        // A per-field write failed: fieldErrors carries those; a failed
+        // re-read on top is a non-field action error.
+        setSaveError(error);
+      }
     }
 
     return errors;

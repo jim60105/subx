@@ -6,6 +6,7 @@ import { invoke as __TAURI_INVOKE, Channel } from "@tauri-apps/api/core";
 export const commands = {
 	ping: () => __TAURI_INVOKE<PingResponse>("ping"),
 	getConfig: () => __TAURI_INVOKE<ConfigDto>("get_config"),
+	getConfigTolerant: () => __TAURI_INVOKE<ConfigDto>("get_config_tolerant"),
 	setConfigValue: (request: SetConfigRequest) => __TAURI_INVOKE<null>("set_config_value", { request }),
 	testAiConnection: () => __TAURI_INVOKE<ConnectionTestResult>("test_ai_connection"),
 	/**
