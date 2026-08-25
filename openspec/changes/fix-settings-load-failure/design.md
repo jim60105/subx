@@ -49,27 +49,44 @@ The project is unreleased (0 users), so no compatibility constraints apply.
 
 ### D1: Tolerant read as the primary fallback; hardcoded defaults as the last resort
 
-In `src/features/settings/useSettingsForm.ts`, on an initial `getConfig()`
-rejection, call the new `getConfigTolerant()` wrapper:
+In `src/features/settings/useSettingsForm.ts`, a strict `getConfig()`
+rejection triggers the tolerant fallback. The fallback is **shared** by any
+strict failure while `config === null` — the initial load and any
+focus-refetch that lands while no config has ever been read — so a failed
+focus-refetch can never leave the screen with `config === null` and only an
+error banner (the "stuck on load failure" state the bug report describes).
 
 ```ts
-(error) => {
-  if (cancelled || seq !== loadSeqRef.current) return;
-  if (isInitial) setLoadError(error);
+const runTolerantFallback = (error: unknown, seq: number) => {
   getConfigTolerant().then(
     (tolerant) => {
-      if (cancelled || seq !== loadSeqRef.current) return;
+      if (seq !== loadSeqRef.current) return;
       setConfig(tolerant);
       setDraft(draftFrom(tolerant));
+      setLoadError(error);
     },
     () => {
-      if (cancelled || seq !== loadSeqRef.current) return;
+      if (seq !== loadSeqRef.current) return;
       setConfig(DEFAULT_CONFIG); // crate defaults mirror, last resort
       setDraft(draftFrom(DEFAULT_CONFIG));
+      setLoadError(error);
     },
   );
+};
+
+// In the initial-load effect:
+(error) => {
+  if (cancelled || seq !== loadSeqRef.current) return;
+  if (isInitial || configRef.current === null) runTolerantFallback(error, seq);
 }
 ```
+
+A `bootstrappingRef` is set while the initial load is in flight and cleared
+when it settles (success or fallback complete). The window-focus refetch is
+skipped while bootstrapping, so a focus event cannot bump `loadSeqRef` and
+orphan the in-flight tolerant call (review finding: a focus refetch that
+starts mid-bootstrap would invalidate the fallback and leave `config` null).
+A `configRef` mirrors the latest `config` for the fallback's trigger check.
 
 `DEFAULT_CONFIG` mirrors `subx_cli::config::Config::default().ai`:
 
@@ -114,19 +131,27 @@ is precisely that the notice swallowed the form.
 ### D3: `persist()` — separate write failures from re-fetch failures
 
 `persist()` currently treats any failed post-save `getConfig()` re-fetch as
-a `saveError`. Change:
+a `saveError`. Revised rules (per review):
 
-- `saveError` is set **only** when a per-field write failed.
+- `saveError` denotes a **non-field action error**. Per-field failures are
+  surfaced through `fieldErrors` only.
 - When every field write succeeds, clear any previous `saveError`
-  immediately — do not wait for the re-fetch to succeed.
-- When all writes succeeded but the re-fetch failed, keep the current
-  `config` (or fallback) and preserve the user's draft.
+  **immediately after the write loop** — do not wait for the re-fetch.
+- When all writes succeeded but the strict re-fetch failed, refresh `config`
+  through the **tolerant read** (`getConfigTolerant()`), merging the draft
+  with the same keep-rule (`errors[field] !== undefined`) so saved fields —
+  including the API key, which resets to its masked placeholder — stop
+  showing as dirty. If the tolerant read also fails, keep the current
+  `config` and preserve the user's draft.
+- When some field write failed, a failed re-fetch sets `saveError` (the
+  non-field action error) alongside the field errors.
 
 **Rationale:** the write path in the crate (`set_config_value`) uses the
 tolerant file-only load and validates the post-mutation configuration, so
 a field write can land on disk even when the strict overlay-merged read
-fails. Reporting a save failure (or leaving a stale save error) in that
-case would mislead the user.
+fails. Refreshing from the tolerant read after a successful save keeps the
+screen consistent with what is on disk; reporting a save failure (or
+leaving a stale save error) in that case would mislead the user.
 
 ### D4: New Tauri command `get_config_tolerant`
 
