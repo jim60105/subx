@@ -12,6 +12,7 @@ Verified facts (researched this session, flatpak 1.18 CLI checked locally and th
 - **Native CLI semantics (checked against `flatpak 1.18 --help`)**: `flatpak build` runs a command in an already-initialized app dir (no manifest option); `flatpak build-bundle LOCATION FILENAME NAME` where LOCATION is an OSTree repo (from `flatpak build-export`), not a build dir. Manifest-driven builds therefore go through **`flatpak-builder`**: `flatpak-builder --repo=<repo> <build-dir> <manifest.json>`, then `flatpak build-bundle <repo> subx.flatpak im.chenj.subx`.
 - **Manifest format (flatpak-builder man page)**: top-level keys are `app-id` (or non-deprecated `id`), `runtime`/`runtime-version`, `sdk` (development runtime — required for compiling), `runtime-extensions`, `modules`, `finish-args`, and `build-options` with `build-args` for extra `flatpak build` options. Module-level `sources` (e.g. `{"type": "dir", "path": ".."}`) stage the local checkout; a `dir` source's `path` resolves **relative to the manifest file's location** (`flatpak/`), so `..` points at the repository root.
 - **Runtime choice**: the `org.freedesktop.Platform` base does not ship WebKitGTK; Tauri/WebKitGTK apps on Flathub use `org.gnome.Platform` + the `org.gnome.Platform.Extension.WebKit` extension. The flathub remote supplies both the GNOME platform and the WebKit extension.
+- **`flatpak-builder` flag availability (verified in the first CI run)**: Ubuntu 24.04 ships `flatpak-builder 1.4.2`, which has `--install-deps-from` / `--install-deps-only` but **no bare `--install-deps` flag** (confirmed against the 1.4.2 source: `--install-deps-from` alone triggers `builder_manifest_install_deps`, installing the manifest's runtime, SDK and runtime-extensions into the system installation). The first dispatch failed with "Unknown option --install-deps"; the fix is to drop the bare flag.
 - Pre-existing bug: `release.yml`'s `prepare` job declares `version: ${{ steps.check_tag.outputs.version }}`, but `scripts/check-release-tag.mjs` never writes `GITHUB_OUTPUT`; the `release_notes` step is the one that writes `version=`. The output points at the wrong step and is currently empty.
 
 ## Goals / Non-Goals
@@ -171,7 +172,7 @@ Minimal AppStream metainfo so the bundle presents correctly in software centers 
           BUILD_DIR="${RUNNER_TEMP}/subx-flatpak-build"
           REPO_DIR="${RUNNER_TEMP}/subx-flatpak-repo"
           mkdir -p "$BUILD_DIR" "$REPO_DIR"
-          flatpak-builder --repo="$REPO_DIR" --install-deps --install-deps-from=flathub "$BUILD_DIR" flatpak/manifest.json
+          flatpak-builder --repo="$REPO_DIR" --install-deps-from=flathub "$BUILD_DIR" flatpak/manifest.json
           flatpak build-bundle "$REPO_DIR" subx.flatpak im.chenj.subx
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v3

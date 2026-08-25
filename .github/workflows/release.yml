@@ -214,7 +214,7 @@ jobs:
           BUILD_DIR="${RUNNER_TEMP}/subx-flatpak-build"
           REPO_DIR="${RUNNER_TEMP}/subx-flatpak-repo"
           mkdir -p "$BUILD_DIR" "$REPO_DIR"
-          flatpak-builder --repo="$REPO_DIR" --install-deps --install-deps-from=flathub "$BUILD_DIR" flatpak/manifest.json
+          flatpak-builder --repo="$REPO_DIR" --install-deps-from=flathub "$BUILD_DIR" flatpak/manifest.json
           flatpak build-bundle "$REPO_DIR" subx.flatpak im.chenj.subx
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v3
