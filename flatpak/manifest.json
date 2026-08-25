@@ -1,0 +1,35 @@
+{
+  "app-id": "im.chenj.subx",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "50",
+  "sdk": "org.gnome.Sdk",
+  "command": "subx",
+  "finish-args": [
+    "--share=ipc",
+    "--share=network",
+    "--socket=wayland",
+    "--socket=x11"
+  ],
+  "build-options": {
+    "build-args": ["--share=network"]
+  },
+  "modules": [
+    {
+      "name": "subx",
+      "buildsystem": "simple",
+      "subdir": "src-tauri",
+      "sources": [
+        { "type": "dir", "path": "..", "skip": [".git", "node_modules"] }
+      ],
+      "build-commands": [
+        "export RUSTUP_HOME=\"$FLATPAK_BUILDER_BUILDDIR/rustup\" CARGO_HOME=\"$FLATPAK_BUILDER_BUILDDIR/cargo\" && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain 1.97.1 && export PATH=\"$CARGO_HOME/bin:$PATH\" && . \"$CARGO_HOME/env\" && cargo build --release"
+      ],
+      "post-install": [
+        "install -Dm755 target/release/subx /app/bin/subx",
+        "install -Dm644 ../flatpak/subx.desktop /app/share/applications/im.chenj.subx.desktop",
+        "install -Dm644 icons/128x128.png /app/share/icons/hicolor/128x128/apps/im.chenj.subx.png",
+        "install -Dm644 ../flatpak/subx.metainfo.xml /app/share/metainfo/im.chenj.subx.metainfo.xml"
+      ]
+    }
+  ]
+}
