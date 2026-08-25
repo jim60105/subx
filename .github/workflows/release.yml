@@ -26,6 +26,12 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch or tag to build from (leave empty for the default branch)"
+        required: false
+        default: ""
+        type: string
 
 permissions: {}
 
@@ -111,6 +117,8 @@ jobs:
       APPIMAGE_EXTRACT_AND_RUN: 1
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref }}
       - uses: actions/setup-node@v7
         with:
           node-version: 'lts/*'
@@ -190,6 +198,8 @@ jobs:
       attestations: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref }}
       - uses: actions/setup-node@v7
         with:
           node-version: 'lts/*'
