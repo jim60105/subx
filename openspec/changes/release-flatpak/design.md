@@ -13,6 +13,7 @@ Verified facts (researched this session, flatpak 1.18 CLI checked locally and th
 - **Manifest format (flatpak-builder man page)**: top-level keys are `app-id` (or non-deprecated `id`), `runtime`/`runtime-version`, `sdk` (development runtime — required for compiling), `sdk-extensions` / `platform-extensions` (not a `runtime-extensions` key), `modules`, `finish-args`, and `build-options` with `build-args` for extra `flatpak build` options. Module-level `sources` (e.g. `{"type": "dir", "path": ".."}`) stage the local checkout; a `dir` source's `path` resolves **relative to the manifest file's location** (`flatpak/`), so `..` points at the repository root.
 - **Runtime choice (per Flatpak expert review)**: `org.gnome.Platform//50` ships WebKitGTK 4.1 — the exact interface Tauri 2 links against — so **no `org.gnome.Platform.Extension.WebKit` extension is needed** (the extension ref does not even exist in the flathub repo's OSTree summary; the historical GNOME stable repo `https://sdk.gnome.org/gnome.flatpakrepo` is superseded by Flathub mirroring the stable GNOME runtimes). The flathub repo hosts `org.gnome.Platform` and `org.gnome.Sdk` in versions 40–50 (23.08 is no longer served there, which is why the second CI run failed with "Nothing matches org.gnome.Sdk in remote flathub").
 - **`flatpak-builder` flag availability (verified in the first CI run)**: Ubuntu 24.04 ships `flatpak-builder 1.4.2`, which has `--install-deps-from` / `--install-deps-only` but **no bare `--install-deps` flag** (confirmed against the 1.4.2 source: `--install-deps-from` alone triggers `builder_manifest_install_deps`, installing the manifest's runtime, SDK and runtime-extensions into the system installation). The first dispatch failed with "Unknown option --install-deps"; the fix is to drop the bare flag.
+- **Installation scope (verified in the third CI run)**: `flatpak-builder` defaults to the system installation, which the non-root `runner` user cannot deploy to ("Flatpak system operation Deploy not allowed for user"). The fix is the `--user` flag, which installs the runtime/SDK into the runner user's own flatpak installation; the system-level `flathub` remote (added with `sudo`) is still visible from the user installation.
 - Pre-existing bug: `release.yml`'s `prepare` job declares `version: ${{ steps.check_tag.outputs.version }}`, but `scripts/check-release-tag.mjs` never writes `GITHUB_OUTPUT`; the `release_notes` step is the one that writes `version=`. The output points at the wrong step and is currently empty.
 
 ## Goals / Non-Goals
@@ -175,7 +176,9 @@ Minimal AppStream metainfo so the bundle presents correctly in software centers 
           # Cheap sanity check: the required runtime/SDK refs must exist in the flathub remote before spending the whole build on a missing ref.
           flatpak remote-info flathub org.gnome.Platform//50
           flatpak remote-info flathub org.gnome.Sdk//50
-          flatpak-builder --repo="$REPO_DIR" --install-deps-from=flathub "$BUILD_DIR" flatpak/manifest.json
+          # --user: the runner user cannot deploy into the root-owned system
+          # installation, so install the runtime/SDK into the user installation.
+          flatpak-builder --repo="$REPO_DIR" --install-deps-from=flathub --user "$BUILD_DIR" flatpak/manifest.json
           flatpak build-bundle --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo "$REPO_DIR" subx.flatpak im.chenj.subx
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v3

@@ -181,7 +181,8 @@ describe("release workflow flatpak bundle", () => {
   // @covers release-pipeline/releases-include-a-linux-flatpak-bundle#a-flatpak-bundle-is-published-with-every-release
   it("builds and publishes a flatpak bundle with every tag release", () => {
     const job = flatpakJobRaw();
-    expect(job).toMatch(/flatpak-builder --repo=/);
+    // --user: the non-root runner user cannot deploy into the root-owned system installation.
+    expect(job).toMatch(/flatpak-builder --repo=.*--install-deps-from=flathub --user/);
     expect(job).toMatch(/flatpak build-bundle --runtime-repo=https:\/\/dl\.flathub\.org\/repo\/flathub\.flatpakrepo "\$REPO_DIR" subx\.flatpak im\.chenj\.subx/);
     expect(job).toMatch(/gh release upload "\$TAG" subx\.flatpak --clobber/);
   });

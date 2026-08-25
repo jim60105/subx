@@ -217,7 +217,9 @@ jobs:
           # Cheap sanity check: the required runtime/SDK refs must exist in the flathub remote before spending the whole build on a missing ref.
           flatpak remote-info flathub org.gnome.Platform//50
           flatpak remote-info flathub org.gnome.Sdk//50
-          flatpak-builder --repo="$REPO_DIR" --install-deps-from=flathub "$BUILD_DIR" flatpak/manifest.json
+          # --user: the runner user cannot deploy into the root-owned system
+          # installation, so install the runtime/SDK into the user installation.
+          flatpak-builder --repo="$REPO_DIR" --install-deps-from=flathub --user "$BUILD_DIR" flatpak/manifest.json
           flatpak build-bundle --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo "$REPO_DIR" subx.flatpak im.chenj.subx
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v3
