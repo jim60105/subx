@@ -128,6 +128,7 @@ Minimal AppStream metainfo so the bundle presents correctly in software centers 
     <p>SubX is a cross-platform desktop application for managing, matching, converting, synchronizing, and translating subtitles powered by AI and subx-cli.</p>
   </description>
   <url type="homepage">https://github.com/jim60105/subx</url>
+  <license>GPL-3.0-or-later</license>
   <icon type="thumbnail">im.chenj.subx</icon>
   <categories>
     <category>Utility</category>
