@@ -18,6 +18,16 @@ import { describe, expect, it } from "vitest";
 
 const WORKFLOW_PATH = path.resolve(__dirname, "..", ".github", "workflows", "release.yml");
 const WORKFLOW_RAW = fs.readFileSync(WORKFLOW_PATH, "utf8");
+const MANIFEST_PATH = path.resolve(__dirname, "..", "flatpak", "manifest.json");
+const MANIFEST_RAW = fs.readFileSync(MANIFEST_PATH, "utf8");
+
+// The Flatpak assertions are scoped to the build-flatpak job block so a
+// matching fragment in another job (or comment) cannot satisfy them.
+function flatpakJobRaw(): string {
+  const match = WORKFLOW_RAW.match(/build-flatpak:([\s\S]*$)/);
+  expect(match, "build-flatpak job must be present").not.toBeNull();
+  return match![1];
+}
 
 describe("release workflow trigger configuration", () => {
   // @covers release-pipeline/releases-are-cut-from-version-tags-and-from-nothing-else#a-version-tag-starts-the-release
@@ -164,5 +174,50 @@ describe("unsigned distribution caveats and configuration", () => {
     for (const step of stepsWithRun) {
       expect(step, "step with run must declare shell: bash").toMatch(/shell:\s*bash/);
     }
+  });
+});
+
+describe("release workflow flatpak bundle", () => {
+  // @covers release-pipeline/releases-include-a-linux-flatpak-bundle#a-flatpak-bundle-is-published-with-every-release
+  it("builds and publishes a flatpak bundle with every tag release", () => {
+    const job = flatpakJobRaw();
+    expect(job).toMatch(/flatpak-builder --repo=/);
+    expect(job).toMatch(/flatpak build-bundle .* subx\.flatpak im\.chenj\.subx/);
+    expect(job).toMatch(/gh release upload "\$TAG" subx\.flatpak --clobber/);
+  });
+
+  // @covers release-pipeline/releases-include-a-linux-flatpak-bundle#a-manual-dispatch-keeps-the-bundle-as-an-artifact
+  it("keeps the flatpak bundle as a workflow artifact on manual dispatch", () => {
+    const job = flatpakJobRaw();
+    const artifactStep = job.match(/- name: Upload workflow artifact[\s\S]*?(?=\n\s*- name:|$)/);
+    expect(artifactStep, "upload-artifact step must be present").not.toBeNull();
+    expect(artifactStep![0]).toMatch(/if:\s*github\.event_name == 'workflow_dispatch'/);
+    expect(artifactStep![0]).toMatch(/uses:\s*actions\/upload-artifact@v6/);
+    expect(artifactStep![0]).toContain("subx.flatpak");
+  });
+
+  // @covers release-pipeline/releases-include-a-linux-flatpak-bundle#the-bundle-is-built-in-a-sandbox-with-its-own-runtime
+  it("declares the GNOME platform runtime, WebKit extension and a pinned Rust toolchain in the manifest", () => {
+    const manifest = JSON.parse(MANIFEST_RAW);
+    expect(manifest["app-id"]).toBe("im.chenj.subx");
+    expect(manifest.runtime).toBe("org.gnome.Platform");
+    expect(manifest["runtime-version"]).toBe("23.08");
+    expect(manifest["runtime-extensions"]).toContain("org.gnome.Platform.Extension.WebKit//23.08");
+    expect(manifest.sdk).toBe("org.gnome.Sdk");
+    expect(manifest["build-options"]["build-args"]).toContain("--share=network");
+    expect(manifest.modules[0]["build-commands"][0]).toContain("--default-toolchain 1.97.1");
+  });
+
+  // @covers release-pipeline/releases-include-a-linux-flatpak-bundle#a-re-run-replaces-the-bundle-asset
+  it("replaces the existing subx.flatpak asset on re-run", () => {
+    const job = flatpakJobRaw();
+    const uploadStep = job.match(/- name: Upload to draft release[\s\S]*?--clobber/);
+    expect(uploadStep, "upload step must use --clobber").not.toBeNull();
+  });
+
+  // @covers release-pipeline/releases-include-a-linux-flatpak-bundle#the-bundle-carries-build-provenance
+  it("attests the flatpak bundle with build provenance", () => {
+    const job = flatpakJobRaw();
+    expect(job).toMatch(/uses:\s*actions\/attest-build-provenance@v3[\s\S]*?subject-path:\s*subx\.flatpak/);
   });
 });

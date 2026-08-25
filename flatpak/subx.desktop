@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=SubX
+Comment=AI-powered subtitle matching, conversion, sync, and translation
+Exec=subx
+Icon=im.chenj.subx
+Type=Application
+Categories=Utility;
