@@ -212,8 +212,8 @@ describe("release workflow flatpak bundle", () => {
 
   it("verifies the required GNOME runtime refs exist in the flathub remote before building", () => {
     const job = flatpakJobRaw();
-    expect(job).toMatch(/flatpak remote-info flathub org\.gnome\.Platform\/\/50/);
-    expect(job).toMatch(/flatpak remote-info flathub org\.gnome\.Sdk\/\/50/);
+    expect(job).toMatch(/flatpak --user remote-info flathub org\.gnome\.Platform\/\/50/);
+    expect(job).toMatch(/flatpak --user remote-info flathub org\.gnome\.Sdk\/\/50/);
   });
 
   // @covers release-pipeline/releases-include-a-linux-flatpak-bundle#a-re-run-replaces-the-bundle-asset
