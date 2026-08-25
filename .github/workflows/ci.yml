@@ -68,6 +68,11 @@ jobs:
           workspaces: src-tauri
       - uses: taiki-e/install-action@cargo-llvm-cov
       - uses: taiki-e/install-action@nextest
+      # `tauri::generate_context!` (with the custom-protocol feature) validates
+      # that `frontendDist` (`../dist`) exists at compile time, so the frontend
+      # must be built before the Rust test/coverage step.
+      - run: npm ci
+      - run: npm run build
       - name: Backend coverage gate
         working-directory: src-tauri
         run: cargo llvm-cov nextest --lib --lcov --output-path lcov.info --fail-under-lines 85 --fail-under-functions 85 --fail-under-regions 85 --ignore-filename-regex "(^|/)(main|lib)\.rs$|/rustlib/"
