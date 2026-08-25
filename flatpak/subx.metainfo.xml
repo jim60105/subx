@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop">
   <id>im.chenj.subx</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
   <name>SubX</name>
   <summary>AI-powered subtitle matching, conversion, sync, and translation</summary>
   <description>
     <p>SubX is a cross-platform desktop application for managing, matching, converting, synchronizing, and translating subtitles powered by AI and subx-cli.</p>
   </description>
   <url type="homepage">https://github.com/jim60105/subx</url>
-  <license>GPL-3.0-or-later</license>
-  <icon type="thumbnail">im.chenj.subx</icon>
+  <icon type="stock">im.chenj.subx</icon>
   <categories>
     <category>Utility</category>
   </categories>
   <provides>
     <binary>subx</binary>
   </provides>
-  <launchable>subx.desktop</launchable>
+  <launchable type="desktop-id">im.chenj.subx.desktop</launchable>
 </component>

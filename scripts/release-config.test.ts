@@ -20,6 +20,8 @@ const WORKFLOW_PATH = path.resolve(__dirname, "..", ".github", "workflows", "rel
 const WORKFLOW_RAW = fs.readFileSync(WORKFLOW_PATH, "utf8");
 const MANIFEST_PATH = path.resolve(__dirname, "..", "flatpak", "manifest.json");
 const MANIFEST_RAW = fs.readFileSync(MANIFEST_PATH, "utf8");
+const METAINFO_PATH = path.resolve(__dirname, "..", "flatpak", "subx.metainfo.xml");
+const METAINFO_RAW = fs.readFileSync(METAINFO_PATH, "utf8");
 
 // The Flatpak assertions are scoped to the build-flatpak job block so a
 // matching fragment in another job (or comment) cannot satisfy them.
@@ -178,6 +180,14 @@ describe("unsigned distribution caveats and configuration", () => {
 });
 
 describe("release workflow flatpak bundle", () => {
+  it("uses AppStream-compatible license, icon, and launchable metadata", () => {
+    expect(METAINFO_RAW).toContain("<metadata_license>CC0-1.0</metadata_license>");
+    expect(METAINFO_RAW).toContain("<project_license>GPL-3.0-or-later</project_license>");
+    expect(METAINFO_RAW).toContain('<icon type="stock">im.chenj.subx</icon>');
+    expect(METAINFO_RAW).toContain('<launchable type="desktop-id">im.chenj.subx.desktop</launchable>');
+    expect(METAINFO_RAW).not.toMatch(/<license>/);
+  });
+
   // @covers release-pipeline/releases-include-a-linux-flatpak-bundle#a-flatpak-bundle-is-published-with-every-release
   it("builds and publishes a flatpak bundle with every tag release", () => {
     const job = flatpakJobRaw();
