@@ -4877,9 +4877,9 @@ dependencies = [
 
 [[package]]
 name = "subx-cli"
-version = "1.8.0"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93e9ddf86e560ab658c820a7a11f01830c3233f41c7f32ee24c4c9f7673966e4"
+checksum = "a69a9daefb52754c2861849124f3313c76ede586f1a50877925bd5d8adc8c59c"
 dependencies = [
  "anyhow",
  "async-trait",
