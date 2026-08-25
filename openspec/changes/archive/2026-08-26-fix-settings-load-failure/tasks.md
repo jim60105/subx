@@ -21,12 +21,12 @@
 
 ## 4. Crate-side diagnostics (subx-cli repo — small separate change)
 
-- [ ] 4.1 In the subx-cli repo, add diagnostic logging to `ProductionConfigService::load_and_validate()` recording which configuration sources (default file, user file, environment variables) contributed to the merged configuration and the resolved config file path, so the origin of an `http://` base URL (user's shell environment, custom `SUBX_CONFIG_PATH`, or a bundled default file) is identifiable. The API key string must NOT be written to the logs: log which source set the key (e.g. "api_key came from the `OPENAI_API_KEY` environment variable") and, where a key value is logged at all, use the masked form (`mask_sensitive_value`); the raw key must never appear in any log line. Add a test asserting no log line contains the raw key.
-- [ ] 4.2 Add a crate test pinning that a successful tolerant read (`load_for_repair`) never populates the strict-config cache, so an unvalidated config cannot reach `ComponentFactory::create_ai_provider()` (defense in depth around the HTTPS gate).
-- [ ] 4.3 (Optional follow-up) If the diagnostic logging ships in a new `subx-cli` release, bump the version in `src-tauri/Cargo.toml` and `src-tauri/Cargo.lock`, then run `cargo test --manifest-path src-tauri/Cargo.toml`.
+- [x] 4.1 In the subx-cli repo, add diagnostic logging to `ProductionConfigService::load_and_validate()` recording which configuration sources (default file, user file, environment variables) contributed to the merged configuration and the resolved config file path, so the origin of an `http://` base URL (user's shell environment, custom `SUBX_CONFIG_PATH`, or a bundled default file) is identifiable. The API key string must NOT be written to the logs: log which source set the key (e.g. "api_key came from the `OPENAI_API_KEY` environment variable") and, where a key value is logged at all, use the masked form (`mask_sensitive_value`); the raw key must never appear in any log line. Add a test asserting no log line contains the raw key.
+- [x] 4.2 Add a crate test pinning that a successful tolerant read (`load_for_repair`) never populates the strict-config cache, so an unvalidated config cannot reach `ComponentFactory::create_ai_provider()` (defense in depth around the HTTPS gate).
+- [x] 4.3 (Optional follow-up) If the diagnostic logging ships in a new `subx-cli` release, bump the version in `src-tauri/Cargo.toml` and `src-tauri/Cargo.lock`, then run `cargo test --manifest-path src-tauri/Cargo.toml`.
 
 ## 5. Spec sync and verification
 
 - [x] 5.1 Sync the `settings-management` delta spec into `openspec/specs/settings-management/spec.md` (via the openspec sync workflow) so the new requirements and scenarios are in the main spec and visible to the `spec:trace`/spec-coverage gates.
-- [ ] 5.2 Run `npm run verify` (typecheck → frontend ≥85% coverage → Rust coverage → `spec:trace` → `bindings:check` → `icons:check`).
-- [ ] 5.3 In the subx-cli repo, run `scripts/quality_check.sh` (fmt, clippy, nextest, docs) before publishing the crate release.
+- [x] 5.2 Run `npm run verify` (typecheck → frontend ≥85% coverage → Rust coverage → `spec:trace` → `bindings:check` → `icons:check`).
+- [x] 5.3 In the subx-cli repo, run `scripts/quality_check.sh` (fmt, clippy, nextest, docs) before publishing the crate release.
