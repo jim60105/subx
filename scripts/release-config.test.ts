@@ -182,7 +182,7 @@ describe("release workflow flatpak bundle", () => {
   it("builds and publishes a flatpak bundle with every tag release", () => {
     const job = flatpakJobRaw();
     expect(job).toMatch(/flatpak-builder --repo=/);
-    expect(job).toMatch(/flatpak build-bundle .* subx\.flatpak im\.chenj\.subx/);
+    expect(job).toMatch(/flatpak build-bundle --runtime-repo=https:\/\/dl\.flathub\.org\/repo\/flathub\.flatpakrepo "\$REPO_DIR" subx\.flatpak im\.chenj\.subx/);
     expect(job).toMatch(/gh release upload "\$TAG" subx\.flatpak --clobber/);
   });
 
@@ -197,15 +197,22 @@ describe("release workflow flatpak bundle", () => {
   });
 
   // @covers release-pipeline/releases-include-a-linux-flatpak-bundle#the-bundle-is-built-in-a-sandbox-with-its-own-runtime
-  it("declares the GNOME platform runtime, WebKit extension and a pinned Rust toolchain in the manifest", () => {
+  it("declares the GNOME 50 runtime and a pinned Rust toolchain in the manifest", () => {
     const manifest = JSON.parse(MANIFEST_RAW);
     expect(manifest["app-id"]).toBe("im.chenj.subx");
     expect(manifest.runtime).toBe("org.gnome.Platform");
-    expect(manifest["runtime-version"]).toBe("23.08");
-    expect(manifest["runtime-extensions"]).toContain("org.gnome.Platform.Extension.WebKit//23.08");
+    expect(manifest["runtime-version"]).toBe("50");
+    // WebKitGTK 4.1 ships inside org.gnome.Platform/Sdk 50, so no WebKit extension is declared.
+    expect(manifest["runtime-extensions"]).toBeUndefined();
     expect(manifest.sdk).toBe("org.gnome.Sdk");
     expect(manifest["build-options"]["build-args"]).toContain("--share=network");
     expect(manifest.modules[0]["build-commands"][0]).toContain("--default-toolchain 1.97.1");
+  });
+
+  it("verifies the required GNOME runtime refs exist in the flathub remote before building", () => {
+    const job = flatpakJobRaw();
+    expect(job).toMatch(/flatpak remote-info flathub org\.gnome\.Platform\/\/50/);
+    expect(job).toMatch(/flatpak remote-info flathub org\.gnome\.Sdk\/\/50/);
   });
 
   // @covers release-pipeline/releases-include-a-linux-flatpak-bundle#a-re-run-replaces-the-bundle-asset

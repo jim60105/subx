@@ -1,8 +1,7 @@
 {
   "app-id": "im.chenj.subx",
   "runtime": "org.gnome.Platform",
-  "runtime-version": "23.08",
-  "runtime-extensions": ["org.gnome.Platform.Extension.WebKit//23.08"],
+  "runtime-version": "50",
   "sdk": "org.gnome.Sdk",
   "command": "subx",
   "finish-args": [

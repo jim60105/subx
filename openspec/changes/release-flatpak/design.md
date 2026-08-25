@@ -4,14 +4,14 @@
 
 Verified facts (researched this session, flatpak 1.18 CLI checked locally and the flatpak-builder reference read in full):
 
-- `org.freedesktop.Platform` 23.08 does **not** ship rustc/cargo, so the Rust toolchain must be installed inside the build sandbox.
+- GNOME Platform runtimes do **not** ship rustc/cargo (verified for 23.08; the same applies to 50), so the Rust toolchain must be installed inside the build sandbox.
 - `flatpak` 1.14.6 and `flatpak-builder` 1.4.2 are available in Ubuntu 24.04's universe repos, so `sudo apt-get install -y flatpak flatpak-builder` works on the `ubuntu-24.04` runner.
 - Tauri 2 embeds the frontend assets into the binary at compile time (`tauri-build` codegen). The prebuilt `dist/` is staged into the sandbox as a local directory source and embedded by `tauri_build::build()` — no `/app/share/<app-id>` asset directory is needed at runtime.
 - The Flatpak build sandbox has **no network access by default** (builds get `--allow=devel` and `--allow=multiarch` but are "very limited"). Network is enabled per-manifest via `build-options.build-args: ["--share=network"]`. Flathub's own CI ignores `--share=network` (it uses `flatpak-cargo-generator`), but this pipeline does not publish to Flathub, so the flag works.
 - `subx-cli` resolves to `subx-cli 1.8.0` from the crates.io registry (confirmed in `src-tauri/Cargo.lock`), so the sandbox build fetches it from the registry.
 - **Native CLI semantics (checked against `flatpak 1.18 --help`)**: `flatpak build` runs a command in an already-initialized app dir (no manifest option); `flatpak build-bundle LOCATION FILENAME NAME` where LOCATION is an OSTree repo (from `flatpak build-export`), not a build dir. Manifest-driven builds therefore go through **`flatpak-builder`**: `flatpak-builder --repo=<repo> <build-dir> <manifest.json>`, then `flatpak build-bundle <repo> subx.flatpak im.chenj.subx`.
-- **Manifest format (flatpak-builder man page)**: top-level keys are `app-id` (or non-deprecated `id`), `runtime`/`runtime-version`, `sdk` (development runtime — required for compiling), `runtime-extensions`, `modules`, `finish-args`, and `build-options` with `build-args` for extra `flatpak build` options. Module-level `sources` (e.g. `{"type": "dir", "path": ".."}`) stage the local checkout; a `dir` source's `path` resolves **relative to the manifest file's location** (`flatpak/`), so `..` points at the repository root.
-- **Runtime choice**: the `org.freedesktop.Platform` base does not ship WebKitGTK; Tauri/WebKitGTK apps on Flathub use `org.gnome.Platform` + the `org.gnome.Platform.Extension.WebKit` extension. The flathub remote supplies both the GNOME platform and the WebKit extension.
+- **Manifest format (flatpak-builder man page)**: top-level keys are `app-id` (or non-deprecated `id`), `runtime`/`runtime-version`, `sdk` (development runtime — required for compiling), `sdk-extensions` / `platform-extensions` (not a `runtime-extensions` key), `modules`, `finish-args`, and `build-options` with `build-args` for extra `flatpak build` options. Module-level `sources` (e.g. `{"type": "dir", "path": ".."}`) stage the local checkout; a `dir` source's `path` resolves **relative to the manifest file's location** (`flatpak/`), so `..` points at the repository root.
+- **Runtime choice (per Flatpak expert review)**: `org.gnome.Platform//50` ships WebKitGTK 4.1 — the exact interface Tauri 2 links against — so **no `org.gnome.Platform.Extension.WebKit` extension is needed** (the extension ref does not even exist in the flathub repo's OSTree summary; the historical GNOME stable repo `https://sdk.gnome.org/gnome.flatpakrepo` is superseded by Flathub mirroring the stable GNOME runtimes). The flathub repo hosts `org.gnome.Platform` and `org.gnome.Sdk` in versions 40–50 (23.08 is no longer served there, which is why the second CI run failed with "Nothing matches org.gnome.Sdk in remote flathub").
 - **`flatpak-builder` flag availability (verified in the first CI run)**: Ubuntu 24.04 ships `flatpak-builder 1.4.2`, which has `--install-deps-from` / `--install-deps-only` but **no bare `--install-deps` flag** (confirmed against the 1.4.2 source: `--install-deps-from` alone triggers `builder_manifest_install_deps`, installing the manifest's runtime, SDK and runtime-extensions into the system installation). The first dispatch failed with "Unknown option --install-deps"; the fix is to drop the bare flag.
 - Pre-existing bug: `release.yml`'s `prepare` job declares `version: ${{ steps.check_tag.outputs.version }}`, but `scripts/check-release-tag.mjs` never writes `GITHUB_OUTPUT`; the `release_notes` step is the one that writes `version=`. The output points at the wrong step and is currently empty.
 
@@ -26,7 +26,7 @@ Verified facts (researched this session, flatpak 1.18 CLI checked locally and th
 
 **Non-Goals:**
 
-- Publishing to Flathub (explicitly out of scope; the flathub remote is used only as a *source* for the freedesktop runtimes/SDK during the build).
+- Publishing to Flathub (explicitly out of scope; the flathub remote is used only as a *source* for the GNOME runtimes/SDK — `org.gnome.Platform//50` + `org.gnome.Sdk//50` — during the build).
 - Changing app-level config handling (`~/.config` is not even mounted by default in the sandbox; the app's writable home is `~/.var/app/im.chenj.subx`; redirecting `XDG_CONFIG_HOME` is a follow-up app change).
 - Touching the five-target `build` matrix or the `prepare` job's release-creation logic (aside from the one-line `version` output fix).
 
@@ -65,8 +65,7 @@ Verified facts (researched this session, flatpak 1.18 CLI checked locally and th
 {
   "app-id": "im.chenj.subx",
   "runtime": "org.gnome.Platform",
-  "runtime-version": "23.08",
-  "runtime-extensions": ["org.gnome.Platform.Extension.WebKit//23.08"],
+  "runtime-version": "50",
   "sdk": "org.gnome.Sdk",
   "command": "subx",
   "finish-args": ["--share=ipc", "--share=network", "--socket=wayland", "--socket=x11"],
@@ -94,7 +93,8 @@ Verified facts (researched this session, flatpak 1.18 CLI checked locally and th
 ```
 
 Notes:
-- `runtime: org.gnome.Platform` + the WebKit extension provides the GUI system libraries **and** the WebKitGTK runtime the app needs to launch; `sdk: org.gnome.Sdk` provides the dev packages (headers, pkg-config) required to compile `webkit2gtk-sys`.
+- `runtime: org.gnome.Platform//50` ships the GUI system libraries **and** WebKitGTK 4.1 (the interface Tauri 2 links against) — no WebKit extension is needed; `sdk: org.gnome.Sdk//50` provides the dev packages (headers, pkg-config) required to compile `webkit2gtk-sys`.
+- The generated bundle is emitted with `--runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo` so end users can `flatpak install ./subx.flatpak` with only the Flathub remote configured (a single-file bundle does not embed its runtime).
 - `sources` is a **module-level** key; the `dir` source's `path` resolves relative to the manifest file's directory (`flatpak/`), so `".."` = repository root. `.git` and `node_modules` are skipped; the prebuilt `dist/` is kept and embedded by `tauri_build::build()` at compile time.
 - `subdir: "src-tauri"`: build-commands **and** post-install run with cwd inside `src-tauri/`, so post-install paths are relative to that directory (`target/release/subx`, `icons/128x128.png`, `../flatpak/...` for the repo-root assets).
 - `finish-args` include `--share=network` because the running app (subx) makes outbound calls to AI provider APIs.
@@ -160,7 +160,7 @@ Minimal AppStream metainfo so the bundle presents correctly in software centers 
       - name: Configure flatpak remote for runtimes
         shell: bash
         run: |
-          flatpak remote add --if-not-present flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak remotes | awk '{print $1}' | grep -qx flathub || sudo flatpak remote-add flathub https://dl.flathub.org/repo/flathub.flatpakrepo
       - name: Build frontend
         shell: bash
         run: |
@@ -172,8 +172,11 @@ Minimal AppStream metainfo so the bundle presents correctly in software centers 
           BUILD_DIR="${RUNNER_TEMP}/subx-flatpak-build"
           REPO_DIR="${RUNNER_TEMP}/subx-flatpak-repo"
           mkdir -p "$BUILD_DIR" "$REPO_DIR"
+          # Cheap sanity check: the required runtime/SDK refs must exist in the flathub remote before spending the whole build on a missing ref.
+          flatpak remote-info flathub org.gnome.Platform//50
+          flatpak remote-info flathub org.gnome.Sdk//50
           flatpak-builder --repo="$REPO_DIR" --install-deps-from=flathub "$BUILD_DIR" flatpak/manifest.json
-          flatpak build-bundle "$REPO_DIR" subx.flatpak im.chenj.subx
+          flatpak build-bundle --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo "$REPO_DIR" subx.flatpak im.chenj.subx
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v3
         with:
@@ -199,7 +202,7 @@ Minimal AppStream metainfo so the bundle presents correctly in software centers 
 - [Pinned toolchain drifts from the floating `@stable` used by the other release jobs] → the flatpak job pins `1.97.1` while the matrix jobs use `dtolnay/rust-toolchain@stable`. Upgrading the pinned toolchain is an explicit release-maintenance step (bump the manifest + this design).
 - [The GNOME Platform + WebKit extension are not yet proven to satisfy Tauri's WebKitGTK build requirements] → verified by the first `workflow_dispatch` dry run (task 4.3); if the WebKit extension or a dev package is missing, add a manifest module that builds/installs the missing libraries into `/app`.
 - [The `.flatpak` artifact is not meaningfully validated] → optional smoke test (duck finding, deferred): `flatpak install --user subx.flatpak` then `xvfb-run -a timeout 30 flatpak run im.chenj.subx` (headless runner needs Xvfb; plain `flatpak run` can hang without a display).
-- [End-user install prerequisite] → a downloaded bundle references `org.freedesktop.Platform//23.08`; users without a configured remote (flathub or freedesktop) may not install it directly. Mitigation: document the prerequisite in the release-notes footer (follow-up, out of scope for this pipeline change).
+- [End-user install prerequisite] → a downloaded bundle references `org.gnome.Platform//50`; the bundle is emitted with `--runtime-repo` pointing at the Flathub repo, so a user with the Flathub remote can install it directly. Users without any Flatpak remote still need to add the Flathub remote first. Mitigation: document the prerequisite in the release-notes footer (follow-up, out of scope for this pipeline change).
 - [Draft release re-run] → `gh release upload --clobber` replaces the existing `subx.flatpak` asset instead of creating a duplicate.
 - [`post-install` cwd / build-user home are not fully specified in the docs] → the build uses the documented `FLATPAK_BUILDER_BUILDDIR` env var instead of `$HOME`; verify on the first CI run (task 1.3 doubles as the probe).
 - [Trade-off: single pipeline vs new workflow] → one `release.yml` keeps one draft release per tag; cost is a longer file and one more job.
@@ -210,5 +213,5 @@ CI-only change: no deployment or rollback concerns. Rollback = revert the `build
 
 ## Open Questions
 
-1. Whether `org.gnome.Platform` 23.08 + the WebKit extension provide every native library Tauri/WebKitGTK needs — validated by the first `workflow_dispatch` dry run (task 4.3).
+1. Whether the pinned Rust toolchain (1.97.1) and `org.gnome.Platform//50` + `org.gnome.Sdk//50` (which ship WebKitGTK 4.1) cover every native library Tauri/WebKitGTK needs — validated by the `workflow_dispatch` dry run (task 4.3).
 2. Exact `flatpak-builder` invocation on a clean `ubuntu-24.04` runner (remote added, `--install-deps-from=flathub`): confirm the GNOME Platform/SDK + WebKit extension install correctly; the dry run validates end-to-end.
