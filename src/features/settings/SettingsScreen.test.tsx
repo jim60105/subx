@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { renderWithI18n, setupI18n } from "../../test/renderWithI18n";
 import { ThemeProvider } from "../../theme/ThemeProvider";
 import type { ConfigDto, ConnectionTestResult, ErrorDto, SetConfigRequest } from "../../types/ipc";
+import { DEFAULT_CONFIG } from "./useSettingsForm";
 import { SettingsScreen } from "./SettingsScreen";
 
 const SAVED_KEY_MASK = "****1234";
@@ -67,6 +68,56 @@ function mockBackend(initial: Partial<ConfigDto["ai"]> = {}) {
       testResult = result;
     },
   };
+}
+
+/**
+ * A backend double where the strict `get_config` fails (the env-var overlay
+ * scenario), `get_config_tolerant` mirrors what is on disk (updated by
+ * writes), and `set_config_value` persists the edited fields.
+ */
+function mockStrictFailingBackend(options: { strictAlwaysFails?: boolean } = {}) {
+  const { strictAlwaysFails = false } = options;
+  const config: ConfigDto = {
+    ai: {
+      provider: "openai",
+      model: "gpt-4.1-mini",
+      baseUrl: "https://api.openai.com/v1",
+      apiKeyMasked: "",
+      apiKeySet: false,
+    },
+  };
+  const writes: SetConfigRequest[] = [];
+  let strictCalls = 0;
+
+  mockIPC((command, payload) => {
+    if (command === "get_config") {
+      strictCalls += 1;
+      if (strictAlwaysFails || strictCalls === 1) {
+        throw {
+          code: "core.config",
+          message: "Configuration error: environment variable overlay",
+          hintCode: "core.config.hint",
+        } as ErrorDto;
+      }
+      return structuredClone(config);
+    }
+    if (command === "get_config_tolerant") return structuredClone(config);
+    if (command === "set_config_value") {
+      const { request } = payload as { request: SetConfigRequest };
+      writes.push(request);
+      if (request.key === "ai.provider") config.ai.provider = request.value;
+      if (request.key === "ai.model") config.ai.model = request.value;
+      if (request.key === "ai.base_url") config.ai.baseUrl = request.value;
+      if (request.key === "ai.api_key") {
+        config.ai.apiKeyMasked = `****${request.value.slice(-4)}`;
+        config.ai.apiKeySet = request.value !== "";
+      }
+      return null;
+    }
+    throw new Error(`unexpected command: ${command}`);
+  });
+
+  return { config, writes };
 }
 
 function renderSettings() {
@@ -327,5 +378,140 @@ describe("settings screen", () => {
     // `set_config_value` is the only path to the CLI config file, and it must
     // not have been reached.
     expect(backend.writes).toEqual([]);
+  });
+
+  // @covers settings-management/a-failed-configuration-load-does-not-block-the-settings-form#form-stays-editable-when-the-initial-read-fails
+  it("keeps the form editable when the initial read fails", async () => {
+    const backend = mockStrictFailingBackend();
+    renderSettings();
+
+    // The tolerant read's values prefill the form; the error notice stays
+    // visible above it as a non-blocking banner.
+    await waitFor(() => expect(model()).toHaveValue("gpt-4.1-mini"));
+    expect(await screen.findByText("The configuration is invalid.")).toBeInTheDocument();
+    expect(screen.getByText("Review the AI settings and try again.")).toBeInTheDocument();
+
+    // The user can edit and save a field even though the strict read failed.
+    await userEvent.clear(model());
+    await userEvent.type(model(), "gpt-4o-mini");
+    await userEvent.click(saveButton());
+
+    await waitFor(() => expect(backend.writes).toEqual([{ key: "ai.model", value: "gpt-4o-mini" }]));
+    expect(model()).toHaveValue("gpt-4o-mini");
+  });
+
+  // @covers settings-management/a-failed-configuration-load-does-not-block-the-settings-form#a-successful-save-is-not-masked-by-a-failing-re-read
+  it("does not mask a successful save when the post-save re-read fails", async () => {
+    const backend = mockStrictFailingBackend({ strictAlwaysFails: true });
+    renderSettings();
+    await waitFor(() => expect(model()).toHaveValue("gpt-4.1-mini"));
+
+    await userEvent.clear(model());
+    await userEvent.type(model(), "gpt-4o-mini");
+    await userEvent.click(saveButton());
+
+    // Every write lands on disk; the strict re-read still fails, but the
+    // screen refreshes from the tolerant read instead of reporting a save
+    // failure or leaving a stale save error.
+    await waitFor(() => expect(backend.writes).toEqual([{ key: "ai.model", value: "gpt-4o-mini" }]));
+    await waitFor(() => expect(model()).toHaveValue("gpt-4o-mini"));
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
+    expect(saveButton()).toBeDisabled();
+  });
+
+  it("skips the focus refetch while the initial bootstrap is in flight", async () => {
+    const defaults: ConfigDto = {
+      ai: {
+        provider: "openai",
+        model: "gpt-4.1-mini",
+        baseUrl: "https://api.openai.com/v1",
+        apiKeyMasked: "",
+        apiKeySet: false,
+      },
+    };
+    const pendingGets: Array<{ resolve: (value: ConfigDto) => void; reject: (error: ErrorDto) => void }> = [];
+
+    mockIPC((command) => {
+      if (command === "get_config") {
+        return new Promise<ConfigDto>((resolve, reject) => {
+          pendingGets.push({ resolve, reject });
+        });
+      }
+      if (command === "get_config_tolerant") return structuredClone(defaults);
+      throw new Error(`unexpected command: ${command}`);
+    });
+
+    renderSettings();
+
+    // The initial strict read is in flight; a focus event must not start a
+    // second strict read — that would bump the load sequence and orphan the
+    // in-flight tolerant fallback.
+    window.dispatchEvent(new Event("focus"));
+    await waitFor(() => expect(pendingGets).toHaveLength(1));
+
+    // Settle the initial read as a failure; the fallback fills the form with
+    // the tolerant read's values.
+    await act(async () => {
+      pendingGets[0].reject({
+        code: "core.config",
+        message: "Configuration error: environment variable overlay",
+        hintCode: "core.config.hint",
+      });
+    });
+    await waitFor(() => expect(model()).toHaveValue("gpt-4.1-mini"));
+    expect(screen.getByText("The configuration is invalid.")).toBeInTheDocument();
+  });
+
+  it("shows a non-blocking warning when a strict reload fails after a config is loaded", async () => {
+    const config: ConfigDto = {
+      ai: {
+        provider: "openai",
+        model: "gpt-4.1-mini",
+        baseUrl: "https://api.openai.com/v1",
+        apiKeyMasked: "",
+        apiKeySet: false,
+      },
+    };
+    let strictCalls = 0;
+    mockIPC((command) => {
+      if (command === "get_config") {
+        strictCalls += 1;
+        // The first (initial) strict read succeeds; later refetches fail — the
+        // env-var overlay scenario after a config is already on screen.
+        if (strictCalls > 1) {
+          throw {
+            code: "core.config",
+            message: "Configuration error: environment variable overlay",
+            hintCode: "core.config.hint",
+          } as ErrorDto;
+        }
+        return structuredClone(config);
+      }
+      if (command === "get_config_tolerant") return structuredClone(config);
+      throw new Error(`unexpected command: ${command}`);
+    });
+
+    renderSettings();
+    await waitFor(() => expect(model()).toHaveValue("gpt-4.1-mini"));
+
+    // A focus-triggered refetch whose strict read fails: the screen keeps the
+    // loaded value and shows a warning instead of reverting to the tolerant or
+    // default config.
+    window.dispatchEvent(new Event("focus"));
+
+    expect(await screen.findByText("The configuration is invalid.")).toBeInTheDocument();
+    expect(model()).toHaveValue("gpt-4.1-mini");
+  });
+});
+
+describe("DEFAULT_CONFIG mirror", () => {
+  it("matches the crate's default AI configuration", () => {
+    // Pins the frontend fallback against the values the crate's
+    // `Config::default().ai` carries, so the mirror cannot drift silently.
+    expect(DEFAULT_CONFIG.ai.provider).toBe("openai");
+    expect(DEFAULT_CONFIG.ai.model).toBe("gpt-4.1-mini");
+    expect(DEFAULT_CONFIG.ai.baseUrl).toBe("https://api.openai.com/v1");
+    expect(DEFAULT_CONFIG.ai.apiKeyMasked).toBe("");
+    expect(DEFAULT_CONFIG.ai.apiKeySet).toBe(false);
   });
 });

@@ -27,3 +27,5 @@ The GUI SHALL expose a `get_config_tolerant` Tauri command that returns the conf
 
 - **WHEN** the user configuration file exists but the strict `get_config` fails (e.g. an environment-variable overlay breaks validation)
 - **THEN** `get_config_tolerant` returns the on-disk configuration values, so the user can repair the file through the Settings screen
+
+> **Known limitation:** the crate's config precedence gives environment variables (e.g. `OPENAI_BASE_URL`, `SUBX_AI_BASE_URL`) higher priority than the on-disk file. Repairing the on-disk file through the Settings screen therefore does not, by itself, override a conflicting environment variable — the strict gate and the AI connection test still see the environment value. Resolving the underlying bug for the user may require removing or correcting that environment variable (or a later change that alters the crate's precedence). This change keeps the form editable and repairable; it does not change the precedence rule.

@@ -31,6 +31,7 @@ pub fn specta_builder<R: Runtime>() -> Builder<R> {
         .commands(collect_commands![
             crate::commands::system::ping,
             crate::commands::config::get_config,
+            crate::commands::config::get_config_tolerant,
             crate::commands::config::set_config_value,
             crate::commands::config::test_ai_connection,
             crate::commands::r#match::list_source_files,
@@ -344,6 +345,7 @@ mod tests {
         for command in [
             "ping",
             "getConfig",
+            "getConfigTolerant",
             "setConfigValue",
             "testAiConnection",
             "listSourceFiles",

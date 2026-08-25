@@ -35,6 +35,12 @@ pub fn get_config(state: State<AppState>) -> Result<ConfigDto, ErrorDto> {
 
 #[tauri::command]
 #[specta::specta]
+pub fn get_config_tolerant(state: State<AppState>) -> Result<ConfigDto, ErrorDto> {
+    read_config_tolerant(state.config_service())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn set_config_value(request: SetConfigRequest, state: State<AppState>) -> Result<(), ErrorDto> {
     write_config_value(state.config_service(), &request.key, &request.value)
 }
@@ -57,6 +63,29 @@ pub async fn test_ai_connection(
 fn read_config(service: &dyn ConfigService) -> Result<ConfigDto, ErrorDto> {
     service.reload()?;
     let config = service.get_config()?;
+
+    let api_key = config.ai.api_key.unwrap_or_default();
+
+    Ok(ConfigDto {
+        ai: AiConfigDto {
+            provider: config.ai.provider,
+            model: config.ai.model,
+            base_url: config.ai.base_url,
+            api_key_masked: mask_sensitive_value(AI_API_KEY, &api_key),
+            api_key_set: !api_key.is_empty(),
+        },
+    })
+}
+
+/// Reads the on-disk configuration through the crate's tolerant path:
+/// file-only values, no environment-variable overlay, no cross-section
+/// validation.
+///
+/// The strict `get_config` stays the safety gate for AI work; this value
+/// feeds only the settings-repair path and never enters the strict cache
+/// (defense in depth around the hosted-provider HTTPS rule).
+fn read_config_tolerant(service: &dyn ConfigService) -> Result<ConfigDto, ErrorDto> {
+    let config = service.load_for_repair()?;
 
     let api_key = config.ai.api_key.unwrap_or_default();
 
@@ -379,5 +408,107 @@ mod tests {
         let error = result.error.expect("a failed test must explain itself");
         assert_eq!(error.code, "core.config");
         assert_eq!(error.hint_code.as_deref(), Some(CONNECTION_TEST_HINT));
+    }
+
+    // @covers settings-management/a-tolerant-configuration-read-supports-settings-repair#a-fresh-install-reads-defaults-through-the-tolerant-path
+    #[test]
+    fn tolerant_read_returns_the_crate_defaults_when_no_config_file_exists() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let path = dir.path().join("config.toml");
+        let mut env = TestEnvironmentProvider::new();
+        env.set_var("SUBX_CONFIG_PATH", path.to_str().unwrap());
+        let service = ProductionConfigService::with_env_provider(Arc::new(env)).expect("service");
+
+        let dto = read_config_tolerant(&service).expect("the tolerant read must succeed on a fresh install");
+        let defaults = subx_cli::config::Config::default().ai;
+
+        assert_eq!(dto.ai.provider, defaults.provider);
+        assert_eq!(dto.ai.model, defaults.model);
+        assert_eq!(dto.ai.base_url, defaults.base_url);
+        assert_eq!(dto.ai.api_key_masked, "");
+        assert!(!dto.ai.api_key_set);
+    }
+
+    // @covers settings-management/a-tolerant-configuration-read-supports-settings-repair#an-on-disk-file-can-be-inspected-and-repaired
+    #[test]
+    fn tolerant_read_returns_on_disk_values_without_an_env_var_overlay() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let path = dir.path().join("config.toml");
+        // A complete, valid config (crate defaults with the base URL overridden)
+        // — the `Config` TOML schema requires every non-default field, so the
+        // file must be serialized from the struct rather than hand-written.
+        let mut config = subx_cli::config::Config::default();
+        config.ai.base_url = "http://localhost:11434/v1".to_string();
+        std::fs::write(
+            &path,
+            toml::to_string_pretty(&config).expect("config file"),
+        )
+        .expect("config file");
+        let mut env = TestEnvironmentProvider::new();
+        env.set_var("SUBX_CONFIG_PATH", path.to_str().unwrap());
+        env.set_var("OPENAI_BASE_URL", "https://example.com/v1");
+        let service = ProductionConfigService::with_env_provider(Arc::new(env)).expect("service");
+
+        let dto = read_config_tolerant(&service).expect("the tolerant read must succeed");
+
+        // The on-disk value is what the user can inspect and repair; the
+        // env-var overlay must not leak into the tolerant read.
+        assert_eq!(dto.ai.base_url, "http://localhost:11434/v1");
+        assert_eq!(dto.ai.provider, "openai");
+        assert_eq!(dto.ai.model, "gpt-4.1-mini");
+    }
+
+    /// The exact bug scenario: a fresh install with an `http://` base URL in
+    /// the environment. The strict read (defaults + user file + env-var overlay
+    /// + cross-section validation) fails the hosted-provider HTTPS rule; the
+    /// tolerant read still succeeds, which is what keeps the settings form
+    /// editable.
+    #[test]
+    fn an_env_var_overlay_breaks_the_strict_read_but_not_the_tolerant_read() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let path = dir.path().join("config.toml");
+        let mut env = TestEnvironmentProvider::new();
+        env.set_var("SUBX_CONFIG_PATH", path.to_str().unwrap());
+        env.set_var("OPENAI_BASE_URL", "http://localhost:11434/v1");
+        let service = ProductionConfigService::with_env_provider(Arc::new(env)).expect("service");
+
+        assert!(service.reload().is_err(), "the strict read must fail: hosted provider + http URL");
+        let dto = read_config_tolerant(&service).expect("the tolerant read must still succeed");
+        let defaults = subx_cli::config::Config::default().ai;
+        assert_eq!(dto.ai.base_url, defaults.base_url);
+        assert_ne!(dto.ai.base_url, "http://localhost:11434/v1");
+    }
+
+    /// A successful tolerant read must not populate the strict-config cache, so
+    /// an unvalidated configuration can never drive the provider construction
+    /// (the HTTPS gate stays the safety net for AI work).
+    #[test]
+    fn a_successful_tolerant_read_does_not_populate_the_strict_cache() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let path = dir.path().join("config.toml");
+        let mut env = TestEnvironmentProvider::new();
+        env.set_var("SUBX_CONFIG_PATH", path.to_str().unwrap());
+        env.set_var("OPENAI_BASE_URL", "http://localhost:11434/v1");
+        let service = ProductionConfigService::with_env_provider(Arc::new(env)).expect("service");
+
+        service.load_for_repair().expect("the tolerant read must succeed");
+        assert!(
+            service.reload().is_err(),
+            "a successful tolerant read must not satisfy the strict gate"
+        );
+    }
+
+    /// The GUI's `DEFAULT_CONFIG` fallback mirrors the crate's defaults. This
+    /// test pins the mirror: if the crate changes its defaults, this fails so
+    /// the frontend constant gets updated in lockstep.
+    #[test]
+    fn the_gui_default_config_mirror_matches_the_crate_defaults() {
+        // These values must match `DEFAULT_CONFIG` in
+        // `src/features/settings/useSettingsForm.ts`.
+        let defaults = subx_cli::config::Config::default().ai;
+        assert_eq!(defaults.provider, "openai");
+        assert_eq!(defaults.model, "gpt-4.1-mini");
+        assert_eq!(defaults.base_url, "https://api.openai.com/v1");
+        assert!(defaults.api_key.is_none());
     }
 }
