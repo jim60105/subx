@@ -113,12 +113,12 @@ The repository SHALL define a CI pipeline that runs the frontend tests with cove
 #### Scenario: Continuous integration publishes frontend and backend coverage to Codecov
 
 - **WHEN** CI workflow jobs for frontend and backend complete test coverage runs
-- **THEN** both jobs upload their coverage reports to Codecov with `flags: frontend` and `flags: backend` using `codecov/codecov-action@v5` and `CODECOV_TOKEN`
+- **THEN** both jobs upload their coverage reports to Codecov with `flags: frontend` and `flags: backend` using `codecov/codecov-action@v7` and `CODECOV_TOKEN`
 
 #### Scenario: Continuous integration publishes frontend and backend test results to Codecov
 
 - **WHEN** CI workflow jobs for frontend and backend complete test runs
-- **THEN** both jobs upload their JUnit test result XML files to Codecov with `report_type: test_results` using `codecov/codecov-action@v5`
+- **THEN** both jobs upload their JUnit test result XML files to Codecov with `report_type: test_results` using `codecov/codecov-action@v7`
 
 ### Requirement: Path inputs to the checker are resolved and validated
 

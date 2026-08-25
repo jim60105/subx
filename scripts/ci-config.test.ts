@@ -53,7 +53,7 @@ describe("continuous integration runs every gate", () => {
   it("uploads frontend and backend coverage reports to Codecov", () => {
     expect(WORKFLOW).toMatch(/flags:\s*frontend/);
     expect(WORKFLOW).toMatch(/flags:\s*backend/);
-    expect(WORKFLOW).toMatch(/codecov\/codecov-action@v5/);
+    expect(WORKFLOW).toMatch(/codecov\/codecov-action@v7/);
   });
 
   // @covers verification-gates/continuous-integration-runs-every-gate#continuous-integration-publishes-frontend-and-backend-test-results-to-codecov
