@@ -33,3 +33,6 @@ coverage
 lcov.info
 junit.xml
 .agents/
+
+# Local git worktrees
+.worktrees/
