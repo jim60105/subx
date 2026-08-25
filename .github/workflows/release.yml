@@ -175,7 +175,7 @@ jobs:
           fi
       - name: Attest build provenance
         if: steps.filter_artifacts.outputs.has_files == 'true'
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: ${{ steps.filter_artifacts.outputs.paths }}
 
@@ -224,7 +224,7 @@ jobs:
           flatpak-builder --repo="$REPO_DIR" --install-deps-from=flathub --user "$BUILD_DIR" flatpak/manifest.json
           flatpak build-bundle --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo "$REPO_DIR" subx.flatpak im.chenj.subx
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: subx.flatpak
       - name: Upload to draft release
@@ -237,7 +237,7 @@ jobs:
           gh release upload "$TAG" subx.flatpak --clobber
       - name: Upload workflow artifact
         if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: subx.flatpak
           path: subx.flatpak
