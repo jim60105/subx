@@ -21,6 +21,14 @@ function writeFixturePackageJson(version: string) {
   return pkgPath;
 }
 
+// run() always reads the repository's real package.json (only checkReleaseTag
+// takes an injected path), so expected tags must derive from the declared
+// version instead of a hard-coded literal that goes stale on every bump.
+function declaredVersion(): string {
+  const pkgPath = path.resolve(__dirname, "..", "package.json");
+  return JSON.parse(fs.readFileSync(pkgPath, "utf8")).version as string;
+}
+
 describe("check-release-tag", () => {
   // @covers release-pipeline/the-released-version-is-declared-once#a-tag-that-disagrees-with-the-declared-version-aborts-the-release
   it("aborts the release and names both tag and declared version when tag disagrees", () => {
@@ -43,16 +51,18 @@ describe("check-release-tag", () => {
     const out: string[] = [];
     const err: string[] = [];
 
+    // A tag that cannot equal 'v' + the declared version by construction.
+    const mismatchingTag = `v9.${declaredVersion()}`;
     const exitCode = run(
-      ["v0.2.0"],
+      [mismatchingTag],
       (msg) => out.push(msg),
       (msg) => err.push(msg),
     );
 
     expect(exitCode).toBe(1);
     const errText = err.join("\n");
-    expect(errText).toContain("v0.2.0");
-    expect(errText).toContain("0.1.0");
+    expect(errText).toContain(mismatchingTag);
+    expect(errText).toContain(declaredVersion());
     expect(errText).toContain("check-release-tag error");
   });
 
@@ -67,14 +77,14 @@ describe("check-release-tag", () => {
     const out: string[] = [];
     const err: string[] = [];
     const exitCode = run(
-      ["v0.1.0"],
+      [`v${declaredVersion()}`],
       (msg) => out.push(msg),
       (msg) => err.push(msg),
     );
 
     expect(exitCode).toBe(0);
-    expect(out.join("\n")).toContain("v0.1.0");
-    expect(out.join("\n")).toContain("0.1.0");
+    expect(out.join("\n")).toContain(`v${declaredVersion()}`);
+    expect(out.join("\n")).toContain(declaredVersion());
     expect(err).toHaveLength(0);
   });
 
