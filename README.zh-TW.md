@@ -6,7 +6,7 @@
 
   **AI 字幕工具**
 
-  [subx-cli](https://github.com/jim60105/subx-cli) 的桌面 GUI — 字幕配對、格式轉換、時間軸校正與翻譯。
+  跨平台桌面應用程式 — AI 驅動的字幕配對、格式轉換、時間軸校正與翻譯。
 
   [![CI](https://github.com/jim60105/subx/actions/workflows/ci.yml/badge.svg)](https://github.com/jim60105/subx/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/jim60105/subx/graph/badge.svg)](https://codecov.io/gh/jim60105/subx)
 
@@ -16,7 +16,7 @@
 
 ## SubX 能做什麼
 
-SubX 為 [subx-cli](https://github.com/jim60105/subx-cli) 提供桌面圖形使用者介面，將 AI 驅動的字幕操作帶給桌面端使用者，偏好腳本與自動化的使用者亦可參考底層 CLI 工具。
+SubX 將 AI 驅動的字幕操作帶上桌面；偏好腳本與自動化的進階使用者可搭配使用 [subx-cli](https://github.com/jim60105/subx-cli) 工具。
 
 應用程式包含下列核心功能：
 

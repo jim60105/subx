@@ -2,7 +2,7 @@
 
 ## Project & Architecture
 
-`subx` is a desktop GUI for `subx-cli` (AI-powered subtitle matching, conversion, sync, and translation), built with Tauri 2, React 18 + TypeScript (Vite 7), and Rust. GPL-3.0-or-later.
+`subx` is the SubX desktop application (AI-powered subtitle matching, conversion, sync, and translation), built with Tauri 2, React 18 + TypeScript (Vite 7), and Rust. GPL-3.0-or-later.
 
 The Rust backend is a thin translation layer over `subx-core`, the engine crate the `subx-cli` split extracted for embedders. Subtitle logic is owned by `subx-core`; the shared configuration file (`~/.config/subx/config.toml`) stays interoperable with the `subx-cli` binary.
 

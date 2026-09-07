@@ -67,7 +67,7 @@ describe("version consistency across project manifests", () => {
       "AI-powered subtitle matching, conversion, sync, and translation desktop app",
     );
     expect(bundle.longDescription).toBe(
-      "SubX is a cross-platform desktop application for managing, matching, converting, synchronizing, and translating subtitles powered by AI and subx-core.",
+      "SubX is a cross-platform desktop application for managing, matching, converting, synchronizing, and translating subtitles powered by AI.",
     );
   });
 

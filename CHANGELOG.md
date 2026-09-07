@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Backend now depends on the `subx-core` engine crate (published registry version) instead of the `subx-cli` re-export facade, dropping the CLI's terminal-only dependencies from the resolved graph; no user-visible behaviour change.
 - `backendCodeParity` guard generalized to name both engine-crate spellings outside `src-tauri` and now asserts the replaced `subx-cli` facade is absent from the resolved `Cargo.lock` graph.
+- Product descriptions (bundle long description, Flatpak metainfo, package/manifest descriptions, README tagline) name no crate: SubX is described by what it does, not by the engine crate behind it.
 
 ## [0.1.0] - 2026-07-30
 
