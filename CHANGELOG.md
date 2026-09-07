@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Settings screen keeps the AI provider form editable when the strict configuration read fails, so an invalid on-disk value no longer leaves the screen unusable.
 - Spec-coverage tooling rejects path inputs that escape the repository root.
+- Release workflow checks out the tag itself on tag-push triggers (the dispatch-branch option previously passed a literal `false` ref to checkout, failing every build job); the draft-release reuse lookup now finds existing drafts, which the tag endpoint does not surface.
 
 
 ## [0.1.0] - 2026-07-30
