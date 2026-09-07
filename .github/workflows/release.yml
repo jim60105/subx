@@ -76,6 +76,14 @@ jobs:
           TAG="${{ github.ref_name }}"
           VERSION="${{ steps.release_notes.outputs.version }}"
           RELEASE_ID=$(gh api "repos/${{ github.repository }}/releases/tags/${TAG}" --jq '.id' 2>/dev/null) || RELEASE_ID=""
+          # The tags endpoint does not surface draft releases (observed 404 for an
+          # existing draft), so fall back to scanning the release list for a draft
+          # with this tag before creating one — otherwise a re-run for the same tag
+          # (e.g. after a retag) creates a second draft for that tag.
+          if ! [[ "$RELEASE_ID" =~ ^[0-9]+$ ]]; then
+            RELEASE_ID=$(gh api "repos/${{ github.repository }}/releases?per_page=100" \
+              --jq "[.[] | select(.tag_name == \"${TAG}\" and .draft)] | .[0].id // empty" 2>/dev/null) || RELEASE_ID=""
+          fi
           # Validate that the ID is numeric; gh api may leak JSON error bodies to stdout on 404.
           if ! [[ "$RELEASE_ID" =~ ^[0-9]+$ ]]; then
             RELEASE_ID=""
@@ -118,7 +126,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
       - uses: actions/setup-node@v7
         with:
           node-version: 'lts/*'
@@ -199,7 +207,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
       - uses: actions/setup-node@v7
         with:
           node-version: 'lts/*'
