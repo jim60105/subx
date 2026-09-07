@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The end-to-end GUI translation flow: multi-source selection with a cue-count preview, language/glossary/context options with output-mode resolution and conflict handling, and batch execution with per-file progress, cancellation, and a per-item report. The wizard wraps the `subx-cli` crate's `TranslationEngine`; the backend owns the canonical plan and the frontend refers to items by identifier only.
+The end-to-end GUI translation flow: multi-source selection with a cue-count preview, language/glossary/context options with output-mode resolution and conflict handling, and batch execution with per-file progress, cancellation, and a per-item report. The wizard wraps the `subx-core` crate's `TranslationEngine`; the backend owns the canonical plan and the frontend refers to items by identifier only.
 
 ## Requirements
 

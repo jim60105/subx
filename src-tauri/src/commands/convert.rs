@@ -1,6 +1,6 @@
 //! Convert wizard commands.
 //!
-//! The end-to-end GUI conversion flow, wrapping the `subx-cli` crate's
+//! The end-to-end GUI conversion flow, wrapping the `subx-core` crate's
 //! `FormatConverter`: scan sources, resolve every output path up front, hold the
 //! plan canonically in backend state, and convert a reviewed subset with
 //! per-file progress and per-item reporting. Like every command module this is a
@@ -20,12 +20,12 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use subx_cli::cli::{CollectedFiles, InputPathHandler};
-use subx_cli::config::ConfigService;
-use subx_cli::core::file_manager::FileManager;
-use subx_cli::core::formats::converter::{ConversionConfig, ConversionResult, FormatConverter};
-use subx_cli::core::matcher::{FileDiscovery, MediaFileType};
-use subx_cli::error::SubXError;
+use subx_core::core::input::{CollectedFiles, InputPathHandler};
+use subx_core::config::ConfigService;
+use subx_core::core::file_manager::FileManager;
+use subx_core::core::formats::converter::{ConversionConfig, ConversionResult, FormatConverter};
+use subx_core::core::matcher::{FileDiscovery, MediaFileType};
+use subx_core::error::SubXError;
 use tauri::ipc::Channel;
 use tauri::State;
 
@@ -614,7 +614,7 @@ mod tests {
     use std::io::Write;
     use std::sync::Mutex;
 
-    use subx_cli::config::TestConfigService;
+    use subx_core::config::TestConfigService;
     use tempfile::TempDir;
 
     use super::*;

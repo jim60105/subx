@@ -6,7 +6,7 @@
 
   **AI-powered subtitle tooling**
 
-  Desktop GUI for [subx-cli](https://github.com/jim60105/subx-cli) — subtitle matching, format conversion, synchronization, and translation.
+  Cross-platform desktop app for AI-powered subtitle matching, format conversion, synchronization, and translation.
 
   [![CI](https://github.com/jim60105/subx/actions/workflows/ci.yml/badge.svg)](https://github.com/jim60105/subx/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/jim60105/subx/graph/badge.svg)](https://codecov.io/gh/jim60105/subx)
 
@@ -16,7 +16,7 @@
 
 ## What SubX Does
 
-SubX provides a desktop graphical user interface for [subx-cli](https://github.com/jim60105/subx-cli), bringing AI-powered subtitle operations to desktop users while referencing the underlying CLI for power users who prefer scripting and automation.
+SubX brings AI-powered subtitle operations to the desktop, while power users who prefer scripting and automation can use the companion [subx-cli](https://github.com/jim60105/subx-cli) tool.
 
 The application includes the following core capabilities:
 
@@ -137,7 +137,7 @@ For comprehensive details on verification procedures, refer to [docs/verificatio
 
 - **Framework**: Tauri 2
 - **Frontend**: React 18, TypeScript, Vite 7
-- **Backend**: Rust, `subx-cli` crate
+- **Backend**: Rust, `subx-core` crate
 
 ## Related Projects
 

@@ -1,16 +1,16 @@
 //! Configuration commands.
 //!
-//! Every read and write goes through the `subx-cli` crate's `ConfigService`,
+//! Every read and write goes through the `subx-core` crate's `ConfigService`,
 //! which owns the shared `~/.config/subx/config.toml` the CLI also uses. The
 //! GUI never parses or writes that file itself.
 
 use std::time::Instant;
 
 use serde_json::json;
-use subx_cli::config::field_validator::normalize_ai_provider;
-use subx_cli::config::{mask_sensitive_value, validate_field, ConfigService};
-use subx_cli::core::ComponentFactory;
-use subx_cli::error::SubXError;
+use subx_core::config::field_validator::normalize_ai_provider;
+use subx_core::config::{mask_sensitive_value, validate_field, ConfigService};
+use subx_core::core::ComponentFactory;
+use subx_core::error::SubXError;
 use tauri::State;
 
 use crate::dto::{AiConfigDto, ConfigDto, ConnectionTestResult, SetConfigRequest};
@@ -201,7 +201,7 @@ fn failed_test(err: SubXError) -> ConnectionTestResult {
 mod tests {
     use super::*;
     use std::sync::Arc;
-    use subx_cli::config::{ProductionConfigService, TestConfigService, TestEnvironmentProvider};
+    use subx_core::config::{ProductionConfigService, TestConfigService, TestEnvironmentProvider};
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -282,7 +282,7 @@ mod tests {
         assert_eq!(error.hint_code.as_deref(), Some("config.invalid_url.hint"));
         assert_eq!(
             read_config(&service).unwrap().ai.base_url,
-            subx_cli::config::Config::default().ai.base_url
+            subx_core::config::Config::default().ai.base_url
         );
     }
 
@@ -420,7 +420,7 @@ mod tests {
         let service = ProductionConfigService::with_env_provider(Arc::new(env)).expect("service");
 
         let dto = read_config_tolerant(&service).expect("the tolerant read must succeed on a fresh install");
-        let defaults = subx_cli::config::Config::default().ai;
+        let defaults = subx_core::config::Config::default().ai;
 
         assert_eq!(dto.ai.provider, defaults.provider);
         assert_eq!(dto.ai.model, defaults.model);
@@ -437,7 +437,7 @@ mod tests {
         // A complete, valid config (crate defaults with the base URL overridden)
         // — the `Config` TOML schema requires every non-default field, so the
         // file must be serialized from the struct rather than hand-written.
-        let mut config = subx_cli::config::Config::default();
+        let mut config = subx_core::config::Config::default();
         config.ai.base_url = "http://localhost:11434/v1".to_string();
         std::fs::write(
             &path,
@@ -474,7 +474,7 @@ mod tests {
 
         assert!(service.reload().is_err(), "the strict read must fail: hosted provider + http URL");
         let dto = read_config_tolerant(&service).expect("the tolerant read must still succeed");
-        let defaults = subx_cli::config::Config::default().ai;
+        let defaults = subx_core::config::Config::default().ai;
         assert_eq!(dto.ai.base_url, defaults.base_url);
         assert_ne!(dto.ai.base_url, "http://localhost:11434/v1");
     }
@@ -505,7 +505,7 @@ mod tests {
     fn the_gui_default_config_mirror_matches_the_crate_defaults() {
         // These values must match `DEFAULT_CONFIG` in
         // `src/features/settings/useSettingsForm.ts`.
-        let defaults = subx_cli::config::Config::default().ai;
+        let defaults = subx_core::config::Config::default().ai;
         assert_eq!(defaults.provider, "openai");
         assert_eq!(defaults.model, "gpt-4.1-mini");
         assert_eq!(defaults.base_url, "https://api.openai.com/v1");

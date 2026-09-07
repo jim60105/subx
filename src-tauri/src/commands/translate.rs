@@ -1,6 +1,6 @@
 //! Translate wizard commands.
 //!
-//! The end-to-end GUI translation flow, wrapping the `subx-cli` crate's
+//! The end-to-end GUI translation flow, wrapping the `subx-core` crate's
 //! `TranslationEngine`: scan sources, resolve every output path and glossary
 //! entry up front, hold the plan canonically in backend state, and translate a
 //! reviewed subset with per-file progress, mid-file cancellation, and per-item
@@ -27,14 +27,14 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use subx_cli::cli::{CollectedFiles, InputPathHandler};
-use subx_cli::config::ConfigService;
-use subx_cli::core::formats::manager::FormatManager;
-use subx_cli::core::matcher::{FileDiscovery, MediaFileType};
-use subx_cli::core::translation::{parse_glossary_text, TranslationEngine, TranslationRequest};
-use subx_cli::core::ComponentFactory;
-use subx_cli::error::SubXError;
-use subx_cli::services::ai::AIProvider;
+use subx_core::core::input::{CollectedFiles, InputPathHandler};
+use subx_core::config::ConfigService;
+use subx_core::core::formats::manager::FormatManager;
+use subx_core::core::matcher::{FileDiscovery, MediaFileType};
+use subx_core::core::translation::{parse_glossary_text, TranslationEngine, TranslationRequest};
+use subx_core::core::ComponentFactory;
+use subx_core::error::SubXError;
+use subx_core::services::ai::AIProvider;
 use tauri::ipc::Channel;
 use tauri::State;
 use tokio::sync::watch;
@@ -848,8 +848,8 @@ mod tests {
     use std::sync::Mutex;
 
     use async_trait::async_trait;
-    use subx_cli::config::{TestConfigBuilder, TestConfigService};
-    use subx_cli::services::ai::{AnalysisRequest, ConfidenceScore, MatchResult, VerificationRequest};
+    use subx_core::config::{TestConfigBuilder, TestConfigService};
+    use subx_core::services::ai::{AnalysisRequest, ConfidenceScore, MatchResult, VerificationRequest};
     use tempfile::TempDir;
 
     use super::*;
@@ -921,15 +921,15 @@ mod tests {
 
     #[async_trait]
     impl AIProvider for ScriptedAi {
-        async fn analyze_content(&self, _r: AnalysisRequest) -> subx_cli::Result<MatchResult> {
+        async fn analyze_content(&self, _r: AnalysisRequest) -> subx_core::Result<MatchResult> {
             unimplemented!("the translate flow never matches")
         }
 
-        async fn verify_match(&self, _v: VerificationRequest) -> subx_cli::Result<ConfidenceScore> {
+        async fn verify_match(&self, _v: VerificationRequest) -> subx_core::Result<ConfidenceScore> {
             unimplemented!("the translate flow never verifies")
         }
 
-        async fn chat_completion(&self, messages: Vec<serde_json::Value>) -> subx_cli::Result<String> {
+        async fn chat_completion(&self, messages: Vec<serde_json::Value>) -> subx_core::Result<String> {
             let prompt = messages
                 .last()
                 .and_then(|m| m.get("content"))
@@ -1552,13 +1552,13 @@ mod tests {
         struct FailOnKeyword;
         #[async_trait]
         impl AIProvider for FailOnKeyword {
-            async fn analyze_content(&self, _r: AnalysisRequest) -> subx_cli::Result<MatchResult> {
+            async fn analyze_content(&self, _r: AnalysisRequest) -> subx_core::Result<MatchResult> {
                 unimplemented!()
             }
-            async fn verify_match(&self, _v: VerificationRequest) -> subx_cli::Result<ConfidenceScore> {
+            async fn verify_match(&self, _v: VerificationRequest) -> subx_core::Result<ConfidenceScore> {
                 unimplemented!()
             }
-            async fn chat_completion(&self, messages: Vec<serde_json::Value>) -> subx_cli::Result<String> {
+            async fn chat_completion(&self, messages: Vec<serde_json::Value>) -> subx_core::Result<String> {
                 let prompt = messages
                     .last()
                     .and_then(|m| m.get("content"))

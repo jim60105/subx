@@ -1,6 +1,6 @@
 //! Match wizard commands.
 //!
-//! The end-to-end GUI match flow, wrapping the `subx-cli` crate's
+//! The end-to-end GUI match flow, wrapping the `subx-core` crate's
 //! `MatchEngine`: scan sources, run a cancellable AI analysis, hold the plan
 //! canonically in backend state, and execute a reviewed subset with per-item
 //! reporting. Like every command module this is a thin translation layer — the
@@ -17,17 +17,17 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use subx_cli::cli::{CollectedFiles, InputPathHandler};
-use subx_cli::config::ConfigService;
-use subx_cli::core::matcher::engine::{
+use subx_core::core::input::{CollectedFiles, InputPathHandler};
+use subx_core::config::ConfigService;
+use subx_core::core::matcher::engine::{
     apply_unique_target_paths, ConflictResolution, FileRelocationMode, MatchConfig, OperationError,
     OperationOutcome,
 };
-use subx_cli::core::lock::acquire_subx_lock;
-use subx_cli::core::matcher::{FileDiscovery, MatchEngine, MatchOperation, MediaFileType};
-use subx_cli::core::ComponentFactory;
-use subx_cli::error::SubXError;
-use subx_cli::services::ai::AIProvider;
+use subx_core::core::lock::acquire_subx_lock;
+use subx_core::core::matcher::{FileDiscovery, MatchEngine, MatchOperation, MediaFileType};
+use subx_core::core::ComponentFactory;
+use subx_core::error::SubXError;
+use subx_core::services::ai::AIProvider;
 use tauri::ipc::Channel;
 use tauri::State;
 
@@ -571,9 +571,9 @@ mod tests {
     use std::sync::Mutex;
 
     use async_trait::async_trait;
-    use subx_cli::config::TestConfigService;
-    use subx_cli::core::matcher::{MediaFile, MediaFileType};
-    use subx_cli::services::ai::{
+    use subx_core::config::TestConfigService;
+    use subx_core::core::matcher::{MediaFile, MediaFileType};
+    use subx_core::services::ai::{
         AnalysisRequest, ConfidenceScore, FileMatch, MatchResult, VerificationRequest,
     };
     use tauri::ipc::Channel;
@@ -590,7 +590,7 @@ mod tests {
 
     #[async_trait]
     impl AIProvider for ScriptedAi {
-        async fn analyze_content(&self, request: AnalysisRequest) -> subx_cli::Result<MatchResult> {
+        async fn analyze_content(&self, request: AnalysisRequest) -> subx_core::Result<MatchResult> {
             let video_id = parse_entry_id(&request.video_files[0]);
             let matches = request
                 .subtitle_files
@@ -614,7 +614,7 @@ mod tests {
         async fn verify_match(
             &self,
             _verification: VerificationRequest,
-        ) -> subx_cli::Result<ConfidenceScore> {
+        ) -> subx_core::Result<ConfidenceScore> {
             unimplemented!("the match flow never verifies")
         }
     }
@@ -634,10 +634,10 @@ mod tests {
 
     #[async_trait]
     impl AIProvider for NoAi {
-        async fn analyze_content(&self, _r: AnalysisRequest) -> subx_cli::Result<MatchResult> {
+        async fn analyze_content(&self, _r: AnalysisRequest) -> subx_core::Result<MatchResult> {
             unimplemented!("execution never analyzes")
         }
-        async fn verify_match(&self, _v: VerificationRequest) -> subx_cli::Result<ConfidenceScore> {
+        async fn verify_match(&self, _v: VerificationRequest) -> subx_core::Result<ConfidenceScore> {
             unimplemented!("execution never verifies")
         }
     }

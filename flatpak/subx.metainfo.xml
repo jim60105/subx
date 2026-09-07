@@ -6,7 +6,7 @@
   <name>SubX</name>
   <summary>AI-powered subtitle matching, conversion, sync, and translation</summary>
   <description>
-    <p>SubX is a cross-platform desktop application for managing, matching, converting, synchronizing, and translating subtitles powered by AI and subx-cli.</p>
+    <p>SubX is a cross-platform desktop application for managing, matching, converting, synchronizing, and translating subtitles powered by AI.</p>
   </description>
   <url type="homepage">https://github.com/jim60105/subx</url>
   <icon type="stock">im.chenj.subx</icon>
