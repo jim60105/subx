@@ -137,7 +137,7 @@ npm run verify
 
 - **框架** — Tauri 2
 - **前端** — React 18、TypeScript、Vite 7
-- **後端** — Rust、`subx-cli` crate
+- **後端** — Rust、`subx-core` crate
 
 ## 相關專案
 

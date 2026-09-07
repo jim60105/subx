@@ -4,7 +4,7 @@
 
 `subx` is a desktop GUI for `subx-cli` (AI-powered subtitle matching, conversion, sync, and translation), built with Tauri 2, React 18 + TypeScript (Vite 7), and Rust. GPL-3.0-or-later.
 
-The Rust backend is a thin translation layer over `subx-cli`. Subtitle logic and shared configuration (`~/.config/subx/config.toml`) are owned by `subx-cli`.
+The Rust backend is a thin translation layer over `subx-core`, the engine crate the `subx-cli` split extracted for embedders. Subtitle logic is owned by `subx-core`; the shared configuration file (`~/.config/subx/config.toml`) stays interoperable with the `subx-cli` binary.
 
 ## Build & Validation
 
@@ -36,7 +36,7 @@ Note: CI runs on `push` only; `npm run verify` is the primary verification gate.
 - **Config Cache**: `ProductionConfigService` caches configuration in memory. Command functions must call `service.reload()` prior to reading.
 - **Backend I18n**: The backend emits stable error/category codes (`core.<category>`), never localized prose strings. Hint presence is conveyed via `core.<category>.hint`.
 - **IPC Key Security**: Raw API keys must never cross IPC. Only `apiKeyMasked` and `apiKeySet` cross the boundary.
-- **Cli Isolation**: `subx-cli` dependencies must stay inside `src-tauri/` (enforced by `src/i18n/backendCodeParity.test.ts`).
+- **Crate Isolation**: the engine crate (currently `subx-core`) dependency must stay inside `src-tauri/` (enforced crate-agnostically by `src/i18n/backendCodeParity.test.ts`).
 - **Command Allowlist**: Every new command must be registered in the `COMMANDS` allowlist in `ipc_tests.rs`.
 
 ### Frontend (`src/`)

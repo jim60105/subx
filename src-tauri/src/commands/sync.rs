@@ -20,11 +20,11 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use subx_cli::cli::sync_args::create_default_output_path;
-use subx_cli::config::ConfigService;
-use subx_cli::core::formats::manager::FormatManager;
-use subx_cli::core::formats::Subtitle;
-use subx_cli::core::sync::{SyncEngine, SyncMethod};
+use subx_core::core::sync::create_default_output_path;
+use subx_core::config::ConfigService;
+use subx_core::core::formats::manager::FormatManager;
+use subx_core::core::formats::Subtitle;
+use subx_core::core::sync::{SyncEngine, SyncMethod};
 use tauri::State;
 
 use crate::dto::{SyncApplyResultDto, SyncDefaultsDto, SyncDetectionDto, SyncMethodDto};
@@ -277,7 +277,7 @@ fn apply_sync_offset_impl(
 
 /// Shifts every cue by `offset_seconds`.
 ///
-/// A line-for-line mirror of `subx-cli`'s `core/sync/engine.rs::apply_manual_offset`,
+/// A line-for-line mirror of `subx-core`'s `core/sync/engine.rs::apply_manual_offset`,
 /// duplicated because that method is reachable only through a `SyncEngine`, and
 /// constructing one requires a working VAD detector (design D6). The two rules
 /// that must not drift are both asserted in the tests below: a positive offset
@@ -397,7 +397,7 @@ fn output_is_input() -> ErrorDto {
 }
 
 fn overflowed() -> ErrorDto {
-    ErrorDto::from(subx_cli::error::SubXError::audio_processing(
+    ErrorDto::from(subx_core::error::SubXError::audio_processing(
         "Invalid offset results in a timestamp beyond the representable range",
     ))
 }
@@ -406,7 +406,7 @@ fn overflowed() -> ErrorDto {
 mod tests {
     use std::fs;
 
-    use subx_cli::config::TestConfigService;
+    use subx_core::config::TestConfigService;
     use tempfile::TempDir;
 
     use super::*;

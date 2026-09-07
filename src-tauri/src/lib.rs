@@ -10,7 +10,7 @@ mod state;
 
 use std::sync::Arc;
 
-use subx_cli::config::ProductionConfigService;
+use subx_core::config::ProductionConfigService;
 
 use state::AppState;
 

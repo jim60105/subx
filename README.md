@@ -137,7 +137,7 @@ For comprehensive details on verification procedures, refer to [docs/verificatio
 
 - **Framework**: Tauri 2
 - **Frontend**: React 18, TypeScript, Vite 7
-- **Backend**: Rust, `subx-cli` crate
+- **Backend**: Rust, `subx-core` crate
 
 ## Related Projects
 

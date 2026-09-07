@@ -83,7 +83,7 @@ pub struct ConnectionTestResult {
 
 /// Relocation mode chosen in Step 1 of the match wizard.
 ///
-/// Maps onto `subx_cli`'s `FileRelocationMode`: `Rename` is the crate's `None`
+/// Maps onto `subx_core`'s `FileRelocationMode`: `Rename` is the crate's `None`
 /// (rename the subtitle in place) and is the wizard's default. The mode is
 /// baked into every operation at analysis time (design D4), so it is picked
 /// before analysis and echoed back on the plan for the Step 4 summary.

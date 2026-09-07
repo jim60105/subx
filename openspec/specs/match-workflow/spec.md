@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The end-to-end GUI match flow: multi-source selection and scanning, cancellable AI analysis with staged progress, review of an operation plan (grouped by video, confidence-annotated, checkbox-selectable) with explicit unmatched sections, and selective execution with per-item reporting. The wizard wraps the `subx-cli` crate's `MatchEngine`; the backend owns the canonical plan and the frontend refers to operations by identifier only.
+The end-to-end GUI match flow: multi-source selection and scanning, cancellable AI analysis with staged progress, review of an operation plan (grouped by video, confidence-annotated, checkbox-selectable) with explicit unmatched sections, and selective execution with per-item reporting. The wizard wraps the `subx-core` crate's `MatchEngine`; the backend owns the canonical plan and the frontend refers to operations by identifier only.
 
 ## Requirements
 

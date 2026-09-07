@@ -2,11 +2,11 @@
  * Cross-language checks over the boundary the specs draw between the two
  * halves of the app.
  *
- * `app-shell` requires that swapping the `subx-cli` dependency touches only
- * `src-tauri/`, and `localization` requires that the backend never emits
- * translated text — it emits stable codes the frontend resolves. Both are
- * properties of the whole repository rather than of any one module, so no
- * component test can see them.
+ * `app-shell` requires that swapping the engine crate (`subx-core`, formerly
+ * `subx-cli`) touches only `src-tauri/`, and `localization` requires that the
+ * backend never emits translated text — it emits stable codes the frontend
+ * resolves. Both are properties of the whole repository rather than of any one
+ * module, so no component test can see them.
  */
 
 import fs from "node:fs";
@@ -46,7 +46,7 @@ function walk(dir: string, extensions: string[], out: string[] = []): string[] {
 
 describe("the crate stays behind the command layer", () => {
   // @covers app-shell/thin-tauri-command-layer-structure#crate-access-is-confined-to-the-command-layer
-  it("names subx-cli nowhere outside src-tauri", () => {
+  it("names the engine crate nowhere outside src-tauri", () => {
     const offenders: string[] = [];
 
     for (const file of walk(FRONTEND, [".ts", ".tsx", ".css", ".json"])) {
@@ -61,7 +61,7 @@ describe("the crate stays behind the command layer", () => {
       fs.readFileSync(file, "utf8")
         .split("\n")
         .forEach((line, index) => {
-          if (/subx[_-]cli/.test(line)) {
+          if (/subx[_-](cli|core)/.test(line)) {
             offenders.push(`${path.relative(REPO, file)}:${index + 1} → ${line.trim()}`);
           }
         });
@@ -84,10 +84,24 @@ describe("the crate stays behind the command layer", () => {
       ...Object.keys(packageJson.dependencies ?? {}),
       ...Object.keys(packageJson.devDependencies ?? {}),
     ];
-    expect(declaredDeps.filter((name) => /subx[_-]cli/.test(name))).toEqual([]);
+    expect(declaredDeps.filter((name) => /subx[_-](cli|core)/.test(name))).toEqual([]);
+    // Crate-agnostic on purpose: the scenario simulates swapping the engine
+    // crate, so the assertion accepts whichever spelling is current — but the
+    // backend manifest must name one.
     expect(fs.readFileSync(path.join(REPO, "src-tauri", "Cargo.toml"), "utf8")).toMatch(
-      /subx-cli/,
+      /subx-(cli|core)/,
     );
+  });
+
+  it("keeps the replaced facade crate out of the backend's resolved graph", () => {
+    // The one place a concrete name is compatible with the crate-agnostic
+    // boundary: `app-shell`'s Thin-command-layer requirement names `subx-cli`
+    // as the FORBIDDEN spelling, so the guard pins the old name — not the
+    // current one. Cargo.lock is the record of the resolved graph, so a
+    // future dependency dragging the facade back in fails here instead of
+    // silently shipping.
+    const lock = fs.readFileSync(path.join(REPO, "src-tauri", "Cargo.lock"), "utf8");
+    expect(lock).not.toMatch(/^name = "subx-cli"$/m);
   });
 });
 

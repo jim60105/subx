@@ -14,7 +14,7 @@
 use std::sync::Arc;
 
 use serde_json::{json, Value};
-use subx_cli::config::{ConfigService, TestConfigService};
+use subx_core::config::{ConfigService, TestConfigService};
 use tauri::ipc::{CallbackFn, InvokeBody, InvokeResponseBody};
 use tauri::utils::acl::ExecutionContext;
 use tauri::test::{get_ipc_response, mock_builder, mock_context, noop_assets, MockRuntime, INVOKE_KEY};

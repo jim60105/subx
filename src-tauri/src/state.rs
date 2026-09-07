@@ -8,9 +8,9 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 
-use subx_cli::cli::CollectedFiles;
-use subx_cli::config::ConfigService;
-use subx_cli::core::matcher::{MatchEngine, MatchOperation};
+use subx_core::core::input::CollectedFiles;
+use subx_core::config::ConfigService;
+use subx_core::core::matcher::{MatchEngine, MatchOperation};
 use tokio::sync::{watch, Mutex};
 use tokio::task::AbortHandle;
 
@@ -36,7 +36,7 @@ impl AppState {
         }
     }
 
-    /// The single `subx-cli` configuration service shared by every command.
+    /// The single `subx-core` configuration service shared by every command.
     ///
     /// One instance for the whole process: the crate service owns file
     /// locations, environment overlays, validation and atomic writes, and its
@@ -984,13 +984,13 @@ mod convert_state_tests {
 #[cfg(test)]
 mod match_state_tests {
     use super::*;
-    use subx_cli::config::TestConfigService;
-    use subx_cli::core::matcher::MatchConfig;
+    use subx_core::config::TestConfigService;
+    use subx_core::core::matcher::MatchConfig;
 
     fn dummy_plan() -> ActivePlan {
         // A provider is required to build the engine, but nothing here runs it.
         let engine = MatchEngine::new(
-            subx_cli::core::ComponentFactory::new(&TestConfigService::with_ai_settings_and_key(
+            subx_core::core::ComponentFactory::new(&TestConfigService::with_ai_settings_and_key(
                 "openai",
                 "gpt-4.1-mini",
                 "sk-test-value-1234",
@@ -1003,8 +1003,8 @@ mod match_state_tests {
                 max_sample_length: 1,
                 enable_content_analysis: false,
                 backup_enabled: false,
-                relocation_mode: subx_cli::core::matcher::engine::FileRelocationMode::None,
-                conflict_resolution: subx_cli::core::matcher::engine::ConflictResolution::AutoRename,
+                relocation_mode: subx_core::core::matcher::engine::FileRelocationMode::None,
+                conflict_resolution: subx_core::core::matcher::engine::ConflictResolution::AutoRename,
                 ai_model: "m".to_string(),
                 max_subtitle_bytes: 1,
             },
@@ -1058,7 +1058,7 @@ mod match_state_tests {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use subx_cli::config::TestConfigService;
+    use subx_core::config::TestConfigService;
 
     /// Pins the "one service for the whole process" invariant the doc comment
     /// argues for: handing back a clone or a rebuilt service would silently

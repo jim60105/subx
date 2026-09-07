@@ -1,4 +1,4 @@
-//! Error mapping between `subx-cli` crate errors and the IPC boundary.
+//! Error mapping between `subx-core` crate errors and the IPC boundary.
 //!
 //! The backend never emits translated text: `code` and `hint_code` are stable
 //! machine-readable keys the frontend resolves through its i18n layer, while
@@ -6,7 +6,7 @@
 
 use serde::Serialize;
 use specta::Type;
-use subx_cli::error::SubXError;
+use subx_core::error::SubXError;
 
 /// Structured error crossing the Tauri IPC boundary.
 ///
@@ -39,7 +39,7 @@ impl ErrorDto {
 
 /// Generic mapping for crate errors, keyed off `SubXError::category()`.
 ///
-/// `category()` is a closed, exhaustive, spec-locked mapping in `subx-cli`, so
+/// `category()` is a closed, exhaustive, spec-locked mapping in `subx-core`, so
 /// every variant lands on a distinct `core.*` code rather than collapsing into
 /// one bucket. The crate's `hint()` returns English prose, which must not cross
 /// the IPC boundary; its *presence* is signalled by a `core.<category>.hint`

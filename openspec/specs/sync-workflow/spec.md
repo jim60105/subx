@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The end-to-end GUI sync flow: selecting one video–subtitle pair, choosing between local voice-activity detection and a manual offset, running a cancellable detection whose result the user reviews and may fine-tune, and applying the reviewed offset to a newly written output with overwrite protection. The wizard wraps the `subx-cli` crate's `SyncEngine` and `FormatManager`; detection is fully local and offline, and the original subtitle is never modified in place.
+The end-to-end GUI sync flow: selecting one video–subtitle pair, choosing between local voice-activity detection and a manual offset, running a cancellable detection whose result the user reviews and may fine-tune, and applying the reviewed offset to a newly written output with overwrite protection. The wizard wraps the `subx-core` crate's `SyncEngine` and `FormatManager`; detection is fully local and offline, and the original subtitle is never modified in place.
 
 ## Requirements
 
