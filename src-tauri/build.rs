@@ -34,10 +34,7 @@ fn watch_git_metadata(manifest_dir: &Path) {
     if let Ok(contents) = fs::read_to_string(&head) {
         if let Some(reference) = contents.trim().strip_prefix("ref:").map(str::trim) {
             if !reference.is_empty() {
-                watch_file(&git_dir.join(reference));
-                if common_dir != git_dir {
-                    watch_file(&common_dir.join(reference));
-                }
+                watch_reference(&git_dir, &common_dir, reference);
             }
         }
     }
@@ -83,5 +80,42 @@ fn resolve_path(base: &Path, path: &Path) -> PathBuf {
 fn watch_file(path: &Path) {
     if path.is_file() {
         println!("cargo:rerun-if-changed={}", path.display());
+    }
+}
+
+fn watch_reference(git_dir: &Path, common_dir: &Path, reference: &str) {
+    let git_ref = git_dir.join(reference);
+    let mut has_loose_ref = watch_existing_file(&git_ref);
+    if common_dir != git_dir {
+        has_loose_ref |= watch_existing_file(&common_dir.join(reference));
+    }
+
+    if !has_loose_ref {
+        // An unborn symbolic HEAD has no loose ref yet; watch its nearest
+        // existing parent so creating the first commit reruns this script.
+        watch_nearest_existing_directory(&git_ref);
+        if common_dir != git_dir {
+            watch_nearest_existing_directory(&common_dir.join(reference));
+        }
+    }
+}
+
+fn watch_existing_file(path: &Path) -> bool {
+    if path.is_file() {
+        watch_file(path);
+        true
+    } else {
+        false
+    }
+}
+
+fn watch_nearest_existing_directory(path: &Path) {
+    let mut directory = path.parent();
+    while let Some(candidate) = directory {
+        if candidate.is_dir() {
+            println!("cargo:rerun-if-changed={}", candidate.display());
+            return;
+        }
+        directory = candidate.parent();
     }
 }
