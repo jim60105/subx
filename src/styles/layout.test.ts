@@ -124,6 +124,7 @@ describe("the app header build identity", () => {
 
     expect(badge).toMatch(/white-space:\s*nowrap/);
     expect(badge).toMatch(/flex-shrink:\s*0/);
+    expect(badge).toMatch(/color:\s*var\(--text-secondary\)/);
     expect(tagline).toMatch(/max-width:\s*16vw/);
     expect(tagline).toMatch(/overflow:\s*hidden/);
     expect(tagline).toMatch(/text-overflow:\s*ellipsis/);
