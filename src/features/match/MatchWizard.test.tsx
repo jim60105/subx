@@ -19,13 +19,86 @@ const PLAN: MatchPlanDto = {
     {
       videoName: "show.mkv",
       matches: [
-        { id: 0, subtitleName: "show.en.srt", targetPath: "/m/show.en.srt", confidence: 95, reasoning: ["language: en"] },
-        { id: 1, subtitleName: "show.tc.srt", targetPath: "/m/show.tc.srt", confidence: 90, reasoning: [] },
+        {
+          id: 0,
+          subtitleName: "show.tc.srt",
+          targetPath: "/m/show.tc.srt",
+          confidence: 95,
+          language: "tc",
+          reasoning: [],
+        },
+        {
+          id: 1,
+          subtitleName: "show.sc.srt",
+          targetPath: "/m/show.sc.srt",
+          confidence: 90,
+          language: "sc",
+          reasoning: [],
+        },
+        {
+          id: 2,
+          subtitleName: "show.sc-alt.srt",
+          targetPath: "/m/show.sc-alt.srt",
+          confidence: 90,
+          language: "sc",
+          reasoning: [],
+        },
+        {
+          id: 3,
+          subtitleName: "show.en.srt",
+          targetPath: "/m/show.en.srt",
+          confidence: 90,
+          language: "en",
+          reasoning: [],
+        },
+      ],
+    },
+    {
+      videoName: "film.mkv",
+      matches: [
+        {
+          id: 4,
+          subtitleName: "film.unknown.srt",
+          targetPath: "/m/film.unknown.srt",
+          confidence: 90,
+          language: null,
+          reasoning: [],
+        },
       ],
     },
   ],
   unmatchedVideos: ["lonely.mkv"],
   unmatchedSubtitles: ["orphan.srt"],
+};
+
+const ALL_UNKNOWN_PLAN: MatchPlanDto = {
+  planId: "plan-unknown",
+  relocationMode: "rename",
+  videos: [
+    {
+      videoName: "unknowns.mkv",
+      matches: [
+        {
+          id: 0,
+          subtitleName: "one.srt",
+          targetPath: "/m/one.srt",
+          confidence: 90,
+          language: null,
+          reasoning: [],
+        },
+        {
+          id: 1,
+          subtitleName: "two.srt",
+          targetPath: "/m/two.srt",
+          confidence: 90,
+          language: null,
+          reasoning: [],
+        },
+      ],
+    },
+  ],
+  unmatchedVideos: [],
+  unmatchedSubtitles: [],
 };
 
 function deferred<T>() {
@@ -70,7 +143,7 @@ beforeEach(async () => {
   vi.mocked(pickers.subscribeToDroppedPaths).mockResolvedValue(() => {});
   vi.mocked(pickers.pickFiles).mockResolvedValue(["/m/show.mkv"]);
   vi.mocked(pickers.pickFolder).mockResolvedValue(["/m"]);
-  vi.mocked(api.scanSources).mockResolvedValue({ videoCount: 1, subtitleCount: 2 });
+  vi.mocked(api.scanSources).mockResolvedValue({ videoCount: 2, subtitleCount: 5 });
   vi.mocked(api.analyzeSources).mockResolvedValue(PLAN);
   vi.mocked(api.cancelAnalysis).mockResolvedValue(undefined);
   vi.mocked(api.executeSelected).mockResolvedValue({
@@ -189,7 +262,7 @@ describe("the match wizard", () => {
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(await within(actionBar()).findByRole("button", { name: "Apply now" }));
 
-    await waitFor(() => expect(api.executeSelected).toHaveBeenCalledWith("plan-1", [0]));
+    await waitFor(() => expect(api.executeSelected).toHaveBeenCalledWith("plan-1", [1, 2, 3, 4]));
   });
 
   // @covers match-workflow/checkbox-selection-of-operations#empty-selection-blocks-execution
@@ -198,10 +271,145 @@ describe("the match wizard", () => {
     renderWizard();
     await reachAnalysis(user);
 
-    await user.click(await screen.findByRole("checkbox", { name: "Include show.en.srt" }));
-    await user.click(screen.getByRole("checkbox", { name: "Include show.tc.srt" }));
+    for (const name of [
+      "Include show.tc.srt",
+      "Include show.sc.srt",
+      "Include show.sc-alt.srt",
+      "Include show.en.srt",
+      "Include film.unknown.srt",
+    ]) {
+      await user.click(await screen.findByRole("checkbox", { name }));
+    }
 
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+  });
+
+  // @covers match-workflow/language-quick-select-on-review#quick-select-bar-reflects-the-languages-actually-present
+  it("shows one localized quick-select control for each language actually present", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachAnalysis(user);
+
+    const bar = await screen.findByRole("group", { name: "Quick select by language" });
+    expect(within(bar).getAllByRole("checkbox")).toHaveLength(4);
+    expect(within(bar).getByRole("checkbox", { name: "Toggle Traditional Chinese (1 file)" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(within(bar).getByRole("checkbox", { name: "Toggle Simplified Chinese (2 files)" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(within(bar).getByRole("checkbox", { name: "Toggle English (1 file)" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(within(bar).getByRole("checkbox", { name: "Toggle Other (1 file)" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(within(bar).queryByRole("checkbox", { name: /French/ })).not.toBeInTheDocument();
+  });
+
+  // @covers match-workflow/language-quick-select-on-review#selecting-a-language-selects-all-of-its-files
+  it("selects every language operation when a group is cleared or mixed", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachAnalysis(user);
+    const bar = await screen.findByRole("group", { name: "Quick select by language" });
+    const traditional = within(bar).getByRole("checkbox", { name: "Toggle Traditional Chinese (1 file)" });
+    const simplified = within(bar).getByRole("checkbox", { name: "Toggle Simplified Chinese (2 files)" });
+
+    await user.click(screen.getByRole("checkbox", { name: "Include show.tc.srt" }));
+    expect(traditional).toHaveAttribute("aria-checked", "false");
+    await user.click(traditional);
+    expect(screen.getByRole("checkbox", { name: "Include show.tc.srt" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Include show.sc.srt" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Include show.en.srt" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Include film.unknown.srt" })).toBeChecked();
+
+    await user.click(screen.getByRole("checkbox", { name: "Include show.sc.srt" }));
+    expect(simplified).toHaveAttribute("aria-checked", "mixed");
+    await user.click(simplified);
+    expect(screen.getByRole("checkbox", { name: "Include show.sc.srt" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Include show.sc-alt.srt" })).toBeChecked();
+  });
+
+  // @covers match-workflow/language-quick-select-on-review#clearing-a-language-clears-only-its-files
+  it("clears only the fully selected language group", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachAnalysis(user);
+    const bar = await screen.findByRole("group", { name: "Quick select by language" });
+
+    await user.click(within(bar).getByRole("checkbox", { name: "Toggle Simplified Chinese (2 files)" }));
+
+    expect(screen.getByRole("checkbox", { name: "Include show.sc.srt" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Include show.sc-alt.srt" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Include show.tc.srt" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Include show.en.srt" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Include film.unknown.srt" })).toBeChecked();
+    expect(within(bar).getByRole("checkbox", { name: "Toggle Simplified Chinese (2 files)" })).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+  });
+
+  // @covers match-workflow/language-quick-select-on-review#chips-follow-manual-checkbox-changes
+  it("updates a language chip when its last selected row is unchecked manually", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachAnalysis(user);
+    const bar = await screen.findByRole("group", { name: "Quick select by language" });
+    const english = within(bar).getByRole("checkbox", { name: "Toggle English (1 file)" });
+
+    await user.click(screen.getByRole("checkbox", { name: "Include show.en.srt" }));
+
+    expect(english).toHaveAttribute("aria-checked", "false");
+  });
+
+  // @covers match-workflow/language-quick-select-on-review#all-unknown-languages-still-get-one-control
+  it("uses one Other control for an all-unknown plan", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.analyzeSources).mockResolvedValueOnce(ALL_UNKNOWN_PLAN);
+    renderWizard();
+    await reachAnalysis(user);
+
+    const bar = await screen.findByRole("group", { name: "Quick select by language" });
+    expect(within(bar).getAllByRole("checkbox")).toHaveLength(1);
+    const other = within(bar).getByRole("checkbox", { name: "Toggle Other (2 files)" });
+    expect(other).toHaveAttribute("aria-checked", "true");
+    expect(within(bar).queryByRole("checkbox", { name: /Chinese|English/ })).not.toBeInTheDocument();
+
+    await user.click(other);
+    expect(other).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByRole("checkbox", { name: "Include one.srt" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Include two.srt" })).not.toBeChecked();
+    await user.click(other);
+    expect(other).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("checkbox", { name: "Include one.srt" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Include two.srt" })).toBeChecked();
+  });
+
+  // @covers match-workflow/language-quick-select-on-review#quick-clear-to-zero-blocks-execution
+  it("disables Continue at zero and lets a cleared chip reselect its group", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachAnalysis(user);
+    const bar = await screen.findByRole("group", { name: "Quick select by language" });
+
+    for (const chip of within(bar).getAllByRole("checkbox")) await user.click(chip);
+
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    for (const chip of within(bar).getAllByRole("checkbox")) {
+      expect(chip).toHaveAttribute("aria-checked", "false");
+    }
+
+    const traditional = within(bar).getByRole("checkbox", { name: "Toggle Traditional Chinese (1 file)" });
+    await user.click(traditional);
+    expect(traditional).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("checkbox", { name: "Include show.tc.srt" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
   });
 
   it("offers a restart when execution hits a stale plan", async () => {

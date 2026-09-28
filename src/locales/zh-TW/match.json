@@ -54,6 +54,22 @@
     "unmatchedSubtitles": "沒有配對的字幕",
     "selection": "包含 {{name}}",
     "selectedCount": "已選取 {{total}} 中的 {{count}} 個",
+    "languageBarLabel": "依語言快速選取",
+    "languageSelection_one": "切換{{language}}（{{count}} 個檔案）",
+    "languageSelection_other": "切換{{language}}（{{count}} 個檔案）",
+    "languages": {
+      "tc": "繁體中文",
+      "sc": "簡體中文",
+      "en": "英文",
+      "ja": "日文",
+      "ko": "韓文",
+      "fr": "法文",
+      "de": "德文",
+      "es": "西班牙文",
+      "pt": "葡萄牙文",
+      "ru": "俄文",
+      "other": "其他"
+    },
     "empty": "分析沒有找到任何配對。",
     "back": "上一步",
     "execute": "繼續"

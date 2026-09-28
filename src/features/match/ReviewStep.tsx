@@ -1,12 +1,14 @@
 import { useTranslation } from "react-i18next";
 
 import type { MatchOperationDto, MatchPlanDto } from "../../types/ipc";
+import { groupOperationsByLanguage } from "./languageGroups";
 import "./ReviewStep.css";
 
 interface ReviewStepProps {
   plan: MatchPlanDto;
   selectedIds: Set<number>;
   onToggle: (id: number) => void;
+  onToggleLanguage: (ids: number[]) => void;
 }
 
 interface OperationRowProps {
@@ -60,9 +62,10 @@ function OperationRow({ operation, selected, onToggle }: OperationRowProps) {
  * vanishes. Operations are referenced by id only — the plan itself stays in the
  * backend.
  */
-export function ReviewStep({ plan, selectedIds, onToggle }: ReviewStepProps) {
+export function ReviewStep({ plan, selectedIds, onToggle, onToggleLanguage }: ReviewStepProps) {
   const { t } = useTranslation("match");
   const hasMatches = plan.videos.length > 0;
+  const languageGroups = groupOperationsByLanguage(plan);
 
   return (
     <div className="review-step">
@@ -70,6 +73,47 @@ export function ReviewStep({ plan, selectedIds, onToggle }: ReviewStepProps) {
         <h2 className="review-step__title">{t("review.title")}</h2>
         <p className="review-step__description">{t("review.description")}</p>
       </header>
+
+      {languageGroups.length > 0 && (
+        <div className="review-step__languages" role="group" aria-label={t("review.languageBarLabel")}>
+          {languageGroups.map((group) => {
+            let selectedCount = 0;
+            for (const id of group.operationIds) {
+              if (selectedIds.has(id)) selectedCount += 1;
+            }
+            const checked =
+              selectedCount === group.operationIds.length
+                ? true
+                : selectedCount > 0
+                  ? "mixed"
+                  : false;
+            const language =
+              group.code === null
+                ? t("review.languages.other")
+                : t(`review.languages.${group.code}`, { defaultValue: group.code });
+
+            return (
+              <button
+                key={group.code ?? "other"}
+                type="button"
+                className="review-step__language"
+                role="checkbox"
+                aria-checked={checked}
+                aria-label={t("review.languageSelection", {
+                  language,
+                  count: group.operationIds.length,
+                })}
+                onClick={() => onToggleLanguage(group.operationIds)}
+              >
+                <span>{language}</span>
+                <span className="review-step__language-count" aria-hidden="true">
+                  {group.operationIds.length}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {!hasMatches && <p className="review-step__empty">{t("review.empty")}</p>}
 

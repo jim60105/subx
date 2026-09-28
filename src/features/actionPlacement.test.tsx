@@ -57,6 +57,7 @@ const MATCH_PLAN: MatchPlanDto = {
           subtitleName: "show.en.srt",
           targetPath: "/m/show.en.srt",
           confidence: 95,
+          language: "en",
           reasoning: [],
         },
       ],

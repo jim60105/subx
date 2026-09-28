@@ -54,6 +54,22 @@
     "unmatchedSubtitles": "Subtitles with no match",
     "selection": "Include {{name}}",
     "selectedCount": "{{count}} of {{total}} selected",
+    "languageBarLabel": "Quick select by language",
+    "languageSelection_one": "Toggle {{language}} ({{count}} file)",
+    "languageSelection_other": "Toggle {{language}} ({{count}} files)",
+    "languages": {
+      "tc": "Traditional Chinese",
+      "sc": "Simplified Chinese",
+      "en": "English",
+      "ja": "Japanese",
+      "ko": "Korean",
+      "fr": "French",
+      "de": "German",
+      "es": "Spanish",
+      "pt": "Portuguese",
+      "ru": "Russian",
+      "other": "Other"
+    },
     "empty": "The analysis found no matches.",
     "back": "Back",
     "execute": "Continue"

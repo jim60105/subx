@@ -144,14 +144,41 @@ afterEach(async () => {
   });
 });
 
-/**
- * A plan with no matches: renders every Review string (title, description, the
- * empty-state) without any file-name data that would read as untranslated prose.
- */
-const EMPTY_PLAN: MatchPlanDto = {
+/** A small populated plan makes the language-bar translations reach the DOM. */
+const REVIEW_PLAN: MatchPlanDto = {
   planId: "plan-1",
   relocationMode: "rename",
-  videos: [],
+  videos: [
+    {
+      videoName: "1",
+      matches: [
+        {
+          id: 0,
+          subtitleName: "1",
+          targetPath: "/1",
+          confidence: 90,
+          language: "tc",
+          reasoning: [],
+        },
+        {
+          id: 1,
+          subtitleName: "2",
+          targetPath: "/2",
+          confidence: 90,
+          language: "en",
+          reasoning: [],
+        },
+        {
+          id: 2,
+          subtitleName: "3",
+          targetPath: "/3",
+          confidence: 90,
+          language: null,
+          reasoning: [],
+        },
+      ],
+    },
+  ],
   unmatchedVideos: [],
   unmatchedSubtitles: [],
 };
@@ -246,7 +273,12 @@ const SCREENS = [
     name: "ReviewStep",
     render: () =>
       renderWithI18n(
-        <ReviewStep plan={EMPTY_PLAN} selectedIds={new Set()} onToggle={() => {}} />,
+        <ReviewStep
+          plan={REVIEW_PLAN}
+          selectedIds={new Set([0, 1, 2])}
+          onToggle={() => {}}
+          onToggleLanguage={() => {}}
+        />,
       ),
   },
   {
@@ -485,5 +517,12 @@ describe("no user-facing string is hard-coded", () => {
 
     expect(translationKeysIn(container)).toEqual([]);
     expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+
+    const reviewScreen = SCREENS.find(({ name }) => name === "ReviewStep");
+    if (reviewScreen === undefined) throw new Error("ReviewStep fixture is missing");
+    const review = reviewScreen.render();
+    expect(translationKeysIn(review.container)).toEqual([]);
+    expect(screen.getByRole("group", { name: "依語言快速選取" })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "切換繁體中文（1 個檔案）" })).toBeInTheDocument();
   });
 });

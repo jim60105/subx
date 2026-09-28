@@ -50,6 +50,7 @@ export interface MatchWizard {
   cancel: () => Promise<void>;
   retry: () => void;
   toggleSelection: (id: number) => void;
+  toggleLanguageSelection: (ids: number[]) => void;
   toReview: () => void;
   toExecute: () => void;
   execute: () => Promise<void>;
@@ -187,6 +188,18 @@ export function useMatchWizard(): MatchWizard {
     });
   }, []);
 
+  const toggleLanguageSelection = useCallback((ids: number[]) => {
+    setSelectedIds((current) => {
+      const allSelected = ids.every((id) => current.has(id));
+      const next = new Set(current);
+      for (const id of ids) {
+        if (allSelected) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
   const toReview = useCallback(() => {
     setStep("review");
   }, []);
@@ -243,6 +256,7 @@ export function useMatchWizard(): MatchWizard {
     cancel,
     retry,
     toggleSelection,
+    toggleLanguageSelection,
     toReview,
     toExecute,
     execute,
