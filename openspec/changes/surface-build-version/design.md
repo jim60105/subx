@@ -44,14 +44,14 @@ The user's original idea (git tag on CI, git hash otherwise) is rejected in favo
 
 ### D3 — One backend-owned `build_info` module: string + DTO + log line
 
-`src-tauri/src/build_info.rs` (crate-internal, not a command module) exposes pure functions over injected pieces:
+`src-tauri/src/build_info.rs` (crate-internal, not a command module) exposes pure formatting seams over explicit inputs:
 
 - `git_hash() -> Option<&'static str>` (empty env ⇒ `None`)
-- `version_string() -> String` — `"0.2.0"` or `"0.2.0 (8e92039, debug)"`; profile shown only in debug builds so release strings stay clean.
-- `startup_log_line() -> String` — `"SubX 0.2.0 (8e92039, debug) starting"`.
-- `VersionInfoDto { version, git_hash: Option<String>, debug: bool }` in `dto.rs` — raw parts, not the pre-formatted string, so the frontend owns its own compact rendering (`0.2.0 · 8e92039`) and the log line stays backend-owned; both derive from the same two statics so they cannot drift.
+- `format_version_string(version, hash, debug)` — `"0.2.0"` without a hash, `"0.2.0 (8e92039, debug)"` with a hash in a debug build, and `"0.2.0 (8e92039)"` with a hash in a release build. A missing hash keeps the identity at the package version alone.
+- `startup_log_line(version, hash, debug)` — `"SubX 0.2.0 (8e92039, debug) starting"`, using the same formatter for its version portion.
+- `to_dto() -> VersionInfoDto`, where `VersionInfoDto { version, git_hash: Option<String>, debug: bool }` in `dto.rs` carries raw parts, not a pre-formatted string. The frontend owns its compact rendering (`0.2.0 · 8e92039`) and the log line stays backend-owned; each derives from the same compile-time inputs so they cannot drift.
 
-`run()` calls `println!("{}", build_info::startup_log_line())` as its first statement — before config-service construction, so even a config failure is preceded by the identity line, and stdout is where `tauri dev`/terminal shows it. `run()` is headless-untestable like `main()`, so the startup scenarios are verified by a content test on `startup_log_line()` for the launch scenario, plus one waiver for the two-instance diagnosis scenario (repo precedent: `scripts/spec-coverage.config.json` waivers carry a reason and a manual-verification pointer).
+The formatters take their inputs explicitly so the missing-hash path is testable without building a second crate configuration. `to_dto()` reads the current compiled package version, hash, and debug profile for IPC. `run()` calls `println!("{}", build_info::startup_log_line(env!("CARGO_PKG_VERSION"), build_info::git_hash(), cfg!(debug_assertions)))` as its first statement — before config-service construction, so even a config failure is preceded by the identity line, and stdout is where `tauri dev`/terminal shows it. `run()` is headless-untestable like `main()`, so the startup scenarios are verified by a content test on the pure `startup_log_line(...)` formatter for the launch scenario, plus one waiver for the two-instance diagnosis scenario (repo precedent: `scripts/spec-coverage.config.json` waivers carry a reason and a manual-verification pointer).
 
 `env!("CARGO_PKG_VERSION")` is the badge's version source while release.yml gates the *tag* against `package.json`; nothing today links `src-tauri/Cargo.toml`'s version to `package.json`'s. A guard unit test reads `../package.json` and asserts the two versions are equal, so a bump that forgets one manifest fails CI instead of letting the badge silently lie. The DTO carries `debug` although the badge shows no profile: the profile is part of build identity (it is in the log line), the field is asserted by the command round-trip, and dropping it would make the DTO describe less than the string it replaces.
 
