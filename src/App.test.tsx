@@ -15,11 +15,31 @@ import App from "./App";
 import { commands } from "./types/bindings";
 import { renderWithI18n, setupI18n } from "./test/renderWithI18n";
 import { ThemeProvider } from "./theme/ThemeProvider";
-import type { PingResponse } from "./types/ipc";
+import type { ConfigDto, PingResponse, VersionInfoDto } from "./types/ipc";
+
+const BUILD_INFO: VersionInfoDto = {
+  version: "0.2.0",
+  gitHash: "abc1234",
+  debug: true,
+};
+
+const CONFIG: ConfigDto = {
+  ai: {
+    provider: "openai",
+    model: "gpt-4.1-mini",
+    baseUrl: "https://api.openai.com/v1",
+    apiKeyMasked: "",
+    apiKeySet: false,
+  },
+};
 
 describe("app shell", () => {
   beforeEach(async () => {
     await setupI18n("en");
+    mockIPC((command) => {
+      if (command === "get_build_info") return structuredClone(BUILD_INFO);
+      throw new Error(`unexpected command: ${command}`);
+    });
   });
 
   afterEach(() => {
@@ -35,6 +55,31 @@ describe("app shell", () => {
     );
 
     expect(screen.getByRole("heading", { name: "What would you like to do?" })).toBeInTheDocument();
+  });
+
+  it("keeps the reported build badge visible on the home, wizard, and settings screens", async () => {
+    mockIPC((command) => {
+      if (command === "get_build_info") return structuredClone(BUILD_INFO);
+      if (command === "get_config") return structuredClone(CONFIG);
+      throw new Error(`unexpected command: ${command}`);
+    });
+
+    renderWithI18n(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+
+    const badge = "0.2.0 · abc1234";
+    expect(await screen.findByText(badge)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Match subtitles/ }));
+    expect(screen.getByRole("heading", { name: "Choose your sources" })).toBeInTheDocument();
+    expect(screen.getByText(badge)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expect(await screen.findByRole("heading", { name: "Settings" })).toBeInTheDocument();
+    expect(screen.getByText(badge)).toBeInTheDocument();
   });
 
   // @covers app-shell/navigation-between-home-and-feature-screens#enter-and-leave-a-feature
@@ -72,6 +117,7 @@ describe("app shell", () => {
   it("opens the sync wizard from the hub and returns", async () => {
     // The sync wizard reads the shared config's sync settings on mount.
     mockIPC((command) => {
+      if (command === "get_build_info") return structuredClone(BUILD_INFO);
       if (command === "get_sync_defaults") {
         return { defaultMethod: "auto", vadSensitivity: 40, maxOffsetMs: 60_000 };
       }
@@ -124,6 +170,7 @@ describe("app shell", () => {
   // @covers app-shell/navigation-between-home-and-feature-screens#brand-returns-home-from-a-mid-flow-wizard-step
   it("returns home from a wizard step past the first, and re-enters fresh", async () => {
     mockIPC((command) => {
+      if (command === "get_build_info") return structuredClone(BUILD_INFO);
       if (command === "get_sync_defaults") {
         return { defaultMethod: "auto", vadSensitivity: 40, maxOffsetMs: 60_000 };
       }
@@ -158,6 +205,7 @@ describe("app shell", () => {
   // @covers app-shell/navigation-between-home-and-feature-screens#brand-returns-home-from-settings
   it("opens settings from the header and returns to the hub", async () => {
     mockIPC((command) => {
+      if (command === "get_build_info") return structuredClone(BUILD_INFO);
       if (command === "get_config") {
         return {
           ai: {

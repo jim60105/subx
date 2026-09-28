@@ -209,6 +209,11 @@ const CHECKS: Array<{
   {
     foreground: "--text-muted",
     background: ["--surface", "--bg-base"],
+    where: "AppHeader.css version badge",
+  },
+  {
+    foreground: "--text-muted",
+    background: ["--surface", "--bg-base"],
     where: "WizardShell / SettingsScreen hints",
   },
   {

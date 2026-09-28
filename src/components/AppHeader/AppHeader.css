@@ -46,8 +46,20 @@
 }
 
 .app-header__tagline {
+  min-width: 0;
+  overflow: hidden;
   font-size: var(--text-sm);
   color: var(--text-muted);
+  text-overflow: ellipsis;
+}
+
+.app-header__version {
+  flex-shrink: 0;
+  margin-inline: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  user-select: text;
+  white-space: nowrap;
 }
 
 .app-header__controls {

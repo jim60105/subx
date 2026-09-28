@@ -1,11 +1,28 @@
+import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { changeLanguage } from "../../i18n";
 import { LANGUAGE_STORAGE_KEY } from "../../i18n/languages";
-import { renderWithI18n, setupI18n } from "../../test/renderWithI18n";
+import { i18n, renderWithI18n, setupI18n } from "../../test/renderWithI18n";
 import { ThemeProvider } from "../../theme/ThemeProvider";
-import { AppHeader } from "./AppHeader";
+import type { VersionInfoDto } from "../../types/ipc";
+import { AppHeader, formatVersionLabel } from "./AppHeader";
+
+const BUILD_INFO: VersionInfoDto = {
+  version: "0.2.0",
+  gitHash: "abc1234",
+  debug: true,
+};
+
+function mockBuildInfo(info: VersionInfoDto = BUILD_INFO) {
+  mockIPC((command) => {
+    if (command === "get_build_info") return structuredClone(info);
+    throw new Error(`unexpected command: ${command}`);
+  });
+}
 
 const mockToggleMaximize = vi.fn().mockResolvedValue(undefined);
 const mockMinimize = vi.fn().mockResolvedValue(undefined);
@@ -31,8 +48,14 @@ function renderHeader(onNavigateHome?: () => void, onOpenSettings?: () => void) 
 
 describe("AppHeader", () => {
   beforeEach(async () => {
+    clearMocks();
     vi.clearAllMocks();
     await setupI18n("en");
+    mockBuildInfo();
+  });
+
+  afterEach(() => {
+    clearMocks();
   });
 
   it("makes the brand interactive only on a feature screen", () => {
@@ -54,6 +77,93 @@ describe("AppHeader", () => {
     expect(brand).not.toHaveAttribute("aria-label");
     expect(brand).toHaveAccessibleName(expect.stringContaining("SubX"));
     expect(brand).toHaveAttribute("title", "Back to home");
+  });
+
+  // @covers build-identity/version-badge-reports-the-running-build-persistently#badge-visible-on-every-screen
+  it("shows the backend-reported version and hash", async () => {
+    renderHeader();
+
+    const badge = await screen.findByText("0.2.0 · abc1234");
+
+    expect(badge).toHaveClass("app-header__version");
+    expect(formatVersionLabel("0.2.0", "abc1234")).toBe("0.2.0 · abc1234");
+  });
+
+  // @covers build-identity/version-badge-reports-the-running-build-persistently#no-hash-no-suffix
+  it("shows only the version when the backend has no hash", async () => {
+    mockBuildInfo({ ...BUILD_INFO, gitHash: null });
+    renderHeader();
+
+    const badge = await screen.findByText("0.2.0", { exact: true });
+
+    expect(badge).toHaveClass("app-header__version");
+    expect(badge.textContent).toBe("Running build 0.2.0");
+    expect(formatVersionLabel("0.2.0", null)).toBe("0.2.0");
+  });
+
+  // @covers build-identity/version-badge-reports-the-running-build-persistently#identity-reported-never-invented
+  // @covers build-identity/version-badge-reports-the-running-build-persistently#absent-badge-signals-a-stale-bundle
+  it("keeps the badge absent while the identity is pending and after a rejected fetch", async () => {
+    let rejectBuildInfo: ((reason: Error) => void) | undefined;
+    const getBuildInfo = vi.fn(
+      () =>
+        new Promise<VersionInfoDto>((_resolve, reject) => {
+          rejectBuildInfo = (reason) => reject(reason);
+        }),
+    );
+    mockIPC((command) => {
+      if (command !== "get_build_info") throw new Error(`unexpected command: ${command}`);
+      return getBuildInfo();
+    });
+
+    const { container } = renderHeader();
+    const header = container.querySelector("header.app-header");
+
+    expect(header?.querySelector(".app-header__version")).toBeNull();
+    expect(header?.textContent).not.toMatch(/\b\d+\.\d+\.\d+\b/);
+    expect(getBuildInfo).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      rejectBuildInfo!(new Error("build information unavailable"));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(header?.querySelector(".app-header__version")).toBeNull();
+    expect(header?.textContent).not.toMatch(/\b\d+\.\d+\.\d+\b/);
+  });
+
+  it("translates the visually-hidden build label prefix", async () => {
+    await act(async () => {
+      await i18n.changeLanguage("cimode");
+    });
+    renderHeader();
+
+    const badge = await screen.findByText("0.2.0 · abc1234");
+
+    expect(badge.querySelector(".visually-hidden")).toHaveTextContent("version");
+  });
+
+  // @covers build-identity/version-badge-reports-the-running-build-persistently#badge-copyable-for-bug-reports
+  it("keeps the selectable build label outside the brand button", async () => {
+    const { container } = renderHeader(() => {});
+    const badge = await screen.findByText("0.2.0 · abc1234");
+    const header = container.querySelector("header.app-header");
+    const brand = screen.getByRole("button", { name: /Back to home/ });
+    const css = readFileSync(path.resolve(__dirname, "AppHeader.css"), "utf8");
+    const userSelectValues = [...css.matchAll(/([^{}]*\.app-header__version[^{}]*)\{([^{}]*)\}/g)]
+      .flatMap(([, , declarations]) =>
+        [...declarations.matchAll(/(?:^|;)\s*user-select:\s*([^;]+);/g)].map(([, value]) =>
+          value.trim(),
+        ),
+      );
+
+    expect(badge).toHaveClass("app-header__version");
+    expect(badge.parentElement).toBe(header);
+    expect(brand.contains(badge)).toBe(false);
+    expect(brand).toHaveAccessibleName("SubX AI-powered subtitle tooling Back to home");
+    expect(badge.nextElementSibling).toHaveClass("app-header__controls");
+    expect(userSelectValues).toEqual(["text"]);
   });
 
   it("returns to the hub when the brand is used", async () => {

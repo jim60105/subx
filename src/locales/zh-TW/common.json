@@ -1,6 +1,7 @@
 {
   "appName": "SubX",
   "tagline": "AI 字幕工具",
+  "version": "執行中的版本",
   "actions": {
     "back": "上一步",
     "home": "回到首頁",
