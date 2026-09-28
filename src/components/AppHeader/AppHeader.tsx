@@ -7,6 +7,7 @@ import { LanguageSelect } from "../LanguageSelect/LanguageSelect";
 import { ThemeSelect } from "../ThemeSelect/ThemeSelect";
 import { WindowControls } from "../WindowControls/WindowControls";
 import { SettingsIcon } from "../icons/SettingsIcon";
+import { formatVersionLabel } from "./formatVersionLabel";
 import "./AppHeader.css";
 
 interface AppHeaderProps {
@@ -18,10 +19,6 @@ interface AppHeaderProps {
   onNavigateHome?: () => void;
   /** Rendered on every screen except settings itself. */
   onOpenSettings?: () => void;
-}
-
-export function formatVersionLabel(version: string, gitHash: string | null): string {
-  return gitHash === null ? version : `${version} · ${gitHash}`;
 }
 
 export function AppHeader({ onNavigateHome, onOpenSettings }: AppHeaderProps) {

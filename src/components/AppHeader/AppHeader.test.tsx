@@ -9,7 +9,8 @@ import { LANGUAGE_STORAGE_KEY } from "../../i18n/languages";
 import { i18n, renderWithI18n, setupI18n } from "../../test/renderWithI18n";
 import { ThemeProvider } from "../../theme/ThemeProvider";
 import type { VersionInfoDto } from "../../types/ipc";
-import { AppHeader, formatVersionLabel } from "./AppHeader";
+import { AppHeader } from "./AppHeader";
+import { formatVersionLabel } from "./formatVersionLabel";
 
 const BUILD_INFO: VersionInfoDto = {
   version: "0.2.0",
