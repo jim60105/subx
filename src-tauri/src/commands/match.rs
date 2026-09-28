@@ -18,6 +18,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use subx_core::core::input::{CollectedFiles, InputPathHandler};
+use subx_core::core::language::LanguageDetector;
 use subx_core::config::ConfigService;
 use subx_core::core::matcher::engine::{
     apply_unique_target_paths, ConflictResolution, FileRelocationMode, MatchConfig, OperationError,
@@ -419,6 +420,7 @@ fn build_plan_dto(
     scanned_videos: &[ScannedFile],
     scanned_subtitles: &[ScannedFile],
 ) -> MatchPlanDto {
+    let language_detector = LanguageDetector::new();
     let mut order: Vec<PathBuf> = Vec::new();
     let mut names: HashMap<PathBuf, String> = HashMap::new();
     let mut groups: HashMap<PathBuf, Vec<MatchOperationDto>> = HashMap::new();
@@ -439,6 +441,7 @@ fn build_plan_dto(
                 subtitle_name: op.subtitle_file.name.clone(),
                 target_path: display_target(op),
                 confidence: (op.confidence.clamp(0.0, 1.0) * 100.0).round() as u32,
+                language: language_detector.get_primary_language(&op.subtitle_file.path),
                 reasoning: op.reasoning.clone(),
             });
         matched_videos.insert(op.video_file.path.clone());
@@ -823,8 +826,51 @@ mod tests {
 
         assert_eq!(plan.videos.len(), 1, "both matches under one video");
         assert_eq!(plan.videos[0].matches.len(), 2);
+        let mut languages = plan.videos[0]
+            .matches
+            .iter()
+            .map(|operation| (operation.subtitle_name.clone(), operation.language.clone()))
+            .collect::<Vec<_>>();
+        languages.sort();
+        assert_eq!(
+            languages,
+            vec![
+                ("show.en.srt".to_string(), Some("en".to_string())),
+                ("show.tc.srt".to_string(), Some("tc".to_string())),
+            ],
+            "each operation carries only the path detector's primary language"
+        );
         assert!(plan.unmatched_videos.is_empty());
         assert!(plan.unmatched_subtitles.is_empty());
+    }
+
+    #[test]
+    fn unmatched_subtitle_name_has_no_detected_language() {
+        let dir = TempDir::new().unwrap();
+        let neutral_dir = dir.path().join("neutral");
+        let video = neutral_dir.join("video.mkv");
+        let random_hex = dir
+            .path()
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .chars()
+            .filter(char::is_ascii_hexdigit)
+            .collect::<String>();
+        let subtitle = neutral_dir.join(format!("unmatched-{random_hex}.srt"));
+        let op = rename_op(&video, &subtitle, "unmatched.srt");
+        let scanned_videos = vec![(video, "video.mkv".to_string())];
+        let scanned_subtitles = vec![(subtitle, "unmatched.srt".to_string())];
+
+        let plan = build_plan_dto(
+            "plan-x",
+            RelocationModeDto::Rename,
+            std::slice::from_ref(&op),
+            &scanned_videos,
+            &scanned_subtitles,
+        );
+
+        assert_eq!(plan.videos[0].matches[0].language, None);
     }
 
     // @covers match-workflow/multi-source-selection-with-scan-preview-and-relocation-mode#relocation-mode-feeds-the-analysis

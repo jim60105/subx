@@ -2,9 +2,9 @@
 
 ## 1. Backend language attachment
 
-- [ ] 1.1 Add `language: Option<String>` to `MatchOperationDto` in `src-tauri/src/dto.rs` (doc comment naming `LanguageDetector` as its source) and fill it in the plan builder in `src-tauri/src/commands/match.rs` via `LanguageDetector::get_primary_language(&op.subtitle_file.path)`; verify by asserting in the existing plan-builder tests (`two_subtitles_group_under_one_video` and a new case) that `show.tc.srt` yields `Some("tc")`, `show.en.srt` yields `Some("en")`, and an unmatchable name yields `None` — pinning at most one code per operation — and run `npm run test:rust`.
+- [x] 1.1 Add `language: Option<String>` to `MatchOperationDto` in `src-tauri/src/dto.rs` (doc comment naming `LanguageDetector` as its source) and fill it in the plan builder in `src-tauri/src/commands/match.rs` via `LanguageDetector::get_primary_language(&op.subtitle_file.path)`; verify by asserting in the existing plan-builder tests (`two_subtitles_group_under_one_video` and a new case) that `show.tc.srt` yields `Some("tc")`, `show.en.srt` yields `Some("en")`, and an unmatchable name yields `None` — pinning at most one code per operation — and run `npm run test:rust`.
 
-- [ ] 1.2 Regenerate `src/types/bindings.ts` with `npm run bindings:generate` and verify `npm run bindings:check` and `ipcBoundary.test.ts` pass with the new `language: string | null` field (no `ipc_tests` fixture change is needed for the optional field).
+- [x] 1.2 Regenerate `src/types/bindings.ts` with `npm run bindings:generate` and verify `npm run bindings:check` and `ipcBoundary.test.ts` pass with the new `language: string | null` field (no `ipc_tests` fixture change is needed for the optional field).
 
 ## 2. Frontend quick-select
 

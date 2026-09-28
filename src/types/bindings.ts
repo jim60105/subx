@@ -307,6 +307,8 @@ export type MatchOperationDto = {
 	subtitleName: string,
 	targetPath: string,
 	confidence: number,
+	/**  The path-detected primary code from subx-core's `LanguageDetector`. */
+	language: string | null,
 	/**  The AI's reasoning, shown verbatim (design D7). */
 	reasoning: string[],
 };
