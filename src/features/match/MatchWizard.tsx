@@ -131,6 +131,7 @@ export function MatchWizard({ onOpenSettings }: MatchWizardProps) {
           plan={wizard.plan}
           selectedIds={wizard.selectedIds}
           onToggle={wizard.toggleSelection}
+          onToggleLanguage={wizard.toggleLanguageSelection}
         />
       )}
       {wizard.step === "execute" && (

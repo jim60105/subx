@@ -846,18 +846,9 @@ mod tests {
 
     #[test]
     fn unmatched_subtitle_name_has_no_detected_language() {
-        let dir = TempDir::new().unwrap();
-        let neutral_dir = dir.path().join("neutral");
+        let neutral_dir = Path::new("neutral");
         let video = neutral_dir.join("video.mkv");
-        let random_hex = dir
-            .path()
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .chars()
-            .filter(char::is_ascii_hexdigit)
-            .collect::<String>();
-        let subtitle = neutral_dir.join(format!("unmatched-{random_hex}.srt"));
+        let subtitle = neutral_dir.join("unmatched-0123456789abcdef.srt");
         let op = rename_op(&video, &subtitle, "unmatched.srt");
         let scanned_videos = vec![(video, "video.mkv".to_string())];
         let scanned_subtitles = vec![(subtitle, "unmatched.srt".to_string())];
