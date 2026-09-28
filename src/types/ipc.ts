@@ -53,6 +53,7 @@ export type {
   TranslationOutcomeDto,
   TranslationReportDto,
   TranslationStatusDto,
+  VersionInfoDto,
 } from "./bindings";
 
 /**

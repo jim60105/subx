@@ -1,4 +1,5 @@
 mod bindings;
+mod build_info;
 mod commands;
 mod dto;
 mod error;
@@ -16,6 +17,15 @@ use state::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    println!(
+        "{}",
+        build_info::startup_log_line(
+            env!("CARGO_PKG_VERSION"),
+            build_info::git_hash(),
+            cfg!(debug_assertions),
+        )
+    );
+
     // Built once for the whole process: the crate service caches the loaded
     // configuration internally, so a second instance would see stale data.
     let config_service =

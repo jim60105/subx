@@ -28,8 +28,9 @@ use crate::state::AppState;
 /// `mock_context` starts with an empty ACL, so every command under test has to
 /// be allowed explicitly. `the_allowlist_matches_the_declaration` keeps this
 /// list from drifting away from the builder.
-const COMMANDS: [&str; 21] = [
+const COMMANDS: [&str; 22] = [
     "ping",
+    "get_build_info",
     "get_config",
     "get_config_tolerant",
     "set_config_value",
@@ -117,6 +118,7 @@ fn service_with_key() -> Arc<dyn ConfigService> {
 /// The allowlist above is a second list of command names, and a second list is
 /// exactly how a test suite ends up passing against commands the real app never
 /// exposes. Pin it to the declaration itself.
+// @covers build-identity/build-identity-crosses-the-typed-ipc-boundary-as-one-dto#allowlist-stays-complete
 #[test]
 fn the_allowlist_matches_the_declaration() {
     let bindings_rs = include_str!("bindings.rs");
@@ -160,6 +162,18 @@ fn ping_crosses_the_boundary_with_its_camel_cased_fields() {
     assert_eq!(response["message"], "pong");
     // `app_version` is renamed on the wire; the frontend declares `appVersion`.
     assert_eq!(response["appVersion"], env!("CARGO_PKG_VERSION"));
+}
+
+// @covers build-identity/build-identity-crosses-the-typed-ipc-boundary-as-one-dto#command-round-trip
+#[test]
+fn build_info_crosses_the_boundary_as_one_dto() {
+    let app = app_with(service_with_key());
+    let response = invoke(&webview(&app), "get_build_info", json!({}))
+        .expect("get_build_info must succeed");
+
+    assert_eq!(response["version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(response["gitHash"], json!(crate::build_info::git_hash()));
+    assert_eq!(response["debug"], cfg!(debug_assertions));
 }
 
 #[test]

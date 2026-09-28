@@ -30,6 +30,7 @@ pub fn specta_builder<R: Runtime>() -> Builder<R> {
     Builder::<R>::new()
         .commands(collect_commands![
             crate::commands::system::ping,
+            crate::commands::system::get_build_info,
             crate::commands::config::get_config,
             crate::commands::config::get_config_tolerant,
             crate::commands::config::set_config_value,
