@@ -49,6 +49,16 @@ The frontend SHALL display, on every screen, a badge with the backend's running-
 - **WHEN** the version has not yet been received from the backend
 - **THEN** the badge is absent rather than showing a hard-coded or frontend-derived value
 
+#### Scenario: Absent badge signals a stale bundle
+
+- **WHEN** the running frontend bundle predates the build-identity feature and therefore never queries the backend
+- **THEN** no badge is shown and no frontend-side fallback string is rendered, so a missing badge itself identifies the stale instance
+
+#### Scenario: Badge survives the narrowest window
+
+- **WHEN** the window is resized to its minimum supported width
+- **THEN** the badge text remains fully visible and unclipped, with the brand tagline being the element that truncates first
+
 #### Scenario: Badge copyable for bug reports
 
 - **WHEN** the user selects the badge text
