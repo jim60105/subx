@@ -5,6 +5,7 @@ import { invoke as __TAURI_INVOKE, Channel } from "@tauri-apps/api/core";
 /** Commands */
 export const commands = {
 	ping: () => __TAURI_INVOKE<PingResponse>("ping"),
+	getBuildInfo: () => __TAURI_INVOKE<VersionInfoDto>("get_build_info"),
 	getConfig: () => __TAURI_INVOKE<ConfigDto>("get_config"),
 	getConfigTolerant: () => __TAURI_INVOKE<ConfigDto>("get_config_tolerant"),
 	setConfigValue: (request: SetConfigRequest) => __TAURI_INVOKE<null>("set_config_value", { request }),
@@ -638,4 +639,11 @@ export type TranslationStatusDto = "translated" | "failed" |
  *  before this item finished (design D3).
  */
 "cancelled";
+
+/**  The compiled identity of the running application. */
+export type VersionInfoDto = {
+	version: string,
+	gitHash: string | null,
+	debug: boolean,
+};
 

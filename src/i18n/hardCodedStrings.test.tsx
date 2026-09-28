@@ -41,6 +41,7 @@ import type {
   SyncDefaultsDto,
   TranslatePlanDto,
   TranslationReportDto,
+  VersionInfoDto,
 } from "../types/ipc";
 
 const CONFIG: ConfigDto = {
@@ -51,6 +52,12 @@ const CONFIG: ConfigDto = {
     apiKeyMasked: "****1234",
     apiKeySet: true,
   },
+};
+
+const BUILD_INFO: VersionInfoDto = {
+  version: "0.2.0",
+  gitHash: "abc1234",
+  debug: true,
 };
 
 /**
@@ -70,6 +77,8 @@ const ALLOWED = [
   /^gpt-4\.1-mini$/,
   /^https:\/\/api\.openai\.com\/v1$/,
   /^\*{4}1234$/,
+  // The build identity is backend data, not localized prose.
+  /^\d+\.\d+\.\d+( · [0-9a-f]{7,40})?$/,
 ];
 
 /**
@@ -130,6 +139,7 @@ beforeEach(async () => {
     await i18n.changeLanguage("cimode");
   });
   mockIPC((command) => {
+    if (command === "get_build_info") return structuredClone(BUILD_INFO);
     if (command === "get_config") return structuredClone(CONFIG);
     if (command === "set_config_value") return null;
     if (command === "test_ai_connection") return { ok: true, latencyMs: 12 };

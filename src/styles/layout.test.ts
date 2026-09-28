@@ -113,3 +113,22 @@ describe("the wizard action bar", () => {
     );
   });
 });
+
+describe("the app header build identity", () => {
+  const css = read("components", "AppHeader", "AppHeader.css");
+
+  // @covers build-identity/version-badge-reports-the-running-build-persistently#badge-survives-the-narrowest-window
+  it("keeps the badge unclipped and lets the tagline truncate", () => {
+    const badge = declarationsOf(css, ".app-header__version");
+    const tagline = declarationsOf(css, ".app-header__tagline");
+
+    expect(badge).toMatch(/white-space:\s*nowrap/);
+    expect(badge).toMatch(/flex-shrink:\s*0/);
+    expect(badge).toMatch(/color:\s*var\(--text-secondary\)/);
+    expect(tagline).toMatch(/max-width:\s*16vw/);
+    expect(tagline).toMatch(/overflow:\s*hidden/);
+    expect(tagline).toMatch(/text-overflow:\s*ellipsis/);
+    expect(tagline).toMatch(/min-width:\s*0/);
+    expect(tagline).toMatch(/white-space:\s*nowrap/);
+  });
+});

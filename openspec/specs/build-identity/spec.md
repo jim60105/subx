@@ -1,6 +1,10 @@
-# build-identity Delta
+# build-identity Specification
 
-## ADDED Requirements
+## Purpose
+
+The application reports the package version and the commit of the backend that is running, so a developer can identify a stale or mismatched build from the startup output and the always-visible header.
+
+## Requirements
 
 ### Requirement: Build identity embedded at compile time
 
@@ -56,7 +60,7 @@ The frontend SHALL display, on every screen, a badge with the backend's running-
 
 #### Scenario: Badge survives the narrowest window
 
-- **WHEN** the window is resized to its minimum supported width
+- **WHEN** the window is resized to its minimum supported width of 860 pixels
 - **THEN** the badge text remains fully visible and unclipped, with the brand tagline being the element that truncates first
 
 #### Scenario: Badge copyable for bug reports

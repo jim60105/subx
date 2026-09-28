@@ -1,9 +1,13 @@
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { commands } from "../../types/bindings";
+import type { VersionInfoDto } from "../../types/ipc";
 import { LanguageSelect } from "../LanguageSelect/LanguageSelect";
 import { ThemeSelect } from "../ThemeSelect/ThemeSelect";
 import { WindowControls } from "../WindowControls/WindowControls";
 import { SettingsIcon } from "../icons/SettingsIcon";
+import { formatVersionLabel } from "./formatVersionLabel";
 import "./AppHeader.css";
 
 interface AppHeaderProps {
@@ -19,6 +23,24 @@ interface AppHeaderProps {
 
 export function AppHeader({ onNavigateHome, onOpenSettings }: AppHeaderProps) {
   const { t } = useTranslation("common");
+  const [buildInfo, setBuildInfo] = useState<VersionInfoDto | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void commands
+      .getBuildInfo()
+      .then((info) => {
+        if (!cancelled) setBuildInfo(info);
+      })
+      .catch(() => {
+        if (!cancelled) setBuildInfo(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const brand = (
     <>
       <span className="app-header__name gradient-text">{t("appName")}</span>
@@ -56,6 +78,13 @@ export function AppHeader({ onNavigateHome, onOpenSettings }: AppHeaderProps) {
         </button>
       ) : (
         <div className="app-header__brand">{brand}</div>
+      )}
+
+      {buildInfo !== null && (
+        <span className="app-header__version">
+          <span className="visually-hidden">{t("version")} </span>
+          {formatVersionLabel(buildInfo.version, buildInfo.gitHash)}
+        </span>
       )}
 
       <div className="app-header__controls">

@@ -19,6 +19,15 @@ pub struct PingResponse {
     pub app_version: String,
 }
 
+/// The compiled identity of the running application.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct VersionInfoDto {
+    pub version: String,
+    pub git_hash: Option<String>,
+    pub debug: bool,
+}
+
 /// The AI section of the shared CLI configuration, as shown in the GUI.
 ///
 /// The API key never crosses the IPC boundary in cleartext: only its masked

@@ -176,8 +176,19 @@ procedure:
 ```
 
 A waiver is rejected if it omits either field, names a scenario that no longer
-exists, or names one that a test in fact annotates. Two scenarios are
+exists, or names one that a test in fact annotates. Three scenarios are
 waived today.
+
+### Manual build-identity stale-instance diagnosis
+
+This check needs two live desktop instances built from distinct commits. Create
+two worktrees at those commits, use a separate `CARGO_TARGET_DIR` for each
+checkout, and build each application with `npm run tauri -- build`. Launch both
+produced executables directly from a terminal, rather than through
+`scripts/dev.sh`, which terminates existing development instances. Confirm that
+each process's first startup line includes its own short commit hash, and that
+the two header badges show the matching hashes. Compare each displayed hash
+with `git -C <worktree> rev-parse --short HEAD`; the hashes must differ.
 
 ### Manual Wayland smoke test
 
