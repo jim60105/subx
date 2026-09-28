@@ -12,9 +12,11 @@ Requires Node Current LTS (lts/*) and a stable Rust toolchain. Building on Linux
 
 ```bash
 npm install                # always first
-npm run tauri dev          # run dev app
+npm run dev:app            # run dev app (canonical launcher — never use bare `npm run tauri dev`)
 npm run verify             # complete verification suite — mandatory before pushing
 ```
+
+`npm run dev:app` (`scripts/dev.sh`) first kills every leftover dev process (`target/debug/subx`, `tauri dev`, vite, anything holding port 1420) before launching. Orphaned instances survive bare restarts and keep serving stale webview sessions, so a merged/rebuilt app can look unchanged forever. Frontend edits hot-reload via vite; Rust edits rebuild and restart via tauri's `src-tauri` watcher.
 
 `npm run verify` executes: `tsc --noEmit` → `npm run test:coverage` → `npm run test:rust:coverage` → `npm run spec:trace` → `npm run bindings:check` → `npm run icons:check`.
 
