@@ -46,11 +46,13 @@
 }
 
 .app-header__tagline {
+  max-width: 16vw;
   min-width: 0;
   overflow: hidden;
   font-size: var(--text-sm);
   color: var(--text-muted);
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-header__version {
