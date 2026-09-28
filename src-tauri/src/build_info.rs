@@ -48,6 +48,14 @@ mod tests {
             startup_log_line("0.2.0", Some("8e92039"), true),
             "SubX 0.2.0 (8e92039, debug) starting"
         );
+        assert_eq!(
+            format_version_string("0.2.0", Some("8e92039"), false),
+            "0.2.0 (8e92039)"
+        );
+        assert_eq!(
+            startup_log_line("0.2.0", Some("8e92039"), false),
+            "SubX 0.2.0 (8e92039) starting"
+        );
     }
 
     // @covers build-identity/build-identity-embedded-at-compile-time#git-less-build-degrades-to-version-only
