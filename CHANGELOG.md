@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-29
+
+### Added
+- Persistent build-identity badge in the app header showing the running build's version and short git hash, so a stale bundle is instantly recognizable; the backend logs the same identity at startup and exposes it over typed IPC.
+- Language quick-select chips on the match wizard review step: one toggle per language detected in the plan, plus an Other group for undetected subtitles; detected languages are resolved backend-side and attached to match plans.
+- Canonical dev launcher (`npm run dev:app`) that sweeps orphaned app/vite processes and stale port holders before launching, ending stale-webview sessions from bare restarts.
+
+### Fixed
+- Header tagline truncates cleanly at the minimum window width instead of clipping the version badge; the badge carries no fallback string, so its absence stays a reliable stale-bundle signal.
+- Build identity capture watches unborn symbolic refs and degrades gracefully when no git hash is available.
+- Version formatter isolated into its own module so Fast Refresh continues to work on the header.
+
 ## [0.2.0] - 2026-09-08
 
 ### Added
@@ -44,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pinned primary action controls to fixed positions with dedicated home navigation.
 - Single-sourced application version in `package.json` with strict synchronization tests across Rust crate manifest and lockfile.
 
-[Unreleased]: https://github.com/jim60105/subx/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/jim60105/subx/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/jim60105/subx/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/jim60105/subx/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jim60105/subx/releases/tag/v0.1.0
