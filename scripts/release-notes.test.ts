@@ -100,6 +100,10 @@ describe("release-notes", () => {
       ["v0.3.0"],
       (line: string) => out.push(line),
       (line: string) => err.push(line),
+      // Point the CLI at the fixture so the assertion does not depend on what
+      // sections the real CHANGELOG.md happens to carry (a release cut adding
+      // 0.3.0 made this "missing section" case render successfully instead).
+      { changelogPath, footerPath },
     );
 
     expect(exitCode).toBe(1);
@@ -109,7 +113,11 @@ describe("release-notes", () => {
 
   // @covers release-pipeline/distribution-is-unsigned-and-every-release-says-so#the-release-body-carries-the-installation-caveats
   it("carries all required installation caveats in the release body footer", () => {
-    const notes = renderReleaseNotes("0.1.0");
+    // The footer file is the subject and stays real; the changelog is a
+    // fixture so the test survives future trims of old CHANGELOG sections.
+    const changelogPath = path.join(tmpDir, "CHANGELOG.md");
+    fs.writeFileSync(changelogPath, FIXTURE_CHANGELOG);
+    const notes = renderReleaseNotes("0.1.0", { changelogPath });
 
     // Linux glibc floor
     expect(notes).toContain("glibc 2.39");
@@ -172,10 +180,16 @@ describe("release-notes", () => {
     });
 
     it("returns 0 and prints notes for valid version", () => {
+      const changelogPath = path.join(tmpDir, "CHANGELOG.md");
+      fs.writeFileSync(changelogPath, FIXTURE_CHANGELOG);
       const out: string[] = [];
-      const code = run(["0.1.0"], (msg) => out.push(msg), () => {});
+      const code = run(["0.1.0"], (msg) => out.push(msg), () => {}, {
+        changelogPath,
+      });
       expect(code).toBe(0);
       expect(out.join("\n")).toContain("Initial release of SubX desktop GUI application");
+      // Confirms run() -> renderReleaseNotes concatenates the footer too.
+      expect(out.join("\n")).toContain("glibc 2.39");
     });
   });
 });

@@ -21,4 +21,5 @@ export function run(
   argv?: string[],
   stdout?: (output: string) => void,
   stderr?: (output: string) => void,
+  options?: RenderReleaseNotesOptions,
 ): number;

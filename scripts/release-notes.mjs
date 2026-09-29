@@ -93,12 +93,15 @@ export function renderReleaseNotes(rawVersion, options = {}) {
  * @param {string[]} [argv]
  * @param {(output: string) => void} [stdout]
  * @param {(output: string) => void} [stderr]
+ * @param {{ changelogPath?: string; footerPath?: string }} [options] File overrides so
+ *   tests stay hermetic; production callers rely on the defaults.
  * @returns {number}
  */
 export function run(
   argv = process.argv.slice(2),
   stdout = console.log,
   stderr = console.error,
+  options = {},
 ) {
   const version = argv[0];
   if (!version) {
@@ -107,7 +110,7 @@ export function run(
   }
 
   try {
-    const notes = renderReleaseNotes(version);
+    const notes = renderReleaseNotes(version, options);
     stdout(notes.trimEnd());
     return 0;
   } catch (error) {
