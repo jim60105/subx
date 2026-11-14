@@ -37,6 +37,7 @@ use crate::dto::{
     MatchStage, MatchedVideoDto, RelocationModeDto, SourceScanResult,
 };
 use crate::error::ErrorDto;
+use crate::paths::{is_portal_document_entry, portal_document_target};
 use crate::state::{ActivePlan, AppState, MatchState};
 
 /// Default match confidence threshold, as a whole percentage.
@@ -334,17 +335,46 @@ async fn execute_selected_impl(
     // Nothing selected is a no-op the UI already blocks; short-circuit rather
     // than driving the engine over an empty batch.
     if selected.is_empty() {
-        return Ok(build_report(&selected, &[]));
+        return Ok(build_report(Vec::new()));
+    }
+
+    // Refuse, before the engine sees them, operations whose target sits
+    // directly inside a document-portal document: the portal would report the
+    // write as successful while storing it under a hidden temporary name.
+    // `MatchOperation` is not `Clone`, so each slot remembers either the
+    // finished refusal row or the operation's index among the runnable ones.
+    let mut runnable: Vec<MatchOperation> = Vec::new();
+    let mut slots: Vec<Result<usize, ExecutionOutcomeDto>> = Vec::with_capacity(selected.len());
+    for op in selected {
+        if is_portal_document_entry(&target_path(&op)) {
+            slots.push(Err(refused_item(&op)));
+        } else {
+            slots.push(Ok(runnable.len()));
+            runnable.push(op);
+        }
     }
 
     // The audit variant continues past per-item failures (design D8); the plain
     // `execute_operations` aborts on the first.
-    let outcomes = engine
-        .execute_operations_audit(&selected, false)
-        .await
-        .map_err(ErrorDto::from)?;
+    let outcomes = if runnable.is_empty() {
+        Vec::new()
+    } else {
+        engine
+            .execute_operations_audit(&runnable, false)
+            .await
+            .map_err(ErrorDto::from)?
+    };
 
-    Ok(build_report(&selected, &outcomes))
+    let items = slots
+        .into_iter()
+        .filter_map(|slot| match slot {
+            Ok(index) => outcomes
+                .get(index)
+                .map(|outcome| outcome_item(&runnable[index], outcome)),
+            Err(item) => Some(item),
+        })
+        .collect();
+    Ok(build_report(items))
 }
 
 // ─── Pure helpers ───────────────────────────────────────────────────────────
@@ -474,27 +504,34 @@ fn unmatched_names(scanned: &[ScannedFile], matched: &HashSet<PathBuf>) -> Vec<S
         .collect()
 }
 
-/// Builds the per-item execution report from the outcomes.
-fn build_report(selected: &[MatchOperation], outcomes: &[OperationOutcome]) -> ExecutionReportDto {
-    let mut items = Vec::with_capacity(selected.len());
-    let mut success_count = 0u32;
-    let mut failure_count = 0u32;
-
-    for (op, outcome) in selected.iter().zip(outcomes.iter()) {
-        let error = outcome.error.as_ref().map(operation_error_to_dto);
-        if outcome.applied {
-            success_count += 1;
-        } else if error.is_some() {
-            failure_count += 1;
-        }
-        items.push(ExecutionOutcomeDto {
-            subtitle_name: op.subtitle_file.name.clone(),
-            target_path: display_target(op),
-            applied: outcome.applied,
-            error,
-        });
+/// One report row for an operation the engine ran.
+fn outcome_item(op: &MatchOperation, outcome: &OperationOutcome) -> ExecutionOutcomeDto {
+    ExecutionOutcomeDto {
+        subtitle_name: op.subtitle_file.name.clone(),
+        target_path: display_target(op),
+        applied: outcome.applied,
+        error: outcome.error.as_ref().map(operation_error_to_dto),
     }
+}
 
+/// One report row for an operation refused before the engine saw it.
+fn refused_item(op: &MatchOperation) -> ExecutionOutcomeDto {
+    let target = target_path(op);
+    ExecutionOutcomeDto {
+        subtitle_name: op.subtitle_file.name.clone(),
+        target_path: target.display().to_string(),
+        applied: false,
+        error: Some(portal_document_target(&target)),
+    }
+}
+
+/// Builds the per-item execution report from finished rows.
+fn build_report(items: Vec<ExecutionOutcomeDto>) -> ExecutionReportDto {
+    let success_count = items.iter().filter(|item| item.applied).count() as u32;
+    let failure_count = items
+        .iter()
+        .filter(|item| !item.applied && item.error.is_some())
+        .count() as u32;
     ExecutionReportDto {
         outcomes: items,
         success_count,
@@ -502,13 +539,27 @@ fn build_report(selected: &[MatchOperation], outcomes: &[OperationOutcome]) -> E
     }
 }
 
-/// The path a subtitle will end up at, for display in the review and report.
+/// The path the engine will write a subtitle to.
+///
+/// Mirrors `subx-core`'s private `create_copy_task` / `create_rename_task`:
+/// copy mode always writes to `relocation_target_path`; every other mode
+/// uses it only when `requires_relocation` is set, and otherwise renames
+/// beside the subtitle. The portal guard is decided on this path, so it
+/// must be the one the engine uses, not merely the one shown.
+fn target_path(op: &MatchOperation) -> PathBuf {
+    let relocates = op.requires_relocation || op.relocation_mode == FileRelocationMode::Copy;
+    match &op.relocation_target_path {
+        Some(target) if relocates => target.clone(),
+        _ => {
+            let parent = op.subtitle_file.path.parent().unwrap_or_else(|| Path::new("."));
+            parent.join(&op.new_subtitle_name)
+        }
+    }
+}
+
+/// The same path, for display in the review and report.
 fn display_target(op: &MatchOperation) -> String {
-    let path = op.relocation_target_path.clone().unwrap_or_else(|| {
-        let parent = op.subtitle_file.path.parent().unwrap_or_else(|| Path::new("."));
-        parent.join(&op.new_subtitle_name)
-    });
-    path.display().to_string()
+    target_path(op).display().to_string()
 }
 
 // ─── Error mapping ──────────────────────────────────────────────────────────
@@ -1095,6 +1146,129 @@ mod tests {
         assert!(report.outcomes[1].error.is_some());
     }
 
+    // @covers portal-path-safety/match-execution-refuses-operations-that-target-a-portal-document-entry#a-copy-into-a-single-file-document-is-refused
+    #[tokio::test]
+    async fn a_copy_into_a_single_file_document_is_refused() {
+        let root = TempDir::new().unwrap();
+        let video_dir = root.path().join("vid");
+        let sub_dir = root.path().join("subs");
+        fs::create_dir(&video_dir).unwrap();
+        fs::create_dir(&sub_dir).unwrap();
+        let video = video_dir.join("v.mkv");
+        let subtitle = sub_dir.join("s.srt");
+        fs::write(&video, b"v").unwrap();
+        fs::write(&subtitle, SRT).unwrap();
+
+        let mut op = rename_op(&video, &subtitle, "v.srt");
+        op.relocation_mode = FileRelocationMode::Copy;
+        op.requires_relocation = true;
+        op.relocation_target_path = Some(PathBuf::from("/run/user/1000/doc/a1b2c3d4/v.srt"));
+
+        let state = Arc::new(MatchState::default());
+        let id = store_plan(&state, no_ai_engine(FileRelocationMode::Copy), vec![op]).await;
+        let report = execute_selected_impl(state, &id, &[0])
+            .await
+            .expect("a refusal is a per-item failure, not a command failure");
+
+        assert_eq!(report.success_count, 0);
+        assert_eq!(report.failure_count, 1);
+        assert!(!report.outcomes[0].applied);
+        let error = report.outcomes[0]
+            .error
+            .as_ref()
+            .expect("a refused operation must carry an error");
+        assert_eq!(error.code, "path.portal_document_target");
+        assert_eq!(
+            error.hint_code.as_deref(),
+            Some("path.portal_document_target.hint")
+        );
+        assert_eq!(fs::read_to_string(&subtitle).unwrap(), SRT);
+    }
+
+    // @covers portal-path-safety/match-execution-refuses-operations-that-target-a-portal-document-entry#a-rename-in-place-inside-a-single-file-document-is-refused
+    #[tokio::test]
+    async fn a_rename_in_place_inside_a_single_file_document_is_refused() {
+        let op = rename_op(
+            Path::new("/run/user/1000/doc/a1b2c3d4/v.mkv"),
+            Path::new("/run/user/1000/doc/a1b2c3d4/s.srt"),
+            "v.srt",
+        );
+
+        let state = Arc::new(MatchState::default());
+        let id = store_plan(&state, no_ai_engine(FileRelocationMode::None), vec![op]).await;
+        let report = execute_selected_impl(state, &id, &[0])
+            .await
+            .expect("a refusal is a per-item failure, not a command failure");
+
+        assert!(!report.outcomes[0].applied);
+        // A `core.*` code here would mean the engine was reached.
+        assert_eq!(
+            report.outcomes[0].error.as_ref().map(|e| e.code.as_str()),
+            Some("path.portal_document_target")
+        );
+    }
+
+    // @covers portal-path-safety/match-execution-refuses-operations-that-target-a-portal-document-entry#other-operations-still-execute-in-selection-order
+    #[tokio::test]
+    async fn other_operations_still_execute_in_selection_order() {
+        let dir = TempDir::new().unwrap();
+        let video = dir.path().join("v.mkv");
+        fs::write(&video, b"v").unwrap();
+        for name in ["a.srt", "c.srt"] {
+            fs::write(dir.path().join(name), SRT).unwrap();
+        }
+        let ops = vec![
+            rename_op(&video, &dir.path().join("a.srt"), "v.1.srt"),
+            rename_op(
+                Path::new("/run/user/1000/doc/a1b2c3d4/v.mkv"),
+                Path::new("/run/user/1000/doc/a1b2c3d4/s.srt"),
+                "v.2.srt",
+            ),
+            rename_op(&video, &dir.path().join("c.srt"), "v.3.srt"),
+        ];
+        let state = Arc::new(MatchState::default());
+        let id = store_plan(&state, no_ai_engine(FileRelocationMode::None), ops).await;
+
+        let report = execute_selected_impl(state, &id, &[0, 1, 2])
+            .await
+            .expect("execution must continue past a refusal");
+
+        assert_eq!(report.outcomes.len(), 3, "one row per selected operation");
+        assert!(report.outcomes[0].applied);
+        assert!(!report.outcomes[1].applied);
+        assert!(report.outcomes[2].applied);
+        assert_eq!(
+            report.outcomes[1].error.as_ref().map(|e| e.code.as_str()),
+            Some("path.portal_document_target")
+        );
+        assert_eq!(report.success_count, 2);
+        assert_eq!(report.failure_count, 1);
+        assert!(dir.path().join("v.1.srt").exists());
+        assert!(dir.path().join("v.3.srt").exists());
+    }
+
+    #[test]
+    fn the_engine_destination_decides_the_guarded_path() {
+        let mut op = rename_op(Path::new("/media/v.mkv"), Path::new("/media/s.srt"), "v.srt");
+        op.relocation_target_path = Some(PathBuf::from("/elsewhere/v.srt"));
+        assert_eq!(
+            target_path(&op),
+            PathBuf::from("/media/v.srt"),
+            "a rename ignores a relocation target it does not relocate to"
+        );
+
+        op.requires_relocation = true;
+        assert_eq!(target_path(&op), PathBuf::from("/elsewhere/v.srt"));
+
+        op.requires_relocation = false;
+        op.relocation_mode = FileRelocationMode::Copy;
+        assert_eq!(
+            target_path(&op),
+            PathBuf::from("/elsewhere/v.srt"),
+            "copy mode always writes the relocation target"
+        );
+    }
+
     // @covers match-workflow/execution-with-per-item-report#archive-extracted-subtitle-lands-beside-the-video
     #[tokio::test]
     async fn an_archive_extracted_subtitle_lands_beside_the_video() {
@@ -1260,7 +1434,13 @@ mod tests {
             op,
         ];
 
-        let report = build_report(&selected, &outcomes);
+        let report = build_report(
+            selected
+                .iter()
+                .zip(outcomes.iter())
+                .map(|(op, outcome)| outcome_item(op, outcome))
+                .collect(),
+        );
 
         assert_eq!(report.success_count, 1);
         assert_eq!(report.failure_count, 1);
