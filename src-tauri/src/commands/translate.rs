@@ -45,7 +45,7 @@ use crate::dto::{
     TranslationOutcomeDto, TranslationReportDto, TranslationStatusDto,
 };
 use crate::error::ErrorDto;
-use crate::paths::path_key;
+use crate::paths::{is_portal_document_entry, path_key, WriteGuard, CODE_PORTAL_DOCUMENT_TARGET};
 use crate::state::{AppState, TranslateExecutionInputs, TranslatePlan, TranslatePlanItem, TranslateState};
 
 // Stable error codes the frontend localizes (design D6). Kept as literals so
@@ -98,6 +98,7 @@ pub async fn preview_translation(
         state.translate_state(),
         to_paths(&paths),
         options,
+        is_portal_document_entry,
     )
     .await
 }
@@ -250,6 +251,7 @@ async fn preview_translation_impl(
     translate_state: Arc<TranslateState>,
     paths: Vec<PathBuf>,
     options: TranslateOptionsDto,
+    is_blocked: WriteGuard,
 ) -> Result<TranslatePlanDto, ErrorDto> {
     // Pin the epoch before doing any work: a cancel while the sources are
     // being collected must discard this plan rather than install it behind
@@ -306,6 +308,15 @@ async fn preview_translation_impl(
             };
 
             let output = resolve_output_path(&input, &collected, replace_mode, &target_language);
+
+            // A document-portal entry cannot hold a new file under its own
+            // name. Decided before the collision claim so a refused item does
+            // not take the slot a runnable one needs, and never lifted by
+            // `overwrite`: the existing-output branch below only runs for an
+            // item that still has no skip reason.
+            if skip_reason.is_none() && is_blocked(&output) {
+                skip_reason = Some(CODE_PORTAL_DOCUMENT_TARGET.to_string());
+            }
 
             // Only a runnable item claims its output path: an item already
             // excluded for another reason must not consume the collision slot
@@ -1024,7 +1035,24 @@ mod tests {
         paths: Vec<PathBuf>,
         options: TranslateOptionsDto,
     ) -> Result<TranslatePlanDto, ErrorDto> {
-        preview_translation_impl(service.as_ref(), Arc::clone(state), paths, options).await
+        preview_translation_impl(
+            service.as_ref(),
+            Arc::clone(state),
+            paths,
+            options,
+            is_portal_document_entry,
+        )
+        .await
+    }
+
+    /// Stand-in portal guards: a real one keys off `/run/user/<uid>/doc/…`,
+    /// which no test can create, so these name the output instead.
+    fn blocks_movie_zh_tw_output(path: &Path) -> bool {
+        path.file_name().is_some_and(|name| name == "movie.zh-TW.srt")
+    }
+
+    fn blocks_movie_srt_replace(path: &Path) -> bool {
+        path.file_name().is_some_and(|name| name == "movie.srt")
     }
 
     /// Every item's id, i.e. "translate everything the plan offers".
@@ -1366,6 +1394,57 @@ mod tests {
         let item = item_named(&allowed, "movie.srt");
         assert_eq!(item.skip_reason, None, "overwrite re-includes it");
         assert!(item.output_exists);
+    }
+
+    // @covers portal-path-safety/convert-and-translate-previews-exclude-outputs-that-are-portal-document-entries#a-translate-preview-keeps-the-exclusion-when-overwrite-is-enabled
+    #[tokio::test]
+    async fn a_translate_preview_keeps_the_exclusion_when_overwrite_is_enabled() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("movie.srt"), SRT).unwrap();
+        // Without the guard this existing output plus `overwrite` re-includes
+        // the item, as the test above shows.
+        fs::write(dir.path().join("movie.zh-TW.srt"), SRT).unwrap();
+
+        let plan = preview_translation_impl(
+            service().as_ref(),
+            Arc::new(TranslateState::default()),
+            vec![dir.path().to_path_buf()],
+            options(Some("zh-TW"), TranslateOutputModeDto::Suffix, true),
+            blocks_movie_zh_tw_output,
+        )
+        .await
+        .expect("the preview must succeed");
+
+        // The existing output is itself scanned as a second input; the
+        // guarded item is the one whose output it is.
+        let item = item_named(&plan, "movie.srt");
+        assert_eq!(
+            item.skip_reason.as_deref(),
+            Some(CODE_PORTAL_DOCUMENT_TARGET)
+        );
+        assert!(!item.output_exists);
+    }
+
+    // @covers portal-path-safety/convert-and-translate-previews-exclude-outputs-that-are-portal-document-entries#translate-replace-mode-is-excluded
+    #[tokio::test]
+    async fn translate_replace_mode_is_excluded() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("movie.srt"), SRT).unwrap();
+
+        let plan = preview_translation_impl(
+            service().as_ref(),
+            Arc::new(TranslateState::default()),
+            vec![dir.path().to_path_buf()],
+            options(Some("zh-TW"), TranslateOutputModeDto::Replace, false),
+            blocks_movie_srt_replace,
+        )
+        .await
+        .expect("the preview must succeed");
+
+        assert_eq!(
+            item_named(&plan, "movie.srt").skip_reason.as_deref(),
+            Some(CODE_PORTAL_DOCUMENT_TARGET)
+        );
     }
 
     // @covers translate-workflow/output-resolution-with-conflict-handling#colliding-output-paths-are-excluded
