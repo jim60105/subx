@@ -12,6 +12,8 @@ Inside an xdg document-portal single-file document (`/run/user/<uid>/doc/<doc-id
 - Sync apply refuses such an output path with the same code before reading or writing anything.
 - `en` and `zh-TW` strings for the code and its hint; `src/i18n/backendCodeParity.test.ts` scans the new `path.` code prefix. The wording of those strings is human-reviewed copy (design.md D7), not asserted by tests.
 
+Known gap, left as a follow-up: match move mode with `general.backup_enabled` on, when the source subtitle is itself a single-file document and the target is elsewhere. The move is correct, but the crate's backup copy is written beside the source and is stored under a hidden temporary name (design.md, Risks and Open Questions).
+
 No change to `subx-core`, to any IPC command signature or DTO, to generated bindings, or to frontend components: the existing error and skip-reason rendering already localizes any backend code.
 
 ## Capabilities

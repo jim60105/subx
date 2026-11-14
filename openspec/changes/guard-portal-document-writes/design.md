@@ -113,15 +113,25 @@ Why one shared `path.` code rather than four per-feature codes: the condition an
 In `src-tauri/src/commands/match.rs`:
 
 1. Add `use crate::paths::{is_portal_document_entry, portal_document_target};`.
-2. Split `display_target` so the path is available as a `PathBuf`:
+2. Split `display_target` so the path is available as a `PathBuf`, and make it follow the engine's own rule for choosing the destination (`subx-core` `engine.rs`: `create_copy_task` unwraps `relocation_target_path`; `create_rename_task` uses it only when `requires_relocation && relocation_target_path.is_some()`, else `old.with_file_name(new_subtitle_name)`). Every operation the engine produces sets the two fields together, so displayed paths do not change; the stricter rule only closes the case where they disagree. `FileRelocationMode` is already imported in `match.rs` and is compared with `==` by the crate itself:
 
 ```rust
-/// The path a subtitle will end up at.
+/// The path the engine will write a subtitle to.
+///
+/// Mirrors `subx-core`'s private `create_copy_task` / `create_rename_task`:
+/// copy mode always writes to `relocation_target_path`; every other mode
+/// uses it only when `requires_relocation` is set, and otherwise renames
+/// beside the subtitle. The portal guard is decided on this path, so it
+/// must be the one the engine uses, not merely the one shown.
 fn target_path(op: &MatchOperation) -> PathBuf {
-    op.relocation_target_path.clone().unwrap_or_else(|| {
-        let parent = op.subtitle_file.path.parent().unwrap_or_else(|| Path::new("."));
-        parent.join(&op.new_subtitle_name)
-    })
+    let relocates = op.requires_relocation || op.relocation_mode == FileRelocationMode::Copy;
+    match &op.relocation_target_path {
+        Some(target) if relocates => target.clone(),
+        _ => {
+            let parent = op.subtitle_file.path.parent().unwrap_or_else(|| Path::new("."));
+            parent.join(&op.new_subtitle_name)
+        }
+    }
 }
 
 /// The same path, for display in the review and report.
@@ -285,7 +295,7 @@ In `src-tauri/src/commands/sync.rs`:
     }
 ```
 
-No seam: the output path is an argument, and the default output is derived lexically by the crate's `create_default_output_path`, so tests use literal portal paths with the production classifier.
+The guard sits after the offset-limit and output-is-input checks on purpose: those refusals are cheaper to act on and equally write nothing. No seam: the output path is an argument, and the default output is derived lexically by the crate's `create_default_output_path`, so tests use literal portal paths with the production classifier.
 
 ### D6. Parity scan learns the `path.` prefix
 
@@ -322,9 +332,9 @@ The code message must stand on its own: convert and translate previews show a sk
 ## Risks / Trade-offs
 
 - [A safe in-place overwrite of a single-file document's main file is refused (translate replace mode with backups off)] → Accepted: conservative, the user is told to add the folder, and it avoids depending on unverified portal behaviour.
-- [Match move mode with backups enabled writes its backup beside a single-file-document source] → Not covered: the moved subtitle is correct and only the backup copy is hidden. Covering it needs `backup_enabled` at execution time, which the plan does not carry today. Recorded as an open question.
+- [Match move mode with backups enabled writes its backup beside a single-file-document source] → Not covered: the moved subtitle is correct and only the backup copy is hidden. Covering it needs `backup_enabled` at execution time; `MatchEngine`'s `config` field is private and the stored plan does not carry the setting today. Recorded as an open question and named as a follow-up in proposal.md.
 - [The portal changes its mount layout in a future version] → The classifier stops matching and behaviour returns to today's; the unit tests pin the layout this change targets, and `grant-flatpak-host-filesystem` keeps the default installation off portal paths altogether.
-- [The `WriteGuard` seam lets a wrapper pass the wrong function unnoticed] → Two wrappers, one obvious argument each; the classifier is exercised unsubstituted by the `paths`, match and sync tests.
+- [The `WriteGuard` seam lets a wrapper pass the wrong function unnoticed] → Two wrappers, one obvious argument each; the classifier is exercised unsubstituted by the `paths`, match and sync tests. A named `production_guard()` indirection was considered and rejected: the wrapper could still call something else, so it moves the untested line rather than removing it.
 - [A user of the default Flatpak never sees this code] → Intended: it is a safety net.
 
 ## Open Questions
