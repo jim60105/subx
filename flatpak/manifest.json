@@ -8,7 +8,9 @@
     "--share=ipc",
     "--share=network",
     "--socket=wayland",
-    "--socket=x11"
+    "--socket=x11",
+    "--filesystem=host",
+    "--filesystem=xdg-run/gvfs"
   ],
   "build-options": {
     "build-args": ["--share=network"]
