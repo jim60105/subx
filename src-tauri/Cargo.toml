@@ -22,7 +22,11 @@ tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Engine crate the subx-cli split extracted for embedders (no CLI terminal deps).
-subx-core = "1.0"
+# Pinned to a revision rather than the registry: crates.io only has 1.0.0, whose
+# `zip = "8"` pin resolves to releases carrying RUSTSEC-2026-0367/0368/0369/0429.
+# The revision is the upstream commit that moves the crate to `zip` 9; switch
+# back to `subx-core = "1"` once the matching patch release publishes.
+subx-core = { git = "https://github.com/jim60105/subx-core", rev = "eddef53759168431df6a2ae7859266fd6515b85c" }
 # Pinned to exact versions, not caret ranges: these are pre-1.0 and load-bearing
 # for every command path, so an RC bump must be a deliberate act with its own
 # diff rather than something a `cargo update` performs silently.
@@ -55,7 +59,7 @@ async-trait = "0.1"
 # Writes a real `.zip` so the archive-source scenario is tested through the
 # crate's actual extraction path, not mocked. Pinned to the same major the crate
 # resolves, so no second copy of `zip` enters the tree.
-zip = "8"
+zip = "9"
 # Serializes a complete, valid config file for the tolerant-read tests, pinned
 # to the same major the crate resolves (no second copy of `toml`).
 toml = "1"
