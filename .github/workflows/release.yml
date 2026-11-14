@@ -152,6 +152,18 @@ jobs:
       - name: Install Node dependencies
         shell: bash
         run: npm ci
+      # ort-sys 2.0.0-rc.10 (pinned by voice_activity_detector 0.2.1) copies its
+      # downloaded DLLs into `target/<triple>/release/build` and that
+      # directory's `examples`/`deps` siblings, creating none of them. The
+      # missing `examples` directory aborts the Windows build before it starts.
+      # The DLLs themselves are staged beside the executable by the
+      # `beforeBundleCommand` hook so the installer can collect them.
+      - name: Pre-create the ort-sys DLL destination directories
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p "src-tauri/target/${{ matrix.target }}/release/build/examples" \
+                   "src-tauri/target/${{ matrix.target }}/release/build/deps"
       # Deliberately no Swatinem/rust-cache per D5 to preserve the repository's Actions cache budget.
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v1
