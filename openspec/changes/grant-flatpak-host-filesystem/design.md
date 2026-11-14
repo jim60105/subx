@@ -96,9 +96,15 @@ release that changes `flatpak/manifest.json`.
 5. On the host, the subtitle carries the new name shown in the report, and the
    directory contains no file whose name starts with `.xdp-`.
 6. `flatpak documents im.chenj.subx` shows no entry that was not there in step 3.
-7. If a file-manager network mount is available, repeat steps 4 to 6 with files
+7. Start a new match, and this time drag one video file and one subtitle file
+   from the file manager onto the wizard instead of using the picker. Execute
+   in rename mode and repeat the checks of steps 5 and 6. Dropped files go
+   through the file-transfer portal, a different path from the file chooser.
+8. If a file-manager network mount is available, repeat steps 4 to 6 with files
    under `/run/user/<uid>/gvfs/`.
 ```
+
+Expected outcome of steps 5 to 7: with static access to the location, both the file chooser portal and the file-transfer portal hand over the real host path and register no document. This expectation comes from how xdg-desktop-portal registers documents only as needed by the application; it was not exercised during planning, which is why the procedure checks the picker and the drop separately. If step 7 fails while step 5 passes, the permission fixes the picker only, and that finding must be raised before the release is published.
 
 ### D5. README wording
 
@@ -108,5 +114,6 @@ Both READMEs gain a Linux Flatpak bullet in the Download list and one paragraph 
 
 - [The Flatpak sandbox no longer limits file access] → Accepted and documented in the README; equal to every other SubX build. Users who want confinement can run `flatpak override --user --nofilesystem=host im.chenj.subx` and work with folders.
 - [A location outside `host` (`/tmp`, a path under `/var` with no top-level symlink) still yields a single-file document] → Out of reach of any static permission. `guard-portal-document-writes` refuses those writes with a localized error.
-- [`xdg-run/gvfs` is unverified on real hardware] → Step 7 of the manual check; harmless if the directory does not exist.
+- [`xdg-run/gvfs` is unverified on real hardware] → Step 8 of the manual check; harmless if the directory does not exist. The README names the permission without promising verified network-share support.
+- [Drag-and-drop may not return host paths even with the permission] → Step 7 of the manual check exercises it separately; `guard-portal-document-writes` turns any remaining portal path into a refusal instead of a corrupted name.
 - [A later manifest edit drops the permission] → The D3 test fails `npm run verify`.
