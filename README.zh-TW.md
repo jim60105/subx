@@ -50,10 +50,13 @@ SubX 的預建安裝套件發布於 [GitHub Releases](https://github.com/jim6010
 - **Linux (x86_64, arm64)** — `.AppImage`、`.deb` 與 `.tar.gz` 套件。
 - **macOS (Apple Silicon arm64, Intel x86_64)** — `.dmg` 磁碟影像檔與 `.app.tar.gz` 封存檔。
 - **Windows (x86_64)** — `.msi` 安裝程式與 `.exe` 安裝檔。
+- **Linux Flatpak (x86_64)** — `subx.flatpak` 套件，以 `flatpak install ./subx.flatpak` 安裝（需要 Flathub 遠端來源提供 GNOME 執行環境）。
 
 ### 系統需求與安裝說明
 
 Linux 版本需要 `glibc` 2.39 或更高版本（適用於 Ubuntu 24.04+、Debian 13+、Fedora 40+ 或同等新版發行版）。使用較舊版本發行版的作業系統，請參考下方的[從原始碼建構](#從原始碼建構)章節。
+
+Flatpak 套件具有主機檔案系統（`--filesystem=host`）與檔案管理員放置網路掛載的目錄（`--filesystem=xdg-run/gvfs`）的讀寫權限。SubX 會在媒體檔案旁重新命名與建立字幕檔，沙箱的單一檔案授權無法安全完成這類操作。若你撤銷此權限（例如透過 Flatseal 或 `flatpak override`），請將整個資料夾加入 SubX，不要加入個別檔案。
 
 SubX 發行套件未進行數位簽署，作業系統會在首次啟動時顯示標準安全提示：
 

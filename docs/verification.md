@@ -229,6 +229,29 @@ covers cross-platform package installation and launch verification:
    - If a critical bug or packaging flaw is identified after publishing, **do not** silently replace published assets under the existing tag.
    - Edit the release notes to document the issue or yank/delete the release assets and publish a patch release (e.g. `v0.1.1`).
 
+## Manual Flatpak file-access check
+
+Not a waiver: no spec scenario depends on this. It is the human check that the
+Flatpak's file permission has its intended effect, run before publishing a
+release that changes `flatpak/manifest.json`.
+
+1. Install the bundle: `flatpak install --user ./subx.flatpak`.
+2. `flatpak info --show-permissions im.chenj.subx` lists `host` and
+   `xdg-run/gvfs` under `filesystems=`.
+3. Note the current output of `flatpak documents im.chenj.subx`.
+4. In the match wizard, add one video file and one subtitle file individually
+   (file picker, not folder picker) from a directory outside the home
+   directory, such as a mounted disk. Run the match in rename mode and execute.
+5. On the host, the subtitle carries the new name shown in the report, and the
+   directory contains no file whose name starts with `.xdp-`.
+6. `flatpak documents im.chenj.subx` shows no entry that was not there in step 3.
+7. Start a new match, and this time drag one video file and one subtitle file
+   from the file manager onto the wizard instead of using the picker. Execute
+   in rename mode and repeat the checks of steps 5 and 6. Dropped files go
+   through the file-transfer portal, a different path from the file chooser.
+8. If a file-manager network mount is available, repeat steps 4 to 6 with files
+   under `/run/user/<uid>/gvfs/`.
+
 ## Adding a feature
 
 A new change proposal carries the annotation obligation forward automatically
