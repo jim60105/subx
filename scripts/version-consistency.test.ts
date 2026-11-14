@@ -83,4 +83,33 @@ describe("version consistency across project manifests", () => {
     const resolvedLicensePath = path.resolve(rootDir, "src-tauri", licenseFile);
     expect(fs.existsSync(resolvedLicensePath), `License file at ${resolvedLicensePath} must exist`).toBe(true);
   });
+
+  // `tauri build` refuses to run when a Rust crate and its npm binding differ in
+  // major.minor, and only the release pipeline ever exercises that guard — a
+  // silent drift would therefore redden every release target at tag time.
+  it("asserts the resolved Tauri npm bindings match the Rust crates' major.minor", () => {
+    const packageLockPath = path.join(rootDir, "package-lock.json");
+    const packageLock = JSON.parse(fs.readFileSync(packageLockPath, "utf8"));
+    const cargoLockContent = fs.readFileSync(cargoLockPath, "utf8");
+
+    const bindings: ReadonlyArray<readonly [string, string]> = [
+      ["@tauri-apps/api", "tauri"],
+      ["@tauri-apps/plugin-dialog", "tauri-plugin-dialog"],
+      ["@tauri-apps/plugin-opener", "tauri-plugin-opener"],
+    ];
+
+    for (const [npmPackage, crate] of bindings) {
+      const npmVersion: unknown = packageLock.packages?.[`node_modules/${npmPackage}`]?.version;
+      const crateVersion = cargoLockContent.match(
+        new RegExp(`\\[\\[package\\]\\]\\s*\\nname = "${crate}"\\s*\\nversion = "([^"]+)"`),
+      )?.[1];
+
+      expect(npmVersion, `${npmPackage} must be resolved in package-lock.json`).toBeDefined();
+      expect(crateVersion, `${crate} must be resolved in Cargo.lock`).toBeDefined();
+      expect(
+        String(npmVersion).split(".").slice(0, 2).join("."),
+        `${npmPackage} (${npmVersion}) must match ${crate} (${crateVersion}) on major.minor or \`tauri build\` aborts`,
+      ).toBe(String(crateVersion).split(".").slice(0, 2).join("."));
+    }
+  });
 });
