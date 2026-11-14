@@ -38,17 +38,34 @@ export function stageOrtDlls(options = {}) {
     throw new Error(`${buildDir} is missing; the installer would ship without onnxruntime.dll`);
   }
 
-  const staged = fs.readdirSync(buildDir).filter((name) => name.toLowerCase().endsWith(".dll"));
+  const staged = fs
+    .readdirSync(buildDir)
+    .filter((name) => name.toLowerCase().endsWith(".dll"))
+    .filter((name) => fs.statSync(path.join(buildDir, name)).isFile());
   if (staged.length === 0) {
     throw new Error(`${buildDir} holds no DLLs; the installer would ship without onnxruntime.dll`);
   }
 
   for (const name of staged) {
-    const source = path.join(buildDir, name);
-    if (fs.statSync(source).isFile()) {
-      fs.copyFileSync(source, path.join(profileDir, name));
-    }
+    fs.copyFileSync(path.join(buildDir, name), path.join(profileDir, name));
   }
+
+  // The NSIS installer does not collect sibling DLLs the way the MSI does, so
+  // it needs an explicit hook: PREINSTALL runs after `SetOutPath $INSTDIR`.
+  const hookDir = path.join(rootDir, "src-tauri", "nsis");
+  fs.mkdirSync(hookDir, { recursive: true });
+  const preinstall = staged
+    .map((name) => `  File /a "/oname=${name}" "${path.join(profileDir, name)}"`)
+    .join("\n");
+  const preuninstall = staged.map((name) => '  Delete "$INSTDIR\\' + name + '"').join("\n");
+  fs.writeFileSync(
+    path.join(hookDir, "ort-dlls.nsh"),
+    "!macro NSIS_HOOK_PREINSTALL\n" +
+      preinstall +
+      "\n!macroend\n\n!macro NSIS_HOOK_PREUNINSTALL\n" +
+      preuninstall +
+      "\n!macroend\n",
+  );
   return staged;
 }
 

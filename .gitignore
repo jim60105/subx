@@ -36,3 +36,6 @@ junit.xml
 
 # Local git worktrees
 .worktrees/
+
+# Generated at bundle time by scripts/stage-ort-dlls.mjs
+/src-tauri/nsis/

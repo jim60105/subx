@@ -51,6 +51,11 @@ describe("stage-ort-dlls", () => {
     expect(status).toBe(0);
     expect(logged).toEqual([`stage-ort-dlls: staged onnxruntime.dll next to the executable`]);
     expect(readFileSync(path.join(profile, "onnxruntime.dll"), "utf8")).toBe("onnxruntime bytes");
+
+    const hook = readFileSync(path.join(root, "src-tauri", "nsis", "ort-dlls.nsh"), "utf8");
+    expect(hook).toContain(`File /a "/oname=onnxruntime.dll" "${path.join(profile, "onnxruntime.dll")}"`);
+    expect(hook).toContain('Delete "$INSTDIR\\onnxruntime.dll"');
+
     expect(stageOrtDlls({ triple: WINDOWS_TRIPLE, rootDir: root })).toEqual(["onnxruntime.dll"]);
   });
 
@@ -63,6 +68,7 @@ describe("stage-ort-dlls", () => {
 
     expect(stageOrtDlls({ triple: "aarch64-apple-darwin", rootDir: root })).toEqual([]);
     expect(existsSync(path.join(profile, "libonnxruntime.dylib"))).toBe(false);
+    expect(existsSync(path.join(root, "src-tauri", "nsis"))).toBe(false);
   });
 
   it("fails loudly when the build directory the bundler needs is absent", () => {
