@@ -56,7 +56,8 @@
     "translate.output_collision": "Another file already writes to this path.",
     "translate.replace_archive_forbidden": "Files extracted from an archive cannot be replaced in place.",
     "translate.unparsable": "The subtitle file could not be parsed.",
-    "translate.empty_cue_fallback": "One or more lines were left empty in the translation."
+    "translate.empty_cue_fallback": "One or more lines were left empty in the translation.",
+    "path.portal_document_target": "This location grants access to a single file only, so a new file cannot be created here."
   },
   "hints": {
     "core.retry": "Try the action again. If it keeps failing, check the technical details.",
@@ -92,6 +93,7 @@
     "translate.no_target_language.hint": "Enter a target language, or set translation.default_target_language in your configuration.",
     "translate.invalid_target_language.hint": "Remove any / or \\ characters from the target language.",
     "translate.stale_plan.hint": "Go back and prepare the translation again.",
-    "translate.ai_not_configured.hint": "Open Settings to choose an AI provider and add your key."
+    "translate.ai_not_configured.hint": "Open Settings to choose an AI provider and add your key.",
+    "path.portal_document_target.hint": "Add the folder that contains the file instead of the file itself, or allow SubX to access that folder in its Flatpak permissions."
   }
 }

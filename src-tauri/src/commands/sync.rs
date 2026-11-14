@@ -29,7 +29,7 @@ use tauri::State;
 
 use crate::dto::{SyncApplyResultDto, SyncDefaultsDto, SyncDetectionDto, SyncMethodDto};
 use crate::error::ErrorDto;
-use crate::paths::path_key;
+use crate::paths::{is_portal_document_entry, path_key, portal_document_target};
 use crate::state::{AppState, SyncState};
 
 // Stable error codes the frontend localizes (design D7). Kept as literals so
@@ -259,6 +259,12 @@ fn apply_sync_offset_impl(
     // `path_key` folds exactly where the filesystem does.
     if path_key(&output) == path_key(subtitle_path) {
         return Err(output_is_input());
+    }
+    // A document-portal entry cannot hold a new file under its own name: the
+    // portal would report the save as successful while storing it under a
+    // hidden temporary name. Refused before anything is read or written.
+    if is_portal_document_entry(&output) {
+        return Err(portal_document_target(&output));
     }
     let overwritten = output.exists();
     if overwritten && !overwrite {
@@ -691,6 +697,44 @@ mod tests {
 
         assert_eq!(PathBuf::from(&result.output_path), chosen);
         assert_eq!(first_cue_ms(&chosen), (6_000, 8_000));
+    }
+
+    // @covers portal-path-safety/sync-apply-refuses-an-output-that-is-a-portal-document-entry#an-explicit-output-inside-a-document-directory-is-refused
+    #[test]
+    fn an_explicit_output_inside_a_document_directory_is_refused() {
+        let dir = TempDir::new().unwrap();
+        let subtitle = subtitle_at(&dir, "movie.srt");
+
+        let error = apply_sync_offset_impl(
+            &service(),
+            &subtitle,
+            1_000,
+            Some(Path::new("/run/user/1000/doc/a1b2c3d4/movie_synced.srt")),
+            false,
+        )
+        .expect_err("a document-portal entry must be refused");
+
+        assert_eq!(error.code, "path.portal_document_target");
+        assert_eq!(
+            error.hint_code.as_deref(),
+            Some("path.portal_document_target.hint")
+        );
+        assert_eq!(first_cue_ms(&subtitle), (5_000, 7_000));
+    }
+
+    // @covers portal-path-safety/sync-apply-refuses-an-output-that-is-a-portal-document-entry#a-default-output-beside-a-single-file-document-is-refused-before-reading
+    #[test]
+    fn a_default_output_beside_a_single_file_document_is_refused_before_reading() {
+        let error = apply_sync_offset_impl(
+            &service(),
+            Path::new("/run/user/1000/doc/a1b2c3d4/movie.srt"),
+            1_000,
+            None,
+            false,
+        )
+        .expect_err("the refusal must not depend on the subtitle existing");
+
+        assert_eq!(error.code, "path.portal_document_target");
     }
 
     /// The in-place guard, from both directions: an output typed to equal the

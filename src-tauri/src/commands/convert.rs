@@ -35,7 +35,7 @@ use crate::dto::{
     ConvertStage,
 };
 use crate::error::ErrorDto;
-use crate::paths::path_key;
+use crate::paths::{is_portal_document_entry, path_key, WriteGuard, CODE_PORTAL_DOCUMENT_TARGET};
 use crate::state::{AppState, ConvertPlan, ConvertPlanItem, ConvertState};
 
 // Stable error codes the frontend localizes (design D7). Kept as literals so
@@ -74,6 +74,7 @@ pub async fn preview_conversion(
         state.convert_state(),
         to_paths(&paths),
         options,
+        is_portal_document_entry,
     )
     .await
 }
@@ -151,6 +152,7 @@ async fn preview_conversion_impl(
     convert_state: Arc<ConvertState>,
     paths: Vec<PathBuf>,
     options: ConvertOptionsDto,
+    is_blocked: WriteGuard,
 ) -> Result<ConvertPlanDto, ErrorDto> {
     // Pin the epoch before doing any work: a cancel while the sources are being
     // collected must discard this plan rather than install it behind the user.
@@ -181,6 +183,8 @@ async fn preview_conversion_impl(
         // it as an overwrite too would show a contradictory state.
         let skip_reason = if path_key(&output) == path_key(&input) {
             Some(CODE_ALREADY_TARGET_FORMAT.to_string())
+        } else if is_blocked(&output) {
+            Some(CODE_PORTAL_DOCUMENT_TARGET.to_string())
         } else if !claimed.insert(path_key(&output)) {
             Some(CODE_OUTPUT_COLLISION.to_string())
         } else {
@@ -680,13 +684,26 @@ mod tests {
         zip.finish().unwrap();
     }
 
+    /// A stand-in portal guard: a real one keys off `/run/user/<uid>/doc/…`,
+    /// which no test can create, so this names the output instead.
+    fn blocks_blocked_vtt(path: &Path) -> bool {
+        path.file_name().is_some_and(|name| name == "blocked.vtt")
+    }
+
     async fn preview(
         service: &Arc<dyn ConfigService>,
         state: &Arc<ConvertState>,
         paths: Vec<PathBuf>,
         options: ConvertOptionsDto,
     ) -> Result<ConvertPlanDto, ErrorDto> {
-        preview_conversion_impl(service.as_ref(), Arc::clone(state), paths, options).await
+        preview_conversion_impl(
+            service.as_ref(),
+            Arc::clone(state),
+            paths,
+            options,
+            is_portal_document_entry,
+        )
+        .await
     }
 
     /// Every item's id, i.e. "convert everything the plan offers".
@@ -867,6 +884,40 @@ mod tests {
             .collect();
         assert_eq!(excluded.len(), 1);
         assert_eq!(excluded[0].output_path, runnable[0].output_path);
+    }
+
+    // @covers portal-path-safety/convert-and-translate-previews-exclude-outputs-that-are-portal-document-entries#a-convert-preview-excludes-the-item
+    #[tokio::test]
+    async fn a_convert_preview_excludes_the_item() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("blocked.srt"), SRT).unwrap();
+        fs::write(dir.path().join("free.srt"), SRT).unwrap();
+        // The refused item's output already exists on disk, so `output_exists`
+        // below can only stay false if the refusal was decided first. This file
+        // is itself an input already in the target format; it earns its own
+        // skip reason and claims no output.
+        fs::write(dir.path().join("blocked.vtt"), "WEBVTT\n").unwrap();
+
+        let plan = preview_conversion_impl(
+            service().as_ref(),
+            Arc::new(ConvertState::default()),
+            vec![dir.path().to_path_buf()],
+            options(Some(ConvertFormatDto::Vtt), true),
+            blocks_blocked_vtt,
+        )
+        .await
+        .expect("the preview must succeed");
+
+        let blocked = item_named(&plan, "blocked.srt");
+        assert_eq!(
+            blocked.skip_reason.as_deref(),
+            Some(CODE_PORTAL_DOCUMENT_TARGET)
+        );
+        assert!(
+            !blocked.output_exists,
+            "a refused item must not also read as an overwrite: {blocked:?}"
+        );
+        assert_eq!(item_named(&plan, "free.srt").skip_reason, None);
     }
 
     // ─── Execution ──────────────────────────────────────────────────────────
