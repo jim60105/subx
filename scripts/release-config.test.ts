@@ -220,6 +220,15 @@ describe("release workflow flatpak bundle", () => {
     expect(manifest.modules[0]["build-commands"][0]).toContain("--default-toolchain 1.97.1");
   });
 
+  // @covers release-pipeline/the-flatpak-bundle-is-granted-host-file-access#the-manifest-declares-host-and-gvfs-file-access
+  it("grants read-write host and GVFS file access in the manifest", () => {
+    const finishArgs: string[] = JSON.parse(MANIFEST_RAW)["finish-args"];
+    // Exact entries: a `:ro` or `:create` suffix would be a different string.
+    expect(finishArgs).toContain("--filesystem=host");
+    expect(finishArgs).toContain("--filesystem=xdg-run/gvfs");
+    expect(finishArgs.filter((arg) => arg.startsWith("--nofilesystem"))).toEqual([]);
+  });
+
   it("verifies the required GNOME runtime refs exist in the flathub remote before building", () => {
     const job = flatpakJobRaw();
     expect(job).toMatch(/flatpak --user remote-info flathub org\.gnome\.Platform\/\/50/);

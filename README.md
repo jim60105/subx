@@ -50,10 +50,13 @@ Pre-built installation packages for SubX are available on the [GitHub Releases](
 - **Linux (x86_64, arm64)**: `.AppImage`, `.deb`, and `.tar.gz` bundles.
 - **macOS (Apple Silicon arm64, Intel x86_64)**: `.dmg` disk images and `.app.tar.gz` archives.
 - **Windows (x86_64)**: `.msi` installers and standalone `.exe` setup packages.
+- **Linux Flatpak (x86_64)**: a `subx.flatpak` bundle; install it with `flatpak install ./subx.flatpak` (requires the Flathub remote for the GNOME runtime).
 
 ### System Requirements & Installation Caveats
 
 Linux releases require `glibc` 2.39 or higher (found in Ubuntu 24.04+, Debian 13+, Fedora 40+, or equivalent modern distributions). Users on older distributions should follow the [Building from Source](#building-from-source) section below.
+
+The Flatpak bundle is granted read-write access to the host filesystem (`--filesystem=host`) and to the directory where file managers place network mounts (`--filesystem=xdg-run/gvfs`). SubX renames and creates subtitle files next to your media, which a sandboxed single-file grant cannot do safely. If you revoke this permission (for example with Flatseal or `flatpak override`), add whole folders to SubX instead of individual files.
 
 SubX distribution packages are unsigned. Operating systems will present standard security prompts on initial launch:
 
