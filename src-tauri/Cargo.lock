@@ -4718,8 +4718,9 @@ dependencies = [
 
 [[package]]
 name = "subx-core"
-version = "1.0.0"
-source = "git+https://github.com/jim60105/subx-core?rev=eddef53759168431df6a2ae7859266fd6515b85c#eddef53759168431df6a2ae7859266fd6515b85c"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "370b12c896873a82e8f0b12b25bee4d32764c5ff4f070ef357b9bc7f1b62a9e3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5409,7 +5410,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
