@@ -7,10 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-15
+
+### Added
+- The Flatpak build now requests host filesystem access (`--filesystem=host`) and file-manager network mounts (`--filesystem=xdg-run/gvfs`). Subtitles picked from the home directory, removable media or a GVFS mount keep their real host paths, so renaming no longer writes through a document-portal copy the portal can later revoke. If the permission is revoked, grant whole folders rather than individual files.
+- Operations whose destination resolves inside a document-portal document are refused or flagged: match refuses them before anything runs (the rest of the plan still applies), convert and translate previews show the affected row as excluded with a localized reason, and sync refuses such an output before reading or writing anything.
+
 ### Changed
-- Windows installers from the release pipeline once again carry the onnxruntime DLLs next to the executable. The current Cargo build-script layout leaves them one directory too deep for the MSI bundler, so a `beforeBundleCommand` hook stages them before packaging, and the NSIS installer picks them up through the generated `NSIS_HOOK_PREINSTALL` hook; a missing staging directory or an empty one now fails the release instead of producing an installer that cannot start.
-- Dependency security refresh: `vite` 7.3.8 and `vitest`/`@vitest/coverage-v8` 5.1.0 replace the advisories' vulnerable ranges (`source-map-js` lands on 1.2.2), and the Rust lockfile now resolves the patched `rustls`, `rustls-webpki`, `webpki-root-certs`, `quinn-proto`, `quinn-udp`, `h2`, `ctutils` and `zstd`/`zstd-safe`/`zstd-sys` releases, leaving both `npm audit` and `cargo audit` with no reported vulnerabilities. The npm Tauri bindings moved to the same minor lines as the refreshed crates (`@tauri-apps/api` 2.12.4, `plugin-dialog` 2.8.4, `plugin-opener` 2.7.3, `cli` 2.12.4), which `tauri build` requires. Vitest 5 also keeps the suite running on Node 26, whose global `localStorage` shadowed jsdom's under Vitest 4 and failed every DOM test once CI's `lts/*` moved to 26.
-- The engine crate returns to the published registry dependency at `subx-core` 1.0.1, a security patch that moves its archive support to `zip` 9 and refreshes the advisories against its TLS and compression stack. Archive sources whose entry names cannot be decoded are now skipped with a warning, and the backend's minimum Rust toolchain is 1.88.
+- Security refresh across the bundled stack: both dependency audits report no known vulnerabilities, the engine moves to `subx-core` 1.0.1 with patched TLS and compression libraries, and archives whose entry names cannot be decoded are skipped with a warning instead of being extracted under a raw-byte path.
+- Building the backend now requires Rust 1.88.
+
+### Fixed
+- Windows installers ship `DirectML.dll` beside `subx.exe` again; MSI and NSIS installs no longer fail at startup because the onnxruntime DLL is missing.
 
 ## [0.3.0] - 2026-09-29
 
@@ -61,7 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pinned primary action controls to fixed positions with dedicated home navigation.
 - Single-sourced application version in `package.json` with strict synchronization tests across Rust crate manifest and lockfile.
 
-[Unreleased]: https://github.com/jim60105/subx/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/jim60105/subx/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/jim60105/subx/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jim60105/subx/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/jim60105/subx/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jim60105/subx/releases/tag/v0.1.0
