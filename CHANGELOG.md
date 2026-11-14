@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- Dependency security refresh: `vite` 7.3.8 and `vitest`/`@vitest/coverage-v8` 4.1.12 replace the advisories' vulnerable ranges, and the Rust lockfile now resolves the patched `rustls`, `rustls-webpki`, `webpki-root-certs`, `quinn-proto`, `quinn-udp`, `h2`, `ctutils` and `zstd`/`zstd-safe`/`zstd-sys` releases, leaving `cargo audit` with no reported vulnerabilities.
+- Dependency security refresh: `vite` 7.3.8 and `vitest`/`@vitest/coverage-v8` 5.1.0 replace the advisories' vulnerable ranges (`source-map-js` lands on 1.2.2), and the Rust lockfile now resolves the patched `rustls`, `rustls-webpki`, `webpki-root-certs`, `quinn-proto`, `quinn-udp`, `h2`, `ctutils` and `zstd`/`zstd-safe`/`zstd-sys` releases, leaving both `npm audit` and `cargo audit` with no reported vulnerabilities. Vitest 5 also keeps the suite running on Node 26, whose global `localStorage` shadowed jsdom's under Vitest 4 and failed every DOM test once CI's `lts/*` moved to 26.
 - `subx-core` is pinned to the upstream revision that moves the crate to `zip` 9: crates.io still publishes only 1.0.0, whose `zip = "8"` pin resolves to the releases behind RUSTSEC-2026-0367/0368/0369/0429. Switch back to the registry dependency once the matching patch release publishes.
 
 ## [0.3.0] - 2026-09-29
