@@ -56,7 +56,8 @@
     "translate.output_collision": "另一個檔案已經會寫入這個路徑。",
     "translate.replace_archive_forbidden": "從壓縮檔解出的檔案無法就地取代。",
     "translate.unparsable": "無法解析這個字幕檔。",
-    "translate.empty_cue_fallback": "翻譯結果中有部分字幕行是空白的。"
+    "translate.empty_cue_fallback": "翻譯結果中有部分字幕行是空白的。",
+    "path.portal_document_target": "這個位置只授權存取單一檔案，無法在此建立新檔案。"
   },
   "hints": {
     "core.retry": "請再試一次。如果持續失敗，請查看技術細節。",
@@ -92,6 +93,7 @@
     "translate.no_target_language.hint": "請輸入目標語言，或在設定檔中設定 translation.default_target_language。",
     "translate.invalid_target_language.hint": "請移除目標語言中的 / 或 \\ 字元。",
     "translate.stale_plan.hint": "請返回上一步重新準備翻譯。",
-    "translate.ai_not_configured.hint": "請開啟設定選擇 AI 服務供應商並填入金鑰。"
+    "translate.ai_not_configured.hint": "請開啟設定選擇 AI 服務供應商並填入金鑰。",
+    "path.portal_document_target.hint": "請改為加入檔案所在的資料夾，或在 Flatpak 權限中允許 SubX 存取該資料夾。"
   }
 }

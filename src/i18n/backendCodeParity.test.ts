@@ -112,8 +112,9 @@ describe("the crate stays behind the command layer", () => {
  * `error.rs` from the crate's own `category()`; `config.<field>` codes, built
  * in `commands/config.rs` from the key being written; and per-feature
  * `<feature>.<reason>` codes, the literal constants in each feature's command
- * module. **A new feature module must add its prefix to the pattern below**, or
- * its codes ship untranslated with nothing to notice.
+ * module. Shared, cross-feature codes use the `path.` prefix and live in
+ * `src-tauri/src/paths.rs`. **A new feature module must add its prefix to the
+ * pattern below**, or its codes ship untranslated with nothing to notice.
  */
 function backendErrorCodes(): { codes: Set<string>; hints: Set<string> } {
   const codes = new Set<string>();
@@ -125,7 +126,7 @@ function backendErrorCodes(): { codes: Set<string>; hints: Set<string> } {
     // Literal codes and hint codes written out in full, e.g.
     // `const CONNECTION_TEST_HINT: &str = "config.connection_test.hint";`
     for (const match of source.matchAll(
-      /"((?:core|config|match|convert|sync|translate)\.[a-z_]+(?:\.hint)?)"/g,
+      /"((?:core|config|match|convert|sync|translate|path)\.[a-z_]+(?:\.hint)?)"/g,
     )) {
       (match[1].endsWith(".hint") ? hints : codes).add(match[1]);
     }
@@ -166,6 +167,16 @@ describe("every backend code has translations in both locales", () => {
     const resource = language === "en" ? enErrors : zhTWErrors;
     const missing = [...hints].filter((hint) => !(hint in resource.hints));
     expect(missing, `${language} is missing translations for backend hints`).toEqual([]);
+  });
+
+  // @covers portal-path-safety/the-refusal-code-is-localizable#the-parity-scan-finds-the-code-and-both-locales-translate-it
+  it("scans the shared path-guard code and finds it translated in both locales", () => {
+    expect(codes).toContain("path.portal_document_target");
+    expect(hints).toContain("path.portal_document_target.hint");
+    for (const resource of [enErrors, zhTWErrors]) {
+      expect(Object.keys(resource.codes)).toContain("path.portal_document_target");
+      expect(Object.keys(resource.hints)).toContain("path.portal_document_target.hint");
+    }
   });
 
   it("emits no translated prose from the backend at all", () => {
