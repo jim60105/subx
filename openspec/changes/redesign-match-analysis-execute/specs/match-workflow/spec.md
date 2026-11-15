@@ -42,7 +42,7 @@ Before execution, Step 4 SHALL list every selected operation as its current subt
 
 ### Requirement: Execute step resolves each row from the single report
 
-While execution runs, Step 4 SHALL show an indeterminate activity indicator and SHALL NOT mark any listed row as succeeded or failed. When the report arrives every row SHALL carry its outcome: a success marks the old name removed and the new name created, and a failure shows its localized error beneath the row. The success and failure totals SHALL be shown. Under reduced motion the final state SHALL appear without any delayed reveal.
+While execution runs, Step 4 SHALL show an indeterminate activity indicator and SHALL NOT mark any listed row as succeeded or failed. When the report arrives every row SHALL carry its outcome: a success marks the new name created and the old name removed — or unchanged when the relocation mode is copy — and a failure shows its localized error beneath the row. The success and failure totals SHALL be shown. Under reduced motion the final state SHALL appear without any delayed reveal.
 
 #### Scenario: Running shows no per-row outcome
 
@@ -51,8 +51,13 @@ While execution runs, Step 4 SHALL show an indeterminate activity indicator and 
 
 #### Scenario: A successful row resolves as removed and created
 
-- **WHEN** the report marks an operation as applied
+- **WHEN** the report marks an operation as applied under the rename or the move relocation mode
 - **THEN** its row shows the old name as a removed line and the new name as a created line, and states success in text available to assistive technology
+
+#### Scenario: A successful copy keeps the original
+
+- **WHEN** the report marks an operation as applied under the copy relocation mode
+- **THEN** its row shows the old name as a kept line, not a removed one, and the new name as a created line
 
 #### Scenario: A failed row shows its error beneath it
 
@@ -67,4 +72,4 @@ While execution runs, Step 4 SHALL show an indeterminate activity indicator and 
 #### Scenario: Reduced motion reveals the final state at once
 
 - **WHEN** the report arrives while the user prefers reduced motion
-- **THEN** every row already carries its outcome in the document, and the reduced-motion style rule removes every transition and animation delay so no row is revealed later than another
+- **THEN** the reduced-motion style rule removes every transition and animation delay, so no row is revealed later than another

@@ -141,9 +141,11 @@ export interface ExecuteRow {
 /**
  * Rows for the selected operations in plan order (`plan.videos` then `matches`).
  * With a report: outcomes arrive in ascending operation-id order, so the outcome of id `x`
- * is `report.outcomes[sortedSelectedIds.indexOf(x)]`. If `report.outcomes.length` differs from the
- * number of selected ids, the rows are built from `report.outcomes` alone, in report order
- * (`oldName = subtitleName`, `newName = baseName(targetPath)`), so no outcome is ever hidden.
+ * is `report.outcomes[sortedSelectedIds.indexOf(x)]`. The mapping is trusted only when
+ * `report.outcomes.length` equals the number of selected ids AND every mapped outcome's
+ * `subtitleName` equals its operation's `subtitleName`. Otherwise the rows are built from
+ * `report.outcomes` alone, in report order (`oldName = subtitleName`,
+ * `newName = baseName(targetPath)`), so no outcome is hidden or attributed to the wrong file.
  */
 export function buildExecuteRows(
   plan: MatchPlanDto, selectedIds: ReadonlySet<number>, report: ExecutionReportDto | null,
@@ -154,7 +156,7 @@ export function buildExecuteRows(
 
 `ExecuteStepProps` becomes `{ plan: MatchPlanDto; selectedIds: Set<number>; mode: RelocationModeDto; isExecuting: boolean; report: ExecutionReportDto | null; executeError: unknown }`. `MatchWizard.tsx` renders it when `wizard.step === "execute" && wizard.plan !== null`. In `useMatchWizard.execute`, send `[...selectedIds].sort((a, b) => a - b)`.
 
-Markup (`phase` is `report !== null ? "done" : isExecuting ? "running" : "idle"`; row `status` is `outcome === null ? "pending" : outcome.applied ? "ok" : "failed"`):
+Markup (`phase` is `report !== null ? "done" : isExecuting ? "running" : "idle"`; row `status` is `outcome === null ? "pending" : outcome.applied ? "ok" : outcome.error !== null ? "failed" : "skipped"` — the backend counts a failure only when an error is present, so an unapplied outcome without an error is shown neutrally (`·` mark, plain names, no status text) and never as a failure; `oldKind` is `mode === "copy" ? "kept" : "removed"`, because a copy leaves the original on disk):
 
 ```tsx
 <div className="execute-step" data-phase={phase}>
@@ -189,13 +191,13 @@ Markup (`phase` is `report !== null ? "done" : isExecuting ? "running" : "idle"`
           style={{ "--row": index } as CSSProperties}>
         <span className="execute-step__mark" aria-hidden="true">{status === "ok" ? "✓" : status === "failed" ? "✕" : "·"}</span>
         {status === "ok"
-          ? <DiffLine kind="removed" text={row.oldName} />
+          ? <DiffLine kind={oldKind} text={row.oldName} />
           : <span className="execute-step__name">{row.oldName}</span>}
         <span className="execute-step__arrow" aria-hidden="true">→</span>
         {status === "ok"
           ? <DiffLine kind="created" text={row.newName} />
           : <span className="execute-step__name" data-role="new">{row.newName}</span>}
-        {status !== "pending" && (
+        {(status === "ok" || status === "failed") && (
           <span className="visually-hidden">{t(status === "ok" ? "execute.report.succeeded" : "execute.report.failed")}</span>
         )}
         {row.outcome?.error != null && (
@@ -210,7 +212,7 @@ Markup (`phase` is `report !== null ? "done" : isExecuting ? "running" : "idle"`
 The progress bar has no `aria-valuenow`: it is indeterminate. `ExecuteStep.css`:
 
 ```css
-.execute-step { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--space-3); min-height: 0; overflow: hidden; }
+.execute-step { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--space-3); min-height: 0; }   /* no overflow: hidden, so a too-small window scrolls the panel instead of clipping */
 .execute-step__figure { font-size: var(--text-3xl); line-height: 1; }
 .execute-step__tally[data-result="failure"] .execute-step__figure { color: var(--del); }
 .execute-step__sweep { position: relative; flex-shrink: 0; height: 2px; overflow: hidden; background: var(--hair); }
