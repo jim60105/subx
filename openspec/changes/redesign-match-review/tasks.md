@@ -12,7 +12,7 @@ Read `design.md` first; every "D<n>" below refers to it. Prerequisites: `editori
 
 ## 3. WizardShell status note
 
-- [ ] 3.1 Implement D4 in `WizardShell.tsx` and `WizardShell.css`. In `WizardShell.test.tsx` add two unannotated tests for "A note renders beside the primary action" (the `status` element is inside `.wizard__actions-end`, is the previous element sibling of the primary button, contains no button, has `tabIndex` unset, and exposes the supplied label text) and "No note leaves the action bar unchanged" (`queryByRole("status")` inside the action bar is null). Verify: `npx vitest run src/components/WizardShell src/styles/layout.test.ts src/features/actionPlacement.test.tsx` passes.
+- [x] 3.1 Implement D4 in `WizardShell.tsx` and `WizardShell.css`. In `WizardShell.test.tsx` add two unannotated tests for "A note renders beside the primary action" (the `status` element is inside `.wizard__actions-end`, is the previous element sibling of the primary button, contains no button, has `tabIndex` unset, and exposes the supplied label text) and "No note leaves the action bar unchanged" (`queryByRole("status")` inside the action bar is null). Verify: `npx vitest run src/components/WizardShell src/styles/layout.test.ts src/features/actionPlacement.test.tsx` passes.
 
 ## 4. Review step
 

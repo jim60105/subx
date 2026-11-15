@@ -86,6 +86,12 @@
   margin-inline-start: auto;
 }
 
+/* A status figure beside the primary action, e.g. the selected count. */
+.wizard__note {
+  font-size: var(--text-xl);
+  color: var(--ink);
+}
+
 /* Visuals come from the shared `.button` ranks in buttons.css. */
 .wizard__button {
   flex-shrink: 0;
