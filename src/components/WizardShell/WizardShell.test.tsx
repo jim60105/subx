@@ -42,6 +42,32 @@ describe("WizardShell", () => {
     expect(screen.getByText("Step 3 of 4")).toBeInTheDocument();
   });
 
+  it("shows a two-digit ordinal for a completed, the active, and an upcoming step", () => {
+    const { container } = renderWithI18n(
+      <WizardShell steps={STEPS.slice(0, 3)} activeStep={1}>
+        <p>content</p>
+      </WizardShell>,
+    );
+
+    const markers = [...container.querySelectorAll(".wizard__step-marker")].map((marker) => marker.textContent);
+    expect(markers).toEqual(["01", "02", "03"]);
+    expect(screen.getAllByRole("listitem").map((item) => item.getAttribute("data-state"))).toEqual([
+      "completed",
+      "active",
+      "upcoming",
+    ]);
+  });
+
+  it("keeps the step counter in the document but visually hidden", () => {
+    renderWithI18n(
+      <WizardShell steps={STEPS} activeStep={1}>
+        <p>content</p>
+      </WizardShell>,
+    );
+
+    expect(screen.getByText("Step 2 of 4")).toHaveClass("visually-hidden");
+  });
+
   it("renders the content slot", () => {
     renderWithI18n(
       <WizardShell steps={STEPS} activeStep={0}>

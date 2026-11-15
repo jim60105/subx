@@ -70,8 +70,10 @@ export function WizardShell({
               data-state={state}
               aria-current={state === "active" ? "step" : undefined}
             >
-              <span className="wizard__step-marker" aria-hidden="true">
-                {state === "completed" ? "✓" : index + 1}
+              {/* The ordinal stays in every state; completion is carried by
+                  colour and by the visually hidden state text. */}
+              <span className="wizard__step-marker serif" aria-hidden="true">
+                {String(index + 1).padStart(2, "0")}
               </span>
               <span className="wizard__step-label">{step.label}</span>
               <span className="visually-hidden">{t(`stepState.${state}`)}</span>
@@ -80,7 +82,8 @@ export function WizardShell({
         })}
       </ol>
 
-      <p className="wizard__counter">
+      {/* Announced for assistive technology; the stepper already shows it. */}
+      <p className="wizard__counter visually-hidden">
         {t("stepCounter", { current: activeStep + 1, total: steps.length })}
       </p>
 
