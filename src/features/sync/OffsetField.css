@@ -3,9 +3,7 @@
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--hair);
 }
 
 .offset-field__label {
@@ -17,7 +15,7 @@
 .offset-field__label-text {
   font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .offset-field__input {
@@ -25,33 +23,33 @@
   padding: var(--space-2) var(--space-3);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
-  color: var(--text-primary);
-  background: var(--surface-hover);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-control);
 }
 
 .offset-field__input[aria-invalid="true"] {
-  border-color: var(--danger);
+  border-color: var(--del);
 }
 
 .offset-field__seconds {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .offset-field__hint {
   margin: 0;
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .offset-field__error {
-  padding: var(--space-2);
+  padding-block: var(--space-1);
+  padding-inline-start: var(--space-3);
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--danger);
-  background: var(--danger-surface);
-  border-radius: var(--radius-sm);
+  color: var(--del);
+  border-inline-start: 2px solid var(--del);
 }

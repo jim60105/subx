@@ -13,13 +13,13 @@
 .translate-run__title {
   margin: 0;
   font-size: var(--text-xl);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .translate-run__summary {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .translate-run__progress {
@@ -31,13 +31,13 @@
 .translate-run__progress-text {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .translate-run__elapsed {
   margin: 0;
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .translate-run__error {

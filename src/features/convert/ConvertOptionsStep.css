@@ -13,13 +13,13 @@
 .convert-options__title {
   margin: 0;
   font-size: var(--text-xl);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .convert-options__description {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .convert-options__controls {
@@ -28,9 +28,7 @@
   gap: var(--space-4);
   align-items: flex-start;
   padding: var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--hair);
 }
 
 .convert-options__field {
@@ -42,16 +40,16 @@
 .convert-options__field-label {
   font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .convert-options__select {
   padding: var(--space-2) var(--space-3);
   font-size: var(--text-sm);
-  color: var(--text-primary);
-  background: var(--surface-hover);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-control);
 }
 
 .convert-options__toggle {
@@ -68,24 +66,24 @@
 
 .convert-options__toggle-name {
   font-size: var(--text-sm);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .convert-options__toggle-hint {
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .convert-options__note {
   margin: 0;
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .convert-options__status {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .convert-options__items {
@@ -99,9 +97,7 @@
 
 .convert-options__item {
   padding: var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--hair);
 }
 
 .convert-options__item[data-excluded="true"] {
@@ -124,13 +120,13 @@
 
 .convert-options__input {
   font-size: var(--text-sm);
-  color: var(--text-primary);
+  color: var(--ink);
   overflow-wrap: anywhere;
 }
 
 .convert-options__output {
   font-size: var(--text-xs);
-  color: var(--text-secondary);
+  color: var(--ink-2);
   overflow-wrap: anywhere;
 }
 
@@ -138,15 +134,15 @@
   flex-shrink: 0;
   padding: var(--space-1) var(--space-2);
   font-size: var(--text-xs);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
 }
 
 .convert-options__flag--excluded {
-  color: var(--text-muted);
-  background: var(--surface-hover);
+  color: var(--ink-3);
+  background: var(--paper-2);
 }
 
 .convert-options__flag--overwrite {
-  color: var(--accent-text);
-  background: var(--accent-gradient-soft);
+  color: var(--accent-ink);
+  background: var(--paper-2);
 }

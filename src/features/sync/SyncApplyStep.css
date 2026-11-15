@@ -13,13 +13,13 @@
 .sync-apply__title {
   margin: 0;
   font-size: var(--text-xl);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .sync-apply__summary {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .sync-apply__field {
@@ -31,23 +31,23 @@
 .sync-apply__field-label {
   font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .sync-apply__input {
   padding: var(--space-2) var(--space-3);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
-  color: var(--text-primary);
-  background: var(--surface-hover);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-control);
 }
 
 .sync-apply__note {
   margin: 0;
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .sync-apply__error {
@@ -61,27 +61,26 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--space-4);
-  background: var(--success-surface);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  padding-block: var(--space-2);
+  padding-inline-start: var(--space-3);
+  border-inline-start: 2px solid var(--add);
 }
 
 .sync-apply__report-title {
   margin: 0;
   font-size: var(--text-lg);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .sync-apply__report-path {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
   overflow-wrap: anywhere;
 }
 
 .sync-apply__report-flag {
   margin: 0;
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }

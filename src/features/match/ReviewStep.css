@@ -13,18 +13,18 @@
 .review-step__title {
   margin: 0;
   font-size: var(--text-xl);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .review-step__description {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .review-step__empty {
   font-size: var(--text-sm);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .review-step__languages {
@@ -38,26 +38,25 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-1) var(--space-3);
-  color: var(--text-secondary);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-pill);
+  color: var(--ink-2);
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-control);
   font-size: var(--text-sm);
   cursor: pointer;
   transition: background var(--motion-fast) var(--ease-out);
 }
 
 .review-step__language:hover {
-  background: var(--surface-hover);
+  background: var(--paper-2);
 }
 
 .review-step__language[aria-checked="true"] {
-  color: var(--accent-text);
+  color: var(--accent-ink);
 }
 
 .review-step__language[aria-checked="mixed"] {
-  background: var(--surface-hover);
-  border-color: var(--accent-text);
+  background: var(--paper-2);
+  border-color: var(--accent-ink);
 }
 
 .review-step__language-count {
@@ -73,7 +72,7 @@
 .review-step__video {
   margin: 0;
   font-size: var(--text-base);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .review-step__operations {
@@ -87,9 +86,7 @@
 
 .review-step__operation {
   padding: var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--hair);
 }
 
 .review-step__operation-main {
@@ -108,39 +105,37 @@
 
 .review-step__subtitle {
   font-size: var(--text-sm);
-  color: var(--text-primary);
+  color: var(--ink);
   overflow-wrap: anywhere;
 }
 
 .review-step__target {
   font-size: var(--text-xs);
-  color: var(--text-secondary);
+  color: var(--ink-2);
   overflow-wrap: anywhere;
 }
 
 .review-step__confidence {
   flex-shrink: 0;
   font-size: var(--text-xs);
-  color: var(--accent-text);
+  color: var(--accent-ink);
 }
 
 .review-step__reasoning {
   margin-top: var(--space-2);
   font-size: var(--text-xs);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .review-step__unmatched {
   padding: var(--space-3);
   font-size: var(--text-sm);
-  color: var(--text-secondary);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  color: var(--ink-2);
+  border-bottom: 1px solid var(--hair);
 }
 
 .review-step__unmatched-title {
   margin: 0 0 var(--space-2);
   font-size: var(--text-sm);
-  color: var(--text-primary);
+  color: var(--ink);
 }

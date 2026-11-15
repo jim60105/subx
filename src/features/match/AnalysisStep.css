@@ -13,13 +13,13 @@
 .analysis-step__title {
   margin: 0;
   font-size: var(--text-xl);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .analysis-step__description {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .analysis-step__stages {
@@ -34,17 +34,15 @@
 .analysis-step__stage {
   padding: var(--space-2) var(--space-4);
   font-size: var(--text-sm);
-  color: var(--text-muted);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  color: var(--ink-3);
+  border-bottom: 1px solid var(--hair);
 }
 
 .analysis-step__stage[data-state="active"] {
-  color: var(--text-on-accent);
-  background: var(--accent-gradient-strong);
+  color: var(--on-ink);
+  background: var(--ink);
 }
 
 .analysis-step__stage[data-state="done"] {
-  color: var(--accent-text);
+  color: var(--accent-ink);
 }

@@ -17,10 +17,8 @@ body {
   font-family: var(--font-sans);
   font-size: var(--text-base);
   line-height: 1.55;
-  color: var(--text-primary);
-  background-color: var(--bg-base);
-  background-image: var(--bg-gradient);
-  background-attachment: fixed;
+  color: var(--ink);
+  background-color: var(--paper);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -38,15 +36,8 @@ button {
 
 /* A single visible focus treatment for every interactive element. */
 :focus-visible {
-  outline: 2px solid var(--focus-ring);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-.gradient-text {
-  background: var(--accent-gradient-strong);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
 }
 
 /* Visible only to screen readers. */

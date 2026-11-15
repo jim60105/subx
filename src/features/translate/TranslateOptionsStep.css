@@ -13,13 +13,13 @@
 .translate-options__title {
   margin: 0;
   font-size: var(--text-xl);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .translate-options__description {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .translate-options__controls {
@@ -27,9 +27,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
   padding: var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--hair);
 }
 
 .translate-options__field {
@@ -45,21 +43,21 @@
 .translate-options__field-label {
   font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .translate-options__field-hint {
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .translate-options__input-text {
   padding: var(--space-2) var(--space-3);
   font-size: var(--text-sm);
-  color: var(--text-primary);
-  background: var(--surface-hover);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-control);
 }
 
 .translate-options__textarea {
@@ -67,11 +65,11 @@
   padding: var(--space-2) var(--space-3);
   font: inherit;
   font-size: var(--text-sm);
-  color: var(--text-primary);
+  color: var(--ink);
   resize: vertical;
-  background: var(--surface-hover);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  background: var(--paper);
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-control);
 }
 
 .translate-options__mode {
@@ -81,9 +79,7 @@
   align-items: center;
   padding: var(--space-3);
   margin: 0;
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--hair);
 }
 
 .translate-options__radio {
@@ -91,7 +87,7 @@
   gap: var(--space-2);
   align-items: center;
   font-size: var(--text-sm);
-  color: var(--text-primary);
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -99,7 +95,7 @@
   flex-basis: 100%;
   margin: 0;
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .translate-options__toggle {
@@ -117,24 +113,24 @@
 
 .translate-options__toggle-name {
   font-size: var(--text-sm);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .translate-options__toggle-hint {
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .translate-options__note {
   margin: 0;
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .translate-options__status {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .translate-options__items {
@@ -148,9 +144,7 @@
 
 .translate-options__item {
   padding: var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--hair);
 }
 
 .translate-options__item[data-excluded="true"] {
@@ -173,34 +167,34 @@
 
 .translate-options__input {
   font-size: var(--text-sm);
-  color: var(--text-primary);
+  color: var(--ink);
   overflow-wrap: anywhere;
 }
 
 .translate-options__output {
   font-size: var(--text-xs);
-  color: var(--text-secondary);
+  color: var(--ink-2);
   overflow-wrap: anywhere;
 }
 
 .translate-options__cues {
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .translate-options__flag {
   flex-shrink: 0;
   padding: var(--space-1) var(--space-2);
   font-size: var(--text-xs);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
 }
 
 .translate-options__flag--excluded {
-  color: var(--text-muted);
-  background: var(--surface-hover);
+  color: var(--ink-3);
+  background: var(--paper-2);
 }
 
 .translate-options__flag--overwrite {
-  color: var(--accent-text);
-  background: var(--accent-gradient-soft);
+  color: var(--accent-ink);
+  background: var(--paper-2);
 }

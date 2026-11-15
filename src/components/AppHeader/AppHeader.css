@@ -5,52 +5,64 @@
   gap: var(--space-4);
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4) var(--space-6);
-  background: var(--surface);
-  backdrop-filter: var(--surface-blur);
-  border-bottom: 1px solid var(--surface-border);
-  box-shadow: var(--shadow-panel);
+  padding: var(--space-3) var(--space-6);
+  background: var(--paper);
+  border-bottom: 2px solid var(--ink);
   user-select: none;
+}
+
+/* `SubX / <current screen>`; the current title is what gives way first. */
+.app-header__crumb {
+  display: flex;
+  min-width: 0;
+  gap: var(--space-3);
+  align-items: baseline;
 }
 
 .app-header__brand {
   display: flex;
-  gap: var(--space-3);
+  flex-shrink: 0;
   align-items: baseline;
   min-height: var(--control-height);
   box-sizing: border-box;
 }
 
 /*
- * The brand is the only way home, so on feature screens it is a real button.
- * It keeps the plain-text look — a bordered box here would compete with the
+ * The brand is the way home, so on feature screens it is a real button. It
+ * keeps the plain-text look — a bordered box here would compete with the
  * wizard's own primary action for attention — and signals itself on hover.
  */
 .app-header__brand--link {
   padding: 0;
+  color: var(--ink);
   cursor: pointer;
   background: none;
   border: none;
-  border-radius: var(--radius-md);
-  transition: opacity var(--motion-fast) var(--ease-out);
+  border-radius: var(--radius-control);
 }
 
-.app-header__brand--link:hover {
-  opacity: 0.75;
+.app-header__brand--link:hover .app-header__name {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 
 .app-header__name {
   font-size: var(--text-xl);
-  font-weight: 700;
+  line-height: var(--control-height);
   letter-spacing: -0.01em;
 }
 
-.app-header__tagline {
-  max-width: 16vw;
+.app-header__slash {
+  flex-shrink: 0;
+  color: var(--ink-3);
+}
+
+.app-header__current {
   min-width: 0;
   overflow: hidden;
-  font-size: var(--text-sm);
-  color: var(--text-muted);
+  font-size: var(--text-lg);
+  color: var(--ink-2);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -58,7 +70,7 @@
 .app-header__version {
   flex-shrink: 0;
   margin-inline: var(--space-3);
-  color: var(--text-secondary);
+  color: var(--ink-2);
   font-size: var(--text-xs);
   user-select: text;
   white-space: nowrap;
@@ -66,39 +78,41 @@
 
 .app-header__controls {
   display: flex;
+  flex-shrink: 0;
   gap: var(--space-2);
   align-items: center;
+}
+
+/* Language, theme, and settings read as borderless text controls. */
+.app-header__settings,
+.app-header .preference-select__trigger {
+  min-height: var(--control-height);
+  color: var(--ink-2);
+  background: none;
+  border: none;
 }
 
 .app-header__settings {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
-  justify-content: center;
-  width: var(--control-height);
-  height: var(--control-height);
   box-sizing: border-box;
-  padding: 0;
-  color: var(--text-secondary);
+  padding: 0 var(--space-2);
+  font-size: var(--text-sm);
   cursor: pointer;
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
-  transition:
-    color var(--motion-fast) var(--ease-out),
-    background-color var(--motion-fast) var(--ease-out),
-    border-color var(--motion-fast) var(--ease-out);
+  border-radius: var(--radius-control);
+  transition: color var(--motion-fast) var(--ease-out);
 }
 
-.app-header__settings:hover {
-  color: var(--accent-text);
-  background: var(--surface-hover);
-  border-color: var(--surface-border-hover);
+.app-header__settings:hover,
+.app-header .preference-select__trigger:hover {
+  color: var(--ink);
+  background: none;
 }
 
 .app-header__separator {
   width: 1px;
-  height: 20px;
-  background: var(--surface-border);
+  height: 16px;
+  background: var(--ink);
   flex-shrink: 0;
 }

@@ -16,7 +16,7 @@
   height: var(--titlebar-btn-size);
   box-sizing: border-box;
   padding: 0;
-  color: var(--text-secondary);
+  color: var(--ink-2);
   cursor: pointer;
   background: transparent;
   border: none;
@@ -27,17 +27,17 @@
 }
 
 .window-controls__btn:hover {
-  color: var(--text-primary);
-  background: var(--surface-hover);
+  color: var(--ink);
+  background: var(--paper-2);
 }
 
 .window-controls__btn:active {
-  background: var(--surface-border);
+  background: var(--hair);
 }
 
 /* Close button danger hover */
 .window-controls__btn--close:hover {
-  color: var(--text-on-accent);
+  color: var(--on-ink);
   background: var(--titlebar-close-hover);
 }
 

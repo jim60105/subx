@@ -13,24 +13,22 @@
 .sync-inputs__title {
   margin: 0;
   font-size: var(--text-xl);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .sync-inputs__description {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .sync-inputs__dropzone {
   padding: var(--space-4);
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
   text-align: center;
-  background: var(--surface);
-  border: 1px dashed var(--surface-border);
-  border-radius: var(--radius-lg);
+  border: 1px dashed var(--ink-3);
 }
 
 .sync-inputs__slots {
@@ -44,33 +42,31 @@
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--hair);
 }
 
 .sync-inputs__slot-label {
   font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .sync-inputs__slot-hint {
   margin: 0;
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .sync-inputs__slot-empty {
   margin: var(--space-1) 0;
   font-size: var(--text-sm);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .sync-inputs__slot-chosen {
   margin: var(--space-1) 0;
   font-size: var(--text-sm);
-  color: var(--text-primary);
+  color: var(--ink);
   overflow-wrap: anywhere;
 }
 
@@ -81,27 +77,8 @@
   margin-top: auto;
 }
 
-.sync-inputs__button {
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  cursor: pointer;
-  background: var(--surface-hover);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
-}
-
-.sync-inputs__clear {
-  padding: var(--space-2);
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  cursor: pointer;
-  background: none;
-  border: none;
-}
-
 .sync-inputs__note {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
