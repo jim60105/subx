@@ -15,6 +15,16 @@ export interface WizardNavAction {
   disabled?: boolean;
   /** Omitted only by a disabled placeholder, such as an in-progress label. */
   onClick?: () => void;
+  /**
+   * Short status rendered directly before the control, such as how many items
+   * the primary action will act on. Honoured on `next` only.
+   */
+  note?: {
+    /** Visible figure, e.g. "12 / 14". */
+    text: string;
+    /** Accessible wording that states the figure in words. */
+    label: string;
+  };
 }
 
 interface WizardShellProps {
@@ -110,6 +120,16 @@ export function WizardShell({
             >
               {secondary.label}
             </button>
+          )}
+          {/* A polite status, not a control: it sits beside the primary
+              action without taking a slot or a tab stop of its own. */}
+          {next?.note && (
+            <span className="wizard__note" role="status">
+              <span className="wizard__note-text serif" aria-hidden="true">
+                {next.note.text}
+              </span>
+              <span className="visually-hidden">{next.note.label}</span>
+            </span>
           )}
           {next && (
             <button

@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithI18n, setupI18n } from "../../test/renderWithI18n";
@@ -195,6 +195,47 @@ describe("WizardShell", () => {
     const bar = container.querySelector(".wizard__actions");
     expect(content?.contains(bar ?? null)).toBe(false);
     expect(bar?.parentElement).toBe(content?.parentElement);
+  });
+
+  // @covers app-shell/primary-action-can-carry-a-status-note#a-note-renders-beside-the-primary-action
+  it("renders a note beside the primary action as a non-focusable status", () => {
+    const { container } = renderWithI18n(
+      <WizardShell
+        steps={STEPS}
+        activeStep={2}
+        back={{ label: "Back", onClick: vi.fn() }}
+        next={{ label: "Continue", onClick: vi.fn(), note: { text: "12 / 14", label: "12 of 14 selected" } }}
+      >
+        <p>content</p>
+      </WizardShell>,
+    );
+
+    const end = container.querySelector(".wizard__actions-end");
+    const note = screen.getByRole("status");
+    expect(end?.contains(note)).toBe(true);
+    expect(note.nextElementSibling).toBe(screen.getByRole("button", { name: "Continue" }));
+    expect(note.querySelector("button")).toBeNull();
+    expect(note).not.toHaveAttribute("tabindex");
+    expect(note).toHaveTextContent("12 of 14 selected");
+    expect(screen.getByText("12 / 14")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  // @covers app-shell/primary-action-can-carry-a-status-note#no-note-leaves-the-action-bar-unchanged
+  it("renders no status in the action bar when the primary action has no note", () => {
+    const { container } = renderWithI18n(
+      <WizardShell
+        steps={STEPS}
+        activeStep={2}
+        back={{ label: "Back", onClick: vi.fn(), note: { text: "1", label: "ignored" } }}
+        next={{ label: "Continue", onClick: vi.fn() }}
+      >
+        <p>content</p>
+      </WizardShell>,
+    );
+
+    const bar = container.querySelector(".wizard__actions") as HTMLElement;
+    expect(within(bar).queryByRole("status")).toBeNull();
+    expect(container.querySelector(".wizard__actions-end")?.children).toHaveLength(1);
   });
 
   it("renders a disabled placeholder that carries no handler", async () => {

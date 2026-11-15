@@ -82,6 +82,15 @@ export function MatchWizard({ onOpenSettings }: MatchWizardProps) {
       label: t("review.execute"),
       disabled: wizard.selectedCount === 0,
       onClick: wizard.toExecute,
+      // The whole selection, whatever the ledger filter hides, so the user
+      // always sees what Continue will carry forward.
+      note: {
+        text: `${wizard.selectedCount} / ${wizard.totalOperations}`,
+        label: t("review.selectedCount", {
+          count: wizard.selectedCount,
+          total: wizard.totalOperations,
+        }),
+      },
     };
   } else if (wizard.step === "execute") {
     back = {
