@@ -8,7 +8,7 @@ The end-to-end GUI translation flow: multi-source selection with a cue-count pre
 
 ### Requirement: Multi-source selection with cue-count preview
 
-The Translate wizard SHALL accept multiple sources — folders, individual subtitle files, and archives — via drag-and-drop or a browse dialog, and SHALL show the subtitle files the scan found in a single list, each exactly once with its cue count, so the user can gauge the size of the AI job before any request is sent. When the same file is reachable through more than one source, it SHALL be listed once and attributed to the first source that produced it. Unparsable files SHALL be listed as such rather than silently dropped.
+The Translate wizard SHALL accept multiple sources — folders, subtitle files and archives — by drag-and-drop or a browse dialog, and SHALL show the subtitles the scan found in a single list, each once with its cue count, before any AI request is sent. A file reachable through several sources SHALL be listed once, attributed to the first source that produced it. Unparsable files SHALL be listed as such rather than silently dropped.
 
 #### Scenario: Mixed sources are scanned with cue counts
 
@@ -100,7 +100,7 @@ The plan SHALL resolve each output before execution: by default `<stem>.<target-
 
 ### Requirement: Batch execution with per-file progress, cancellation, and per-item report
 
-Execution SHALL translate the selected items one by one, reporting progress over an IPC channel: the current file's index, total and name, plus the batch-level detail required by *Batch-level progress reporting*. The run display SHALL list every selected file as a row and SHALL show the current file in a status line. A per-file failure SHALL NOT abort the batch. Cancellation SHALL stop the run, leaving already-written outputs in place; the file in flight when cancellation lands is abandoned unwritten, and the abandoned file and every file that never started SHALL be reported with the cancelled outcome before the final finished event. The final report SHALL list every item's outcome. Translation SHALL preserve cue timing and count.
+Execution SHALL translate the selected items one by one, reporting each file's index, total and name over an IPC channel with the detail of *Batch-level progress reporting*, and SHALL show each selected file as a row and the current one in a status line. A per-file failure SHALL NOT abort the batch. Cancellation SHALL stop the run, keeping written outputs and abandoning the file in flight unwritten. The final report SHALL list each item's outcome; translation SHALL preserve cue timing and count.
 
 #### Scenario: Per-file progress is reported
 
