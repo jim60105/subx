@@ -12,6 +12,7 @@ import { WizardShell } from "../../src/components/WizardShell/WizardShell";
 import { ConvertOptionsStep } from "../../src/features/convert/ConvertOptionsStep";
 import { ConvertRunStep } from "../../src/features/convert/ConvertRunStep";
 import { ConvertSourcesStep } from "../../src/features/convert/ConvertSourcesStep";
+import { CONVERT_STEPS } from "../../src/features/convert/useConvertWizard";
 import { AnalysisStep } from "../../src/features/match/AnalysisStep";
 import { ExecuteStep } from "../../src/features/match/ExecuteStep";
 import { ReviewStep } from "../../src/features/match/ReviewStep";
@@ -25,6 +26,7 @@ import { TranslateOptionsStep } from "../../src/features/translate/TranslateOpti
 import { TranslateReportStep } from "../../src/features/translate/TranslateReportStep";
 import { TranslateRunStep } from "../../src/features/translate/TranslateRunStep";
 import { TranslateSourcesStep } from "../../src/features/translate/TranslateSourcesStep";
+import { TRANSLATE_STEPS } from "../../src/features/translate/useTranslateWizard";
 import {
   CONVERT_PLAN,
   TRANSLATE_PLAN,
@@ -35,11 +37,15 @@ import {
   TRANSLATE_REPORT,
 } from "../../src/test/screenFixtures";
 import type {
+  ConvertFormatDto,
+  ConvertPlanDto,
   ExecutionReportDto,
   MatchOperationDto,
   MatchPlanDto,
   MatchStage,
   RelocationModeDto,
+  TranslateOutputModeDto,
+  TranslatePlanDto,
 } from "../../src/types/ipc";
 
 const noop = () => {};
@@ -307,6 +313,211 @@ function MatchExecuteView() {
   );
 }
 
+/** Three sources in two folders; removal is live so the strip → large return can be judged. */
+const CONVERT_SOURCES = [
+  "/media/Frieren/Frieren.S01E01.1080p.tc.srt",
+  "/media/Frieren/Frieren.S01E02.1080p.tc.srt",
+  "/downloads/subs/Frieren.S01.ass.zip",
+];
+
+/** Convert step 1 inside the real wizard frame. */
+function ConvertSourcesView() {
+  const { t } = useTranslation("convert");
+  const [sources, setSources] = useState(CONVERT_SOURCES);
+  return (
+    <WizardShell
+      steps={CONVERT_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }))}
+      activeStep={0}
+      next={{ label: t("sources.continue"), disabled: sources.length === 0, onClick: noop }}
+    >
+      <ConvertSourcesStep
+        sources={sources}
+        scan={sources.length === 0 ? null : { subtitleCount: 26 }}
+        isScanning={false}
+        scanError={undefined}
+        onBrowseFiles={noop}
+        onBrowseFolder={noop}
+        onRemoveSources={(paths) => setSources((current) => current.filter((path) => !paths.includes(path)))}
+      />
+    </WizardShell>
+  );
+}
+
+/**
+ * Four items: runnable (with a long output path), overwrite-flagged,
+ * already in the target format, and colliding with another output.
+ */
+const CONVERT_SAMPLE_PLAN: ConvertPlanDto = {
+  planId: "preview-convert",
+  targetFormat: "vtt",
+  keepOriginal: true,
+  items: [
+    {
+      id: 0,
+      inputName: "[Sub] Frieren Beyond Journey's End 01 [WEB 1080p HEVC AAC][Traditional Chinese].srt",
+      inputPath: "/media/Frieren/[Sub] Frieren Beyond Journey's End 01 [WEB 1080p HEVC AAC][Traditional Chinese].srt",
+      outputPath:
+        "/media/Frieren/Season 1/Subtitles/[Sub] Frieren Beyond Journey's End 01 [WEB 1080p HEVC AAC][Traditional Chinese].vtt",
+      outputExists: false,
+      skipReason: null,
+    },
+    {
+      id: 1,
+      inputName: "Frieren.S01E02.tc.srt",
+      inputPath: "/media/Frieren/Frieren.S01E02.tc.srt",
+      outputPath: "/media/Frieren/Frieren.S01E02.tc.vtt",
+      outputExists: true,
+      skipReason: null,
+    },
+    {
+      id: 2,
+      inputName: "Frieren.S01E03.tc.vtt",
+      inputPath: "/media/Frieren/Frieren.S01E03.tc.vtt",
+      outputPath: "/media/Frieren/Frieren.S01E03.tc.vtt",
+      outputExists: false,
+      skipReason: "convert.already_target_format",
+    },
+    {
+      id: 3,
+      inputName: "Frieren.S01E02.tc.ass",
+      inputPath: "/media/Frieren/Frieren.S01E02.tc.ass",
+      outputPath: "/media/Frieren/Frieren.S01E02.tc.vtt",
+      outputExists: false,
+      skipReason: "convert.output_collision",
+    },
+  ],
+};
+
+/** Convert step 2 inside the real wizard frame; `?keep=0` starts with keep-original off. */
+function ConvertOptionsView() {
+  const { t } = useTranslation("convert");
+  const [format, setFormat] = useState<ConvertFormatDto>("vtt");
+  const [keepOriginal, setKeepOriginal] = useState(params.get("keep") !== "0");
+  const [selected, setSelected] = useState(() => new Set([0, 1]));
+  const toggle = (id: number) =>
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  return (
+    <WizardShell
+      steps={CONVERT_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }))}
+      activeStep={1}
+      back={{ label: t("options.back"), onClick: noop }}
+      next={{ label: t("options.continue"), disabled: selected.size === 0, onClick: noop }}
+    >
+      <ConvertOptionsStep
+        targetFormat={format}
+        keepOriginal={keepOriginal}
+        plan={{ ...CONVERT_SAMPLE_PLAN, targetFormat: format, keepOriginal }}
+        isPreviewing={false}
+        previewError={undefined}
+        selectedIds={selected}
+        onFormatChange={setFormat}
+        onKeepOriginalChange={setKeepOriginal}
+        onToggle={toggle}
+      />
+    </WizardShell>
+  );
+}
+
+/** Convert step 3 before starting, with two items selected; `?keep=0` turns keep-original off. */
+function ConvertRunView() {
+  const { t } = useTranslation("convert");
+  const keepOriginal = params.get("keep") !== "0";
+  return (
+    <WizardShell
+      steps={CONVERT_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }))}
+      activeStep={2}
+      next={{ label: t("run.start"), onClick: noop }}
+    >
+      <ConvertRunStep
+        targetFormat="vtt"
+        selectedCount={2}
+        keepOriginal={keepOriginal}
+        plan={{ ...CONVERT_SAMPLE_PLAN, keepOriginal }}
+        selectedIds={new Set([0, 1])}
+        isConverting={false}
+        progress={null}
+        report={null}
+        convertError={undefined}
+      />
+    </WizardShell>
+  );
+}
+
+/** Three items, the third excluded because its output already exists. */
+function translateSamplePlan(mode: TranslateOutputModeDto): TranslatePlanDto {
+  const item = (id: number, episode: string, extra: Partial<TranslatePlanDto["items"][number]> = {}) => {
+    const inputPath = `/media/Frieren/Frieren.S01E${episode}.ja.srt`;
+    return {
+      id,
+      inputName: `Frieren.S01E${episode}.ja.srt`,
+      inputPath,
+      outputPath: mode === "replace" ? inputPath : `/media/Frieren/Frieren.S01E${episode}.ja.zh-TW.srt`,
+      cueCount: 300 + id * 17,
+      outputExists: false,
+      skipReason: null,
+      ...extra,
+    };
+  };
+  return {
+    planId: "preview-translate",
+    targetLanguage: "zh-TW",
+    outputMode: mode,
+    items: [
+      item(0, "01"),
+      item(1, "02"),
+      item(2, "03", mode === "suffix" ? { outputExists: true, skipReason: "translate.output_exists" } : {}),
+    ],
+  };
+}
+
+/** Translate step 2 inside the real wizard frame; `?mode=replace` starts in replace mode. */
+function TranslateOptionsView() {
+  const { t } = useTranslation("translate");
+  const [mode, setMode] = useState<TranslateOutputModeDto>(params.get("mode") === "replace" ? "replace" : "suffix");
+  const [overwrite, setOverwrite] = useState(false);
+  const [selected, setSelected] = useState(() => new Set([0, 1]));
+  const toggle = (id: number) =>
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  return (
+    <WizardShell
+      steps={TRANSLATE_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }))}
+      activeStep={1}
+      back={{ label: t("options.back"), onClick: noop }}
+      next={{ label: t("options.continue"), disabled: selected.size === 0, onClick: noop }}
+    >
+      <TranslateOptionsStep
+        plan={translateSamplePlan(mode)}
+        isPreviewing={false}
+        previewError={undefined}
+        targetLanguage="zh-TW"
+        sourceLanguage=""
+        context=""
+        glossaryText=""
+        outputMode={mode}
+        overwrite={overwrite}
+        selectedIds={selected}
+        onTargetLanguageChange={noop}
+        onSourceLanguageChange={noop}
+        onContextChange={noop}
+        onGlossaryTextChange={noop}
+        onOutputModeChange={setMode}
+        onOverwriteChange={setOverwrite}
+        onToggle={toggle}
+      />
+    </WizardShell>
+  );
+}
+
 export const VIEWS: Record<string, () => JSX.Element> = {
   app: () => <App />,
   SourcesStep: () => (
@@ -327,6 +538,10 @@ export const VIEWS: Record<string, () => JSX.Element> = {
   "match-review": () => <MatchReviewView />,
   "match-analysis": () => <MatchAnalysisView />,
   "match-execute": () => <MatchExecuteView />,
+  "convert-sources": () => <ConvertSourcesView />,
+  "convert-options": () => <ConvertOptionsView />,
+  "convert-run": () => <ConvertRunView />,
+  "translate-options": () => <TranslateOptionsView />,
   AnalysisStep: () => <AnalysisStep stage="analyzing" error={undefined} scan={{ videoCount: 1, subtitleCount: 1 }} />,
   ReviewStep: () => (
     <ReviewStep plan={REVIEW_PLAN} selectedIds={new Set([0, 1, 2])} onToggle={noop} onToggleLanguage={noop} />

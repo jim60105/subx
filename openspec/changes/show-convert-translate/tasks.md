@@ -21,8 +21,8 @@ Read `design.md` first; every "D<n>" below refers to it. Prerequisites: `editori
 
 ## 4. Gates, preview, and human review
 
-- [ ] 4.1 Update `src/i18n/hardCodedStrings.test.tsx` per D6. Verify: `npx vitest run src/i18n src/styles src/features/actionPlacement.test.tsx` passes.
-- [ ] 4.2 Add the four preview views per D7. Verify: `npx tsc --noEmit` passes.
+- [x] 4.1 Update `src/i18n/hardCodedStrings.test.tsx` per D6. Verify: `npx vitest run src/i18n src/styles src/features/actionPlacement.test.tsx` passes.
+- [x] 4.2 Add the four preview views per D7. Verify: `npx tsc --noEmit` passes.
 - [ ] 4.3 With `npm run dev` running, use the `agent-browser` skill (throwaway headless Chromium only; never attach to an existing browser; `agent-browser close` when done) to open each view in both themes (`agent-browser set media light` / `dark`) and both languages, including `convert-options?keep=0` and `translate-options?mode=replace`; save screenshots under the scratch directory and fill in `visual-review.md`. Verify: every row of `visual-review.md` has an observation and a screenshot path.
 
 ## 5. Integration
