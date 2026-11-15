@@ -32,5 +32,7 @@ Read `design.md` first; every "D<n>" below refers to it. Prerequisite: `editoria
 
 ## Workflow follow-up
 
+- Implementation note: task 1.1 was not applied — the supervisor reserved the spec sync for archive. Where tasks 2.3–2.5 and 3.3 call for `@covers` lines, the tests carry plain comments naming the capability, requirement, and scenario instead; archive converts them to `@covers` with the synced IDs.
+
 - Owner reviews and signs `visual-review.md`.
 - Archive with `openspec archive redesign-match-sources --skip-specs` (specs were synced in 1.1).

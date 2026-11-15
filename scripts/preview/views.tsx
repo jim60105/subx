@@ -37,11 +37,15 @@ import type { RelocationModeDto } from "../../src/types/ipc";
 
 const noop = () => {};
 
-/** 60 sources across three folders, enough to overflow any window. */
+/**
+ * 60 sources across three folders, enough to overflow any window. The first
+ * name is long enough to show the entry's ellipsis.
+ */
 const LONG_SOURCES = ["/media/Show/Season 1/", "/media/Show/Season 2/", "/downloads/subs/"].flatMap(
   (folder, group) =>
     Array.from({ length: 20 }, (_, index) => {
       const episode = String(index + 1).padStart(2, "0");
+      if (group === 0 && index === 0) return `${folder}Show.S01E01.The.Very.Long.Episode.Title.2160p.WEB-DL.DDP5.1.HDR.mkv`;
       return group === 2 ? `${folder}Show.S01E${episode}.tc.ass` : `${folder}Show.S0${group + 1}E${episode}.1080p.mkv`;
     }),
 );
