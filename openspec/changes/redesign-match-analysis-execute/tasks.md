@@ -4,7 +4,7 @@ Read `design.md` first; every "D<n>" below refers to it. Prerequisites: `editori
 
 ## 1. Spec sync
 
-- [ ] 1.1 Validate the deltas without syncing them: `openspec/specs/` is left untouched, because the delta requirement IDs only exist after archive sync. Verify: `openspec validate redesign-match-analysis-execute --strict` passes and `npm run spec:trace -- --report` still reports the existing "Stages are reflected" and execution scenarios as verified. The tests for the twelve new scenarios (four analysis, two execute-list, six execute-outcome) are written unannotated below; archive syncs the specs and annotates them post-sync. Never hand-build or borrow an ID.
+- [x] 1.1 Validate the deltas without syncing them: `openspec/specs/` is left untouched, because the delta requirement IDs only exist after archive sync. Verify: `openspec validate redesign-match-analysis-execute --strict` passes and `npm run spec:trace -- --report` still reports the existing "Stages are reflected" and execution scenarios as verified. The tests for the twelve new scenarios (four analysis, two execute-list, six execute-outcome) are written unannotated below; archive syncs the specs and annotates them post-sync. Never hand-build or borrow an ID.
 
 ## 2. Motion foundation
 
