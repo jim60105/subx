@@ -32,6 +32,7 @@ none
 
 - `.review-ledger` adds `position: relative` (not in D3) so visually hidden row text stays inside the scroller; asserted in `layout.test.ts`.
 - The ledger `<ul>` is not rendered when the active filter shows nothing (D2 always renders it), so a screen reader does not meet an empty named list beside the "nothing to show" message.
+- `hardCodedStrings.test.tsx` allows exactly the upper-cased language tags of the review fixture instead of D6's `/^[A-Z]{2,3}$/`, so an unrelated two- or three-letter key left untranslated elsewhere still fails the gate.
 
 ## Sign-off
 
