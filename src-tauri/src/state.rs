@@ -559,6 +559,9 @@ struct TranslateInner {
 /// One planned translation: where it reads from, where it will write, and how
 /// many cues it holds (the Step 1 cost preview).
 pub struct TranslatePlanItem {
+    /// The item's index in the plan, the ID the frontend selects it by. Kept
+    /// on the item so it survives the execution-time selection filter.
+    pub id: u32,
     pub input: PathBuf,
     pub output: PathBuf,
     pub cue_count: u32,

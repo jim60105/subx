@@ -166,13 +166,26 @@ describe("reduced motion", () => {
   });
 });
 
-describe("the convert and translate source lists", () => {
+describe("the translate batch bar", () => {
+  const css = read("features", "translate", "BatchProgressBar.css");
+
+  /// The in-flight hatch keeps its marking but stops marching; fills and
+  /// counters are not animations, so they still update.
+  // @covers translate-workflow/run-step-progress-is-accessible-and-honours-reduced-motion#reduced-motion-keeps-the-information
+  it("stops the in-flight animation under reduced motion", () => {
+    const block = blockOf(css, "@media (prefers-reduced-motion: reduce)");
+
+    expect(declarationsOf(block, ".batch-bar__segment::before")).toMatch(/animation:\s*none/);
+  });
+});
+
+describe("the convert source list", () => {
   // `GroupedFileList` is built to be a pinned step's only scroller
-  // (`flex: 1 1 0`). These two steps keep natural height inside the scrolling
-  // `.wizard__content`, where that basis collapses the list to nothing.
+  // (`flex: 1 1 0`). The convert step keeps natural height inside the
+  // scrolling `.wizard__content`, where that basis collapses the list to
+  // nothing. (Translate lists its sources in its own ledger instead.)
   it.each([
     ["convert", "ConvertSourcesStep.css", ".convert-sources .file-groups"],
-    ["translate", "TranslateSourcesStep.css", ".translate-sources .file-groups"],
   ])("lets the %s list size to its content without a scroll fade", (feature, file, selector) => {
     const declarations = declarationsOf(read("features", feature, file), selector);
 

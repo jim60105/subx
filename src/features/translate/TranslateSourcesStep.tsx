@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next";
 import { DropZone } from "../../components/DropZone/DropZone";
 import type { IntakeKind } from "../../components/DropZone/DropZone";
 import { ErrorNotice } from "../../components/ErrorNotice/ErrorNotice";
-import { GroupedFileList } from "../../components/GroupedFileList/GroupedFileList";
 import type { TranslateScanResult } from "../../types/ipc";
+import { TranslateSourceLedger } from "./TranslateSourceLedger";
 import "./TranslateSourcesStep.css";
 
 /** Translate takes subtitles, folders of them, and archives; never video. */
@@ -21,10 +21,10 @@ interface TranslateSourcesStepProps {
 }
 
 /**
- * Step 1: gather sources and preview what the scan found, with a per-file cue
- * count so the size of the coming AI job is visible before any request is
- * sent. The drop zone shows the accepted inputs instead of describing them;
- * the sentence stays for assistive technology only.
+ * Step 1: gather sources and preview what the scan found, in one ledger with
+ * a per-file cue count so the size of the coming AI job is visible before any
+ * request is sent. The drop zone shows the accepted inputs instead of
+ * describing them; the sentence stays for assistive technology only.
  *
  * The scan is deliberately its own backend call rather than the Step 2 plan:
  * a plan cannot be resolved without a target language, and the field that
@@ -40,8 +40,6 @@ export function TranslateSourcesStep({
   onRemoveSources,
 }: TranslateSourcesStepProps) {
   const { t } = useTranslation("translate");
-  const { t: tError } = useTranslation("errors");
-  const totalCues = scan === null ? 0 : scan.files.reduce((sum, file) => sum + file.cueCount, 0);
 
   return (
     <div className="translate-sources">
@@ -56,37 +54,12 @@ export function TranslateSourcesStep({
       />
 
       {sources.length > 0 && (
-        <GroupedFileList paths={sources} label={t("sources.listLabel")} onRemove={onRemoveSources} />
-      )}
-
-      <div className="translate-sources__scan" role="status">
-        {isScanning && (
-          <span className="translate-sources__scanning">{t("sources.scan.scanning")}</span>
-        )}
-        {!isScanning && scan !== null && scan.files.length > 0 && (
-          <span className="translate-sources__count">
-            {t("sources.scan.count", { total: totalCues })}
-          </span>
-        )}
-      </div>
-
-      {!isScanning && scan !== null && scan.files.length > 0 && (
-        <ul className="translate-sources__files" aria-label={t("sources.filesLabel")}>
-          {scan.files.map((file) => (
-            <li key={file.name} className="translate-sources__file">
-              <span className="translate-sources__file-name">{file.name}</span>
-              {file.unparsable ? (
-                <span className="translate-sources__file-flag">
-                  {tError("codes.translate.unparsable")}
-                </span>
-              ) : (
-                <span className="translate-sources__file-cues">
-                  {t("sources.scan.cues", { count: file.cueCount })}
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
+        <TranslateSourceLedger
+          sources={sources}
+          scan={scan}
+          isScanning={isScanning}
+          onRemoveSources={onRemoveSources}
+        />
       )}
 
       {scanError !== undefined && <ErrorNotice error={scanError} role="status" />}

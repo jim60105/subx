@@ -1,0 +1,54 @@
+/*
+ * The batch bar. Flat by design: fills are tokens, and the in-flight hatch is
+ * a token fill seen through a mask (the one place an image is allowed),
+ * marched in four steps.
+ */
+.batch-bar {
+  --batch-bar-hatch: url("data:image/svg+xml,%3Csvg xmlns='http%3A//www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M-2 2l4-4M0 8l8-8M6 10l4-4' stroke='black' stroke-width='2'/%3E%3C/svg%3E");
+
+  display: flex;
+  gap: 1px;
+  height: var(--space-2);
+}
+
+.batch-bar__segment {
+  position: relative;
+  flex-basis: 0;
+  min-width: 0;
+  background: var(--hair);
+}
+
+.batch-bar__segment[data-state="done"] {
+  background: var(--ink);
+}
+
+.batch-bar__segment[data-state="inflight"]::before,
+.batch-bar__segment[data-state="resend"]::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: var(--ink);
+  -webkit-mask-image: var(--batch-bar-hatch);
+  mask-image: var(--batch-bar-hatch);
+  -webkit-mask-size: var(--space-2) var(--space-2);
+  mask-size: var(--space-2) var(--space-2);
+  animation: batch-bar-march 640ms steps(4) infinite;
+}
+
+.batch-bar__segment[data-state="resend"]::before {
+  background: var(--accent);
+}
+
+@keyframes batch-bar-march {
+  to {
+    -webkit-mask-position: var(--space-2) 0;
+    mask-position: var(--space-2) 0;
+  }
+}
+
+/* The hatch stays, static: what is in flight is still marked. */
+@media (prefers-reduced-motion: reduce) {
+  .batch-bar__segment::before {
+    animation: none;
+  }
+}

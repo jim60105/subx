@@ -101,7 +101,7 @@ const CONVERT_REPORT: ConversionReportDto = {
 };
 
 const TRANSLATE_SCAN: TranslateScanResult = {
-  files: [{ name: "one.srt", cueCount: 2, unparsable: false }],
+  files: [{ name: "one.srt", source: "/m/one.srt", cueCount: 2, unparsable: false }],
   defaultTargetLanguage: "zh-TW",
 };
 

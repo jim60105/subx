@@ -9,12 +9,16 @@
     "title": "Choose what to translate",
     "description": "Add the subtitles you want translated. Folders, individual files, and archives all work.",
     "listLabel": "Selected sources",
-    "scan": {
-      "scanning": "Scanning sources…",
-      "count": "{{total}} cues total",
-      "cues": "{{count}} cues"
+    "ledger": {
+      "summary": "{{files}} · {{cues}}",
+      "scanning": "Scanning…",
+      "files_one": "{{files}} file",
+      "files_other": "{{files}} files",
+      "cues_one": "{{cues}} cue",
+      "cues_other": "{{cues}} cues",
+      "unparsable": "Unparsable",
+      "counting": "Counting cues"
     },
-    "filesLabel": "Subtitle files found",
     "continue": "Continue"
   },
   "options": {
@@ -51,8 +55,36 @@
     "start": "Translate now",
     "starting": "Starting…",
     "translating": "Translating…",
-    "progress": "Translating {{index}} of {{total}} · {{name}}",
-    "elapsed": "Elapsed: {{seconds}}s",
+    "status": "Translating {{index}} of {{total}} · {{name}} · {{phase}}",
+    "finished": "Every file has been handled.",
+    "phase": {
+      "terminology": "Extracting terminology",
+      "translating": "Batch {{batch}} of {{batches}}",
+      "resending": "Resending batch {{batch}} of {{batches}}",
+      "fillIn": "Filling in missing cues",
+      "writing": "Writing",
+      "ended": {
+        "translated": "Done",
+        "failed": "Failed",
+        "cancelled": "Cancelled",
+        "skipped": "Skipped"
+      }
+    },
+    "elapsed": "Elapsed {{time}}",
+    "estimate": {
+      "pending": "Estimating time remaining…",
+      "value": "About {{time}} remaining"
+    },
+    "resend": "Batch {{batch}} came back with an unknown cue, so it is being sent again.",
+    "rowsLabel": "Files in this run",
+    "row": {
+      "waiting": "Waiting · {{cues}} cues",
+      "counter": "{{processed}} / {{total}} cues",
+      "translated": "Done · {{cues}} cues · {{time}}",
+      "failed": "Failed · {{cues}} cues · {{time}}",
+      "cancelled": "Cancelled · {{cues}} cues",
+      "skipped": "Skipped · {{cues}} cues"
+    },
     "cancel": "Cancel",
     "openSettings": "Open Settings",
     "restart": "Start over",

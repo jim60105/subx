@@ -544,29 +544,68 @@ export type TranslatePlanDto = {
 };
 
 /**
- *  A progress message pushed over the execution `Channel`.
+ *  A progress snapshot pushed over the execution `Channel`.
  * 
- *  Per file, never finer: `translate_subtitle` reports nothing from inside
- *  itself (progress prints go to stderr, invisible here), so a percentage
- *  would be invented (design Non-Goals).
+ *  Every message is a full snapshot of the file in flight rather than a
+ *  delta, so the frontend reducer stays trivial and a dropped message is
+ *  harmless (design D6). Batch facts come from the engine's structured
+ *  `ProgressEvent::Translation` events; the command layer adds terminology,
+ *  writing and file completion. No field is `u64`: engine counts are narrowed
+ *  to `u32`, saturating.
  */
 export type TranslateProgress = {
 	stage: TranslateStage,
 	/**  1-based position of `file_name` in the batch; equals `total` on `Finished`. */
 	index: number,
+	/**  Number of selected files in the batch. */
 	total: number,
+	/**  Display name of the file in flight; empty on `Finished`. */
 	fileName: string,
+	/**
+	 *  Plan item ID of the file (`TranslateItemDto::id`), not its queue
+	 *  position, so the frontend can match the row it seeded.
+	 */
+	itemId: number,
+	/**  Cues translated so far in the file. */
+	processedCues: number,
+	/**  Cues in the file. */
+	totalCues: number,
+	/**  The configured `translation.batch_size`. */
+	batchSize: number,
+	/**
+	 *  Batches of the initial pass: computed from the plan's cue count when
+	 *  the file starts, then replaced by the engine's own count.
+	 */
+	batchTotal: number,
+	/**  Initial-pass batches that have returned, never above `batch_total`. */
+	batchesDone: number,
+	/**  1-based initial-pass batch in flight, `0` when none is. */
+	batchInFlight: number,
+	/**
+	 *  Whether the batch in flight is a resend after a response with an
+	 *  unknown cue ID.
+	 */
+	resend: boolean,
+	/**  How the file ended; set only on `FileDone`. */
+	outcome: TranslationStatusDto | null,
 };
 
 /**
  *  One subtitle the Step 1 scan found, with the cost preview it exists for.
  * 
- *  `unparsable` is the scan-time equivalent of the plan's
+ *  Each resolved subtitle appears once, attributed to the first source that
+ *  produced it (design D3). `unparsable` is the scan-time equivalent of the plan's
  *  `translate.unparsable` skip reason: the file is listed rather than dropped,
  *  but it contributes no cues and will not run.
  */
 export type TranslateScanItemDto = {
 	name: string,
+	/**
+	 *  The source path the user added that produced this file: the file's own
+	 *  path, the folder source, or the archive source. When no source matches
+	 *  (e.g. through a symlink) it falls back to the file's parent folder.
+	 */
+	source: string,
 	cueCount: number,
 	unparsable: boolean,
 };
@@ -589,8 +628,21 @@ export type TranslateScanResult = {
 	defaultTargetLanguage: string | null,
 };
 
-/**  Where a batch is, as reported to Step 3 (design D3). */
-export type TranslateStage = "translating" | 
+/**  Which phase the file in flight is in, as reported to Step 3 (design D6). */
+export type TranslateStage = 
+/**
+ *  The terminology request of a newly started file is in flight. Reported
+ *  by the command layer when it picks the file.
+ */
+"terminology" | 
+/**  A batch of the initial pass is in flight or has just returned. */
+"translating" | 
+/**  The fill-in pass that re-asks for cues the initial pass left missing. */
+"fillIn" | 
+/**  The engine returned and the output is being written. */
+"writing" | 
+/**  The file ended; `outcome` says how. */
+"fileDone" | 
 /**
  *  The batch stopped, whether it finished or was cancelled. The report the
  *  command resolves with is what says which.

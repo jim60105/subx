@@ -46,6 +46,9 @@ import {
   REVIEW_PLAN,
   SYNC_DEFAULTS,
   TRANSLATE_REPORT,
+  TRANSLATE_RUN_PROGRESS,
+  TRANSLATE_SCAN,
+  TRANSLATE_SOURCES,
 } from "../test/screenFixtures";
 
 /** The upper-cased language tags the review fixture puts on its ledger rows. */
@@ -377,13 +380,43 @@ const SCREENS = [
       ),
   },
   {
-    name: "TranslateSourcesStep",
+    name: "TranslateSourcesStep (empty)",
     render: () =>
       renderWithI18n(
         <TranslateSourcesStep
           sources={[]}
           scan={null}
           isScanning={false}
+          scanError={undefined}
+          onBrowseFiles={() => {}}
+          onBrowseFolder={() => {}}
+          onRemoveSources={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "TranslateSourcesStep (ledger)",
+    render: () =>
+      renderWithI18n(
+        <TranslateSourcesStep
+          sources={TRANSLATE_SOURCES}
+          scan={TRANSLATE_SCAN}
+          isScanning={false}
+          scanError={undefined}
+          onBrowseFiles={() => {}}
+          onBrowseFolder={() => {}}
+          onRemoveSources={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "TranslateSourcesStep (scanning)",
+    render: () =>
+      renderWithI18n(
+        <TranslateSourcesStep
+          sources={TRANSLATE_SOURCES}
+          scan={null}
+          isScanning={true}
           scanError={undefined}
           onBrowseFiles={() => {}}
           onBrowseFolder={() => {}}
@@ -421,9 +454,9 @@ const SCREENS = [
     render: () =>
       renderWithI18n(
         <TranslateRunStep
-          selectedCount={1}
+          selectedCount={3}
           isTranslating={true}
-          progress={null}
+          progress={TRANSLATE_RUN_PROGRESS}
           translateError={undefined}
         />,
       ),

@@ -3,10 +3,11 @@ import { useCallback, useRef, useState } from "react";
 import type {
   TranslateOutputModeDto,
   TranslatePlanDto,
-  TranslateProgress,
   TranslateScanResult,
   TranslationReportDto,
 } from "../../types/ipc";
+import { reduceProgress, seedProgress } from "./progressReducer";
+import type { RunProgress } from "./progressReducer";
 import {
   cancelTranslation,
   executeTranslation,
@@ -46,7 +47,8 @@ export interface TranslateWizard {
   selectedIds: Set<number>;
   selectedCount: number;
   isTranslating: boolean;
-  progress: TranslateProgress | null;
+  /** The run's per-file state, reduced from every progress snapshot (design D7). */
+  progress: RunProgress | null;
   report: TranslationReportDto | null;
   translateError: unknown;
   addSources: (paths: string[]) => void;
@@ -110,7 +112,7 @@ export function useTranslateWizard(): TranslateWizard {
   const [overwrite, setOverwriteState] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isTranslating, setIsTranslating] = useState(false);
-  const [progress, setProgress] = useState<TranslateProgress | null>(null);
+  const [progress, setProgress] = useState<RunProgress | null>(null);
   const [report, setReport] = useState<TranslationReportDto | null>(null);
   const [translateError, setTranslateError] = useState<unknown>(undefined);
 
@@ -388,14 +390,21 @@ export function useTranslateWizard(): TranslateWizard {
     if (plan === null) return;
     setIsTranslating(true);
     setTranslateError(undefined);
+    // One row per selected file, in plan order, before the first event lands.
+    setProgress(seedProgress(plan.items.filter((item) => selectedIds.has(item.id)), Date.now()));
     try {
-      const result = await executeTranslation(plan.planId, [...selectedIds], setProgress);
+      const result = await executeTranslation(plan.planId, [...selectedIds], (event) =>
+        setProgress((current) => (current === null ? current : reduceProgress(current, event, Date.now()))),
+      );
       setReport(result);
       // Only a successful batch (even one with per-item failures, or one the
       // user cancelled mid-run) advances to the Report step; a run-level
       // failure like an unconfigured provider stays on Step 3 to show it.
       setStep("report");
     } catch (error) {
+      // A run-level failure happens before any file starts; rows of waiting
+      // files under its error would only suggest work that is not coming.
+      setProgress(null);
       setTranslateError(error);
     } finally {
       setIsTranslating(false);

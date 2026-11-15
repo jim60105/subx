@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { i18n, setupI18n } from "../../test/renderWithI18n";
 import type {
   TranslatePlanDto,
+  TranslateProgress,
   TranslateScanResult,
   TranslationReportDto,
 } from "../../types/ipc";
@@ -17,14 +18,35 @@ vi.mock("../../platform/filePickers");
 import * as pickers from "../../platform/filePickers";
 import * as api from "./translateWizardApi";
 
+/** A directly added file plus a folder source holding a parsable and an unparsable file. */
+const SCAN_SOURCES = ["/m/one.srt", "/m/extra/"];
 const SCAN: TranslateScanResult = {
   files: [
-    { name: "one.srt", cueCount: 2, unparsable: false },
-    { name: "two.srt", cueCount: 3, unparsable: false },
-    { name: "broken.srt", cueCount: 0, unparsable: true },
+    { name: "one.srt", source: "/m/one.srt", cueCount: 2, unparsable: false },
+    { name: "two.srt", source: "/m/extra/", cueCount: 3, unparsable: false },
+    { name: "broken.srt", source: "/m/extra/", cueCount: 0, unparsable: true },
   ],
   defaultTargetLanguage: "zh-TW",
 };
+
+/** What the backend would find for directly added subtitle files: each one itself, 2 cues. */
+function scanFor(paths: string[]): TranslateScanResult {
+  return {
+    files: paths
+      .filter((path) => /\.(srt|ass)$/.test(path))
+      .map((path) => ({ name: path.slice(path.lastIndexOf("/") + 1), source: path, cueCount: 2, unparsable: false })),
+    defaultTargetLanguage: "zh-TW",
+  };
+}
+
+function scanItem(name: string, source: string, cueCount: number, unparsable = false) {
+  return { name, source, cueCount, unparsable };
+}
+
+/** The ledger group whose header names `location`. */
+function ledgerGroup(location: string): HTMLElement {
+  return within(screen.getByRole("group", { name: "Selected sources" })).getByRole("group", { name: location });
+}
 
 const PLAN: TranslatePlanDto = {
   planId: "translate-1",
@@ -151,7 +173,7 @@ beforeEach(async () => {
   vi.mocked(pickers.subscribeToDroppedPaths).mockResolvedValue(() => {});
   vi.mocked(pickers.pickFiles).mockResolvedValue(["/m/one.srt"]);
   vi.mocked(pickers.pickFolder).mockResolvedValue(["/m"]);
-  vi.mocked(api.scanTranslateInputs).mockResolvedValue(SCAN);
+  vi.mocked(api.scanTranslateInputs).mockImplementation(async (paths) => scanFor(paths));
   vi.mocked(api.previewTranslation).mockResolvedValue(PLAN);
   vi.mocked(api.executeTranslation).mockResolvedValue(REPORT);
   vi.mocked(api.cancelTranslation).mockResolvedValue(undefined);
@@ -182,13 +204,15 @@ describe("the translate wizard", () => {
 
   it("lists every subtitle with its cue count in Step 1", async () => {
     const user = userEvent.setup();
+    vi.mocked(pickers.pickFiles).mockResolvedValue(SCAN_SOURCES);
+    vi.mocked(api.scanTranslateInputs).mockResolvedValue(SCAN);
     renderWizard();
 
     await user.click(screen.getByRole("button", { name: "Browse files" }));
 
-    expect(await screen.findByText("2 cues")).toBeInTheDocument();
-    expect(screen.getByText("The subtitle file could not be parsed.")).toBeInTheDocument();
-    expect(screen.getByText("5 cues total")).toBeInTheDocument();
+    expect(await screen.findByText("3 files · 5 cues")).toBeInTheDocument();
+    expect(within(ledgerGroup("/m/")).getByText("2 cues", { selector: ".translate-ledger__row *" })).toBeInTheDocument();
+    expect(within(ledgerGroup("/m/extra/")).getByText("Unparsable")).toBeInTheDocument();
   });
 
   /// The bug this split exists to prevent: Step 1 used to build the plan, and
@@ -208,7 +232,7 @@ describe("the translate wizard", () => {
 
     await user.click(screen.getByRole("button", { name: "Browse files" }));
 
-    expect(await screen.findByText("5 cues total")).toBeInTheDocument();
+    expect(await screen.findByText("3 files · 5 cues")).toBeInTheDocument();
     expect(api.previewTranslation).not.toHaveBeenCalled();
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled(),
@@ -375,7 +399,21 @@ describe("the translate wizard", () => {
     const user = userEvent.setup();
     const pending = deferred<TranslationReportDto>();
     vi.mocked(api.executeTranslation).mockImplementation((_planId, _ids, onProgress) => {
-      onProgress({ stage: "translating", index: 2, total: 3, fileName: "two.srt" });
+      onProgress({
+        stage: "translating",
+        index: 1,
+        total: 1,
+        fileName: "one.srt",
+        itemId: 0,
+        processedCues: 0,
+        totalCues: 2,
+        batchSize: 40,
+        batchTotal: 1,
+        batchesDone: 0,
+        batchInFlight: 1,
+        resend: false,
+        outcome: null,
+      });
       return pending.promise;
     });
     renderWizard();
@@ -383,7 +421,7 @@ describe("the translate wizard", () => {
 
     await user.click(await within(actionBar()).findByRole("button", { name: "Translate now" }));
 
-    expect(await screen.findByText("Translating 2 of 3 · two.srt")).toBeInTheDocument();
+    expect(await screen.findByText("Translating 1 of 1 · one.srt · Batch 1 of 1")).toBeInTheDocument();
 
     pending.resolve(REPORT);
     await screen.findByText("Results");
@@ -516,6 +554,373 @@ describe("the translate sources step", () => {
     expect(within(list).getByText("3.srt")).toBeInTheDocument();
     await waitFor(() => expect(api.scanTranslateInputs).toHaveBeenCalledTimes(2));
     expect(api.scanTranslateInputs).toHaveBeenLastCalledWith(["/b/3.srt"]);
+  });
+});
+
+describe("the translate sources ledger", () => {
+  async function addSources(paths: string[], scan?: TranslateScanResult) {
+    const user = userEvent.setup();
+    vi.mocked(pickers.pickFiles).mockResolvedValue(paths);
+    if (scan !== undefined) vi.mocked(api.scanTranslateInputs).mockResolvedValue(scan);
+    renderWizard();
+    await user.click(screen.getByRole("button", { name: "Browse files" }));
+    await waitFor(() => expect(api.scanTranslateInputs).toHaveBeenCalled());
+    return user;
+  }
+
+  // @covers translate-workflow/multi-source-selection-with-cue-count-preview#each-found-subtitle-is-listed-once
+  it("lists each found subtitle exactly once, in one list", async () => {
+    await addSources(["/m/a.srt", "/m/b.srt"]);
+
+    await screen.findByText("2 files · 4 cues");
+    expect(document.querySelectorAll(".translate-ledger")).toHaveLength(1);
+    expect(screen.queryByRole("list", { name: "Subtitle files found" })).not.toBeInTheDocument();
+    expect(screen.getAllByText("a.srt")).toHaveLength(1);
+    expect(screen.getAllByText("b.srt")).toHaveLength(1);
+  });
+
+  // @covers translate-workflow/multi-source-selection-with-cue-count-preview#a-file-reachable-through-two-sources-is-listed-once
+  it("lists a file added directly and through its folder once, attributed to the direct file", async () => {
+    await addSources(["/m/a.srt", "/m/"], {
+      files: [scanItem("a.srt", "/m/a.srt", 5), scanItem("b.srt", "/m/", 6)],
+      defaultTargetLanguage: null,
+    });
+
+    expect(await screen.findByText("2 files · 11 cues")).toBeInTheDocument();
+    expect(screen.getAllByText("a.srt")).toHaveLength(1);
+    // Attributed to the direct file: it sits in the parent-folder group and
+    // can be removed on its own.
+    const direct = screen.getByRole("button", { name: "Remove a.srt" }).closest(".translate-ledger__group");
+    expect(direct).toHaveAttribute("aria-label", "/m/");
+    expect(screen.queryByRole("button", { name: "Remove b.srt" })).not.toBeInTheDocument();
+  });
+
+  // @covers translate-workflow/translate-sources-step-demonstrates-accepted-inputs#a-directly-added-file-can-be-removed-on-its-own
+  it("removes a directly added file on its own and rescans exactly the other", async () => {
+    const user = await addSources(["/m/a.srt", "/m/b.srt"]);
+    await screen.findByText("2 files · 4 cues");
+
+    await user.click(screen.getByRole("button", { name: "Remove a.srt" }));
+
+    expect(screen.queryByText("a.srt")).not.toBeInTheDocument();
+    expect(screen.getByText("b.srt")).toBeInTheDocument();
+    await waitFor(() => expect(api.scanTranslateInputs).toHaveBeenCalledTimes(2));
+    expect(api.scanTranslateInputs).toHaveBeenLastCalledWith(["/m/b.srt"]);
+  });
+
+  // @covers translate-workflow/translate-sources-step-demonstrates-accepted-inputs#files-inside-a-folder-or-archive-source-have-no-remove-action
+  it("offers a group remove action but no row remove action for folder and archive sources", async () => {
+    await addSources(["/show/", "/dl/subs.zip"], {
+      files: [scanItem("e1.srt", "/show/", 10), scanItem("x.ass", "/dl/subs.zip", 20)],
+      defaultTargetLanguage: null,
+    });
+    await screen.findByText("2 files · 30 cues");
+
+    expect(within(ledgerGroup("/show/")).getByRole("button", { name: "Remove all 1 items in /show/" })).toBeInTheDocument();
+    expect(within(ledgerGroup("/dl/subs.zip")).getByRole("button", { name: "Remove all 1 items in /dl/subs.zip" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove e1.srt" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove x.ass" })).not.toBeInTheDocument();
+  });
+
+  // @covers translate-workflow/sources-ledger-groups-and-totals#files-from-one-folder-share-a-group
+  it("shows a folder of directly added files as one group with its count and subtotal", async () => {
+    await addSources(["/m/a.srt", "/m/b.srt"], {
+      files: [scanItem("a.srt", "/m/a.srt", 378), scanItem("b.srt", "/m/b.srt", 372)],
+      defaultTargetLanguage: null,
+    });
+    await screen.findByText("2 files · 750 cues");
+
+    const group = ledgerGroup("/m/");
+    const header = group.querySelector("header") as HTMLElement;
+    expect(within(header).getByText("2 files")).toBeInTheDocument();
+    expect(within(header).getByText("750 cues")).toBeInTheDocument();
+    expect(document.querySelectorAll(".translate-ledger__group")).toHaveLength(1);
+  });
+
+  // @covers translate-workflow/sources-ledger-groups-and-totals#an-archive-source-is-its-own-group
+  it("shows an archive source as its own group with the archive glyph", async () => {
+    await addSources(["/m/a.srt", "/dl/subs.zip"], {
+      files: [
+        scanItem("a.srt", "/m/a.srt", 1),
+        scanItem("x.ass", "/dl/subs.zip", 2),
+        scanItem("y.ass", "/dl/subs.zip", 3),
+        scanItem("z.ass", "/dl/subs.zip", 4),
+      ],
+      defaultTargetLanguage: null,
+    });
+    await screen.findByText("4 files · 10 cues");
+
+    const archive = ledgerGroup("/dl/subs.zip");
+    expect(archive).toHaveAttribute("data-kind", "archive");
+    expect(within(archive).getAllByRole("listitem")).toHaveLength(3);
+    expect(within(archive.querySelector("header") as HTMLElement).getByText("3 files")).toBeInTheDocument();
+    expect(ledgerGroup("/m/")).toHaveAttribute("data-kind", "folder");
+  });
+
+  // @covers translate-workflow/sources-ledger-groups-and-totals#summary-excludes-unparsable-files-from-the-cue-total
+  it("totals the files and excludes an unparsable file's cues, flagging it in text", async () => {
+    await addSources(["/m/"], {
+      files: [
+        scanItem("a.srt", "/m/", 400),
+        scanItem("b.srt", "/m/", 401),
+        scanItem("c.srt", "/m/", 375),
+        scanItem("d.srt", "/m/", 375),
+        scanItem("bad.srt", "/m/", 0, true),
+      ],
+      defaultTargetLanguage: null,
+    });
+
+    expect(await screen.findByText("5 files · 1,551 cues")).toBeInTheDocument();
+    const row = screen.getByText("bad.srt").closest("li") as HTMLElement;
+    expect(row).toHaveTextContent("Unparsable");
+  });
+
+  // @covers translate-workflow/sources-ledger-scanning-state#directly-added-files-show-a-placeholder-count
+  it("lists a directly added file with a placeholder count while the scan runs", async () => {
+    vi.mocked(api.scanTranslateInputs).mockReturnValue(new Promise(() => {}));
+    await addSources(["/m/a.srt"]);
+
+    const row = screen.getByText("a.srt").closest("li") as HTMLElement;
+    expect(row.querySelector(".translate-ledger__placeholder")).not.toBeNull();
+    expect(within(row).getByText("Counting cues")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Scanning…");
+    expect(screen.queryByText(/^[\d,]+ (files · [\d,]+ )?cues$/)).not.toBeInTheDocument();
+  });
+
+  // @covers translate-workflow/sources-ledger-scanning-state#a-folder-source-shows-only-its-header-while-scanning
+  it("shows only a scanning header for a folder source while the scan runs", async () => {
+    vi.mocked(api.scanTranslateInputs).mockReturnValue(new Promise(() => {}));
+    await addSources(["/show/"]);
+
+    const group = ledgerGroup("/show/");
+    expect(within(group).getByText("Scanning…")).toBeInTheDocument();
+    expect(within(group).queryAllByRole("listitem")).toHaveLength(0);
+  });
+
+  it("renders no remove action for a group that would remove nothing", async () => {
+    await addSources(["/m/"], {
+      files: [scanItem("a.srt", "/m/", 1), scanItem("stray.srt", "/elsewhere", 2)],
+      defaultTargetLanguage: null,
+    });
+    await screen.findByText("2 files · 3 cues");
+
+    expect(within(ledgerGroup("/elsewhere")).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(ledgerGroup("/m/")).getByRole("button", { name: "Remove all 1 items in /m/" })).toBeInTheDocument();
+  });
+
+  // @covers translate-workflow/sources-ledger-scanning-state#a-failed-scan-keeps-the-list
+  it("keeps the sources listed when the scan fails", async () => {
+    vi.mocked(api.scanTranslateInputs).mockRejectedValue({
+      code: "core.io",
+      message: "boom",
+      hintCode: null,
+    });
+    await addSources(["/m/a.srt", "/show/"]);
+
+    await waitFor(() => expect(document.querySelector(".error-notice")).not.toBeNull());
+    expect(screen.getByText("a.srt")).toBeInTheDocument();
+    expect(within(ledgerGroup("/show/")).getByRole("button", { name: "Remove all 1 items in /show/" })).toBeInTheDocument();
+  });
+});
+
+describe("the translate run step", () => {
+  /** Runnable items only, so every one is selected. */
+  function runPlan(cues: number[]): TranslatePlanDto {
+    return {
+      ...PLAN,
+      items: cues.map((cueCount, id) => ({
+        id,
+        inputName: `f${id + 1}.srt`,
+        inputPath: `/m/f${id + 1}.srt`,
+        outputPath: `/m/f${id + 1}.zh-TW.srt`,
+        cueCount,
+        outputExists: false,
+        skipReason: null,
+      })),
+    };
+  }
+
+  /** Reaches Step 3 with `cues.length` files, starts the run, and returns a way to push snapshots. */
+  async function startRun(cues: number[]) {
+    const user = userEvent.setup();
+    vi.mocked(api.previewTranslation).mockResolvedValue(runPlan(cues));
+    let emit: ((progress: TranslateProgress) => void) | undefined;
+    vi.mocked(api.executeTranslation).mockImplementation((_planId, _ids, onProgress) => {
+      emit = onProgress;
+      return new Promise(() => {});
+    });
+    renderWizard();
+    await reachRun(user);
+    await user.click(await within(actionBar()).findByRole("button", { name: "Translate now" }));
+    await screen.findByRole("list", { name: "Files in this run" });
+
+    const send = (file: number, extra: Partial<TranslateProgress>) =>
+      act(() => {
+        emit?.({
+          stage: "translating",
+          index: file + 1,
+          total: cues.length,
+          fileName: `f${file + 1}.srt`,
+          itemId: file,
+          processedCues: 0,
+          totalCues: cues[file],
+          batchSize: 40,
+          batchTotal: Math.ceil(cues[file] / 40),
+          batchesDone: 0,
+          batchInFlight: 0,
+          resend: false,
+          outcome: null,
+          ...extra,
+        });
+      });
+    return { send };
+  }
+
+  function rowOf(position: number): HTMLElement {
+    return within(screen.getByRole("list", { name: "Files in this run" })).getAllByRole("listitem")[position];
+  }
+
+  function segmentStates(row: HTMLElement): Array<string | undefined> {
+    return [...row.querySelectorAll<HTMLElement>(".batch-bar__segment")].map((segment) => segment.dataset.state);
+  }
+
+  // @covers translate-workflow/run-step-shows-one-row-per-file#waiting-active-and-finished-rows
+  it("shows a finished, an active and a waiting row", async () => {
+    const { send } = await startRun([80, 120, 90]);
+
+    await send(0, { stage: "terminology" });
+    await send(0, { batchInFlight: 1 });
+    await send(0, { batchesDone: 1, processedCues: 40 });
+    await send(0, { batchInFlight: 2, batchesDone: 1, processedCues: 40 });
+    await send(0, { batchesDone: 2, processedCues: 80 });
+    await send(0, { stage: "fileDone", batchesDone: 2, processedCues: 80, outcome: "translated" });
+    await send(1, { stage: "terminology" });
+    await send(1, { batchInFlight: 1 });
+
+    expect(rowOf(0)).toHaveTextContent(/✓ Done · 80 cues · \d+:\d\d/);
+    expect(rowOf(0).querySelector(".batch-bar")).toBeNull();
+    expect(within(rowOf(1)).getByText("Batch 1 of 3")).toBeInTheDocument();
+    expect(within(rowOf(1)).getByText("0 / 120 cues")).toBeInTheDocument();
+    expect(rowOf(1).querySelector(".batch-bar")).not.toBeNull();
+    expect(rowOf(2)).toHaveTextContent("Waiting · 90 cues");
+  });
+
+  // @covers translate-workflow/run-step-shows-one-row-per-file#a-failed-file-is-marked-in-text
+  it("marks a failed file in text and moves on to the next", async () => {
+    const { send } = await startRun([80, 120]);
+
+    await send(0, { stage: "terminology" });
+    await send(0, { stage: "fileDone", outcome: "failed" });
+    await send(1, { stage: "terminology" });
+
+    expect(rowOf(0)).toHaveTextContent(/✕ Failed · 80 cues/);
+    expect(screen.getByRole("status")).toHaveTextContent("Translating 2 of 2 · f2.srt · Extracting terminology");
+    expect(rowOf(1)).toHaveAttribute("data-status", "active");
+    expect(within(rowOf(1)).getByText("Extracting terminology")).toBeInTheDocument();
+  });
+
+  it("marks a cancelled file in text", async () => {
+    const { send } = await startRun([80, 120]);
+
+    await send(0, { stage: "terminology" });
+    await send(0, { stage: "fileDone", outcome: "cancelled" });
+    await send(1, { stage: "fileDone", outcome: "cancelled" });
+    expect(screen.getByRole("status")).toHaveTextContent("Translating 2 of 2 · f2.srt · Cancelled");
+    await send(1, { stage: "finished", itemId: 0, fileName: "" });
+
+    expect(rowOf(0)).toHaveTextContent("Cancelled · 80 cues");
+    expect(rowOf(1)).toHaveTextContent("Cancelled · 120 cues");
+    expect(screen.getByRole("status")).toHaveTextContent("Every file has been handled.");
+    expect(screen.queryByText(/remaining|Estimating/)).not.toBeInTheDocument();
+  });
+
+  it("fills returned batches and marks the one in flight", async () => {
+    const { send } = await startRun([378]);
+
+    await send(0, { stage: "terminology" });
+    await send(0, { batchInFlight: 6, batchesDone: 5, processedCues: 200 });
+
+    expect(segmentStates(rowOf(0))).toEqual([
+      "done", "done", "done", "done", "done", "inflight", "empty", "empty", "empty", "empty",
+    ]);
+  });
+
+  // @covers translate-workflow/segmented-bar-mirrors-real-batches#a-resend-is-marked-and-announced
+  it("marks a resend and announces it", async () => {
+    const { send } = await startRun([378]);
+
+    await send(0, { stage: "terminology" });
+    await send(0, { batchInFlight: 6, batchesDone: 5, processedCues: 200 });
+    await send(0, { batchInFlight: 6, batchesDone: 5, processedCues: 200, resend: true });
+
+    expect(segmentStates(rowOf(0))[5]).toBe("resend");
+    expect(screen.getByText("Batch 6 came back with an unknown cue, so it is being sent again.")).toBeInTheDocument();
+    expect(within(rowOf(0)).getByText("Resending batch 6 of 10")).toBeInTheDocument();
+  });
+
+  // @covers translate-workflow/elapsed-and-estimated-remaining-time#estimate-waits-for-two-batches
+  it("works out the estimate only once two batches have returned", async () => {
+    const now = vi.spyOn(Date, "now");
+    try {
+      now.mockReturnValue(0);
+      const { send } = await startRun([160]);
+      await send(0, { stage: "terminology" });
+      await send(0, { batchInFlight: 1 });
+      now.mockReturnValue(4000);
+      await send(0, { batchesDone: 1, processedCues: 40 });
+      await send(0, { batchInFlight: 2, batchesDone: 1, processedCues: 40 });
+
+      expect(screen.getByText("Estimating time remaining…")).toBeInTheDocument();
+
+      now.mockReturnValue(8000);
+      await send(0, { batchesDone: 2, processedCues: 80 });
+
+      // Two 4 s batches, two left.
+      expect(screen.getByText("About 0:08 remaining")).toBeInTheDocument();
+    } finally {
+      now.mockRestore();
+    }
+  });
+
+  // @covers translate-workflow/run-step-progress-is-accessible-and-honours-reduced-motion#one-status-line-carries-the-progress
+  it("exposes one status line naming the file and batch position, and hides every bar", async () => {
+    const { send } = await startRun([400, 120]);
+
+    await send(0, { stage: "terminology" });
+    await send(0, { batchInFlight: 6, batchesDone: 5, processedCues: 200 });
+
+    const statuses = screen.getAllByRole("status");
+    expect(statuses).toHaveLength(1);
+    expect(statuses[0]).toHaveTextContent("Translating 1 of 2 · f1.srt · Batch 6 of 10");
+    const bars = document.querySelectorAll(".batch-bar");
+    expect(bars.length).toBeGreaterThan(0);
+    bars.forEach((bar) => expect(bar).toHaveAttribute("aria-hidden", "true"));
+  });
+
+  // @covers translate-workflow/run-step-progress-is-accessible-and-honours-reduced-motion#reduced-motion-keeps-the-information
+  it("still fills the returned segment and updates the counter under reduced motion", async () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes("prefers-reduced-motion"),
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as typeof window.matchMedia;
+    try {
+      const { send } = await startRun([80]);
+      await send(0, { stage: "terminology" });
+      await send(0, { batchInFlight: 1 });
+      await send(0, { batchesDone: 1, processedCues: 40 });
+
+      expect(segmentStates(rowOf(0))).toEqual(["done", "empty"]);
+      expect(within(rowOf(0)).getByText("40 / 80 cues")).toBeInTheDocument();
+    } finally {
+      window.matchMedia = original;
+    }
   });
 });
 

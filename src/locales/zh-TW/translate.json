@@ -9,12 +9,16 @@
     "title": "選擇要翻譯的檔案",
     "description": "加入想要翻譯的字幕。資料夾、單一檔案與壓縮檔都可以。",
     "listLabel": "已選來源",
-    "scan": {
-      "scanning": "正在掃描來源…",
-      "count": "共 {{total}} 句字幕",
-      "cues": "{{count}} 句"
+    "ledger": {
+      "summary": "共 {{files}} · {{cues}}字幕",
+      "scanning": "掃描中……",
+      "files_one": "{{files}} 個檔案",
+      "files_other": "{{files}} 個檔案",
+      "cues_one": "{{cues}} 句",
+      "cues_other": "{{cues}} 句",
+      "unparsable": "無法解析",
+      "counting": "正在計算句數"
     },
-    "filesLabel": "找到的字幕檔",
     "continue": "繼續"
   },
   "options": {
@@ -51,8 +55,36 @@
     "start": "立即翻譯",
     "starting": "正在開始…",
     "translating": "翻譯中……",
-    "progress": "正在翻譯第 {{index}} / {{total}} 個 · {{name}}",
-    "elapsed": "已耗時：{{seconds}} 秒",
+    "status": "正在翻譯第 {{index}} / {{total}} 個檔案 · {{name}} · {{phase}}",
+    "finished": "所有檔案皆已處理完畢。",
+    "phase": {
+      "terminology": "擷取專有名詞",
+      "translating": "翻譯第 {{batch}} / {{batches}} 批",
+      "resending": "重送第 {{batch}} / {{batches}} 批",
+      "fillIn": "補譯缺漏",
+      "writing": "寫入中",
+      "ended": {
+        "translated": "已完成",
+        "failed": "失敗",
+        "cancelled": "已取消",
+        "skipped": "已略過"
+      }
+    },
+    "elapsed": "已耗時 {{time}}",
+    "estimate": {
+      "pending": "預估剩餘：估算中",
+      "value": "預估剩餘約 {{time}}"
+    },
+    "resend": "第 {{batch}} 批的回應含有未知的句子編號，已捨棄並重送。",
+    "rowsLabel": "本次翻譯的檔案",
+    "row": {
+      "waiting": "等待中 · {{cues}} 句",
+      "counter": "{{processed}} / {{total}} 句",
+      "translated": "完成 · {{cues}} 句 · {{time}}",
+      "failed": "失敗 · {{cues}} 句 · {{time}}",
+      "cancelled": "已取消 · {{cues}} 句",
+      "skipped": "已略過 · {{cues}} 句"
+    },
     "cancel": "取消",
     "openSettings": "開啟設定",
     "restart": "重新開始",
