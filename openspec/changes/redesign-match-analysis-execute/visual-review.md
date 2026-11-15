@@ -6,30 +6,33 @@ Reference: `docs/superpowers/specs/2026-11-15-editorial-redesign-design.md` ("02
 
 Each row is checked in light, dark, light + reduced motion, and dark + reduced motion.
 
+Screenshots were taken with `agent-browser` (throwaway headless Chromium, 960 × 640) against `npm run dev`'s preview harness (`/scripts/preview/index.html?view=match-analysis|match-execute`), with `agent-browser set media light|dark [reduced-motion]`. Paths are relative to the implementer's session scratch directory and are not committed. Light and dark runs use `lang=en`; the dark + reduced-motion run uses `lang=zh-TW`.
+
 | # | What to judge | Observed | Screenshot | Verdict |
 |---|---|---|---|---|
-| 1 | Analysis: stage words read as the headline; the active word carries the accent underline | | | |
-| 2 | Analysis, scanning: film-strip and subtitle bars fade in one after another | | | |
-| 3 | Analysis, analyzing: dashed accent curves try pairings, an ink curve stays for each settled pair, and the sequence replays without a visible jump | | | |
-| 4 | Analysis, finalizing: unpaired subtitle bars dim; settled curves stay | | | |
-| 5 | Analysis never reads as a progress bar: no percentage, no file names, no growing bar | | | |
-| 6 | Analysis, reduced motion: bars are static, no curves animate, only the stage word changes | | | |
-| 7 | Execute, idle: every operation reads `old → new` under the large count and the relocation mode | | | |
-| 8 | Execute, running: the accent bar sweeps along the rule and the list breathes; no row looks finished | | | |
-| 9 | Execute, done: rows resolve top to bottom; success strikes the old name and colours the new one; the failed row shows its error beneath it | | | |
-| 10 | Execute, done: success and failure totals are the largest elements; the failure figure uses the "removed" colour | | | |
-| 11 | Execute, reduced motion: the final state appears at once, with no sweep and no stagger | | | |
-| 12 | Pacing feels calm, not busy, in the real app (`npm run dev:app`) as well as in Chromium | | | |
+| 1 | Analysis: stage words read as the headline; the active word carries the accent underline | Light/dark: the three serif words sit above the totals at the headline size; the active word is ink with a 2px accent underline, done words ink-2, upcoming ink-3. Reduced motion: identical, only the underlined word moves (zh-TW checked: 掃描 · 分析 · 整理). | `shots/analysis-light-analyzing.png`, `shots/analysis-dark-finalizing.png`, `shots/analysis-light-rm-scanning.png`, `shots/analysis-dark-rm-analyzing.png` | |
+| 2 | Analysis, scanning: film-strip and subtitle bars fade in one after another | Light/dark: at 0.3 s ten bar fades are running, film strips first then subtitles, 130 ms apart; all settled by about 1.2 s. Reduced motion: bars are drawn at full opacity at once (0 running animations). | `shots/analysis-light-cycle-scanning-early.png`, `shots/analysis-dark-cycle-scanning-early.png`, `shots/analysis-light-rm-cycle-scanning-early.png`, `shots/analysis-dark-rm-cycle-scanning-early.png` | |
+| 3 | Analysis, analyzing: dashed accent curves try pairings, an ink curve stays for each settled pair, and the sequence replays without a visible jump | Light/dark: dashed accent trials flash toward wrong subtitles, then an ink curve stays per pair (24 curves, ~4.6 s); data-cycle advanced to 1 after 7.2 s and the sequence restarted. At the restart the settled curves clear and redraw from the first pair, as the mockup's replay does; no bar moves. While a settled curve's animation is still attached Chromium rasterises the 1px stroke slightly lighter than in finalizing. Reduced motion: no curves at all. | `shots/analysis-light-analyzing-trial.png`, `shots/analysis-light-analyzing-settled.png`, `shots/analysis-dark-cycle-analyzing-trials.png`, `shots/analysis-light-rm-analyzing.png` | |
+| 4 | Analysis, finalizing: unpaired subtitle bars dim; settled curves stay | Light/dark: the two unpaired subtitle bars (5th and 8th) dim to 0.28 and the six settled curves stay in ink. Reduced motion: nothing dims; the drawing is unchanged. | `shots/analysis-light-finalizing.png`, `shots/analysis-dark-finalizing.png`, `shots/analysis-light-rm-finalizing.png`, `shots/analysis-dark-rm-finalizing.png` | |
+| 5 | Analysis never reads as a progress bar: no percentage, no file names, no growing bar | All four settings: the svg has no text, no percentage, no file names; shape counts are fixed (6 + 8) whatever the totals; nothing grows. The only figures are the two scan totals. | `shots/analysis-light-analyzing.png`, `shots/analysis-dark-analyzing.png`, `shots/analysis-light-rm-analyzing.png`, `shots/analysis-dark-rm-analyzing.png` | |
+| 6 | Analysis, reduced motion: bars are static, no curves animate, only the stage word changes | Light/dark reduced motion: data-motion="static", no data-stage, no curves; the svg outerHTML hashed identically (697b154434de…) for scanning, analyzing, and finalizing; 0 running animations; only the stage word changes. | `shots/analysis-light-rm-scanning.png`, `shots/analysis-light-rm-analyzing.png`, `shots/analysis-light-rm-finalizing.png`, `shots/analysis-dark-rm-finalizing.png` | |
+| 7 | Execute, idle: every operation reads `old → new` under the large count and the relocation mode | Light/dark/reduced: "9 operations · rename in place" with the serif 9 at the largest size, then nine `old → new` rows in plan order; new names in ink-3, the sweep rule hair-coloured. | `shots/execute-light-idle.png`, `shots/execute-dark-idle.png`, `shots/execute-light-rm-idle.png`, `shots/execute-dark-rm-idle.png` | |
+| 8 | Execute, running: the accent bar sweeps along the rule and the list breathes; no row looks finished | Light/dark: the accent segment sweeps the rule once a second and every row breathes (opacity ~0.55-1); all rows stay `·` pending. Reduced motion: no sweep is visible and rows stay at full opacity (0 running animations); the action bar still reads Applying… and the step exposes the indeterminate progressbar. | `shots/execute-light-running.png`, `shots/execute-dark-running.png`, `shots/execute-light-rm-running.png`, `shots/execute-dark-rm-running.png` | |
+| 9 | Execute, done: rows resolve top to bottom; success strikes the old name and colours the new one; the failed row shows its error beneath it | Light/dark: 0.1 s after the report rows 1-2 are at full opacity, row 3 mid-fade, rows 4-9 still at 0.35 — they resolve top to bottom 130 ms apart. Successes strike the old name in --del and show the new name in --add with ✓; row 6 shows ✕, its new name in --del, and "A file with the target name already exists." beneath it. Reduced motion: every row is at full opacity immediately (computed animation-delay 0s, versus 1.04s for row 9 without the preference). | `shots/execute-light-reveal.png`, `shots/execute-dark-reveal.png`, `shots/execute-light-rm-reveal.png`, `shots/execute-dark-rm-reveal.png` | |
+| 10 | Execute, done: success and failure totals are the largest elements; the failure figure uses the "removed" colour | All four settings: "8 succeeded" and "1 failed" with serif numerals at --text-3xl, the largest type on the screen; the failure numeral is --del. The rule under them turns ink. | `shots/execute-light-done.png`, `shots/execute-dark-done.png`, `shots/execute-light-rm-done.png`, `shots/execute-dark-rm-done.png` | |
+| 11 | Execute, reduced motion: the final state appears at once, with no sweep and no stagger | Light/dark reduced motion: ?phase=done shows all nine outcomes at full opacity on the first frame; one second after load 0 animations are running; no sweep, no stagger. | `shots/execute-light-rm-pinned-done.png`, `shots/execute-light-rm-done.png`, `shots/execute-dark-rm-done.png` | |
+| 12 | Pacing feels calm, not busy, in the real app (`npm run dev:app`) as well as in Chromium | Chromium only (light, dark, both with reduced motion): the loom loop is quiet (one curve at a time, 7.2 s cycle) and the reveal takes about 1.2 s. Not checked in `npm run dev:app` (WebKitGTK) by the implementer: headless verification cannot drive the Tauri window, so this row's real-app half is left to the owner. | `shots/analysis-light-cycle-analyzing-trials.png`, `shots/execute-light-reveal.png` | |
 
 ## Wording changed because of font coverage
 
-(list, or "none")
+none (`fontCoverage.test.ts` passes with the new zh-TW strings)
 
 ## Deviations from the design document found during review
 
-(list, or "none")
+- The analysis bars fade in with `animation-fill-mode: backwards`, not `both` (design D3 amended): with a held forwards fill the orphan dimming in finalizing would never show, because animation values outrank normal declarations.
+- Row 12's real-app check (`npm run dev:app`) was not performed by the implementer; see that row.
 
 ## Sign-off
 
-- Implementer:
+- Implementer: Claude (agent), 2026-11-15 — rows 1-11 observed in Chromium; row 12 Chromium only
 - Owner:
