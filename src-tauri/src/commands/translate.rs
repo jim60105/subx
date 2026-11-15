@@ -1653,6 +1653,7 @@ mod tests {
         scan.files.iter().map(|f| (f.name.clone(), f.source.clone())).collect()
     }
 
+    // @covers translate-workflow/multi-source-selection-with-cue-count-preview#each-scan-item-names-its-source
     #[test]
     fn each_scan_item_names_the_source_that_produced_it() {
         let dir = TempDir::new().unwrap();
@@ -1678,6 +1679,7 @@ mod tests {
         );
     }
 
+    // @covers translate-workflow/multi-source-selection-with-cue-count-preview#a-file-reachable-through-two-sources-is-listed-once
     #[test]
     fn a_file_added_directly_and_through_its_folder_is_listed_once() {
         let dir = TempDir::new().unwrap();
@@ -2516,6 +2518,7 @@ mod tests {
 
     // ─── Batch-level progress ───────────────────────────────────────────────
 
+    // @covers translate-workflow/batch-level-progress-reporting#a-clean-file-reports-its-phases-in-order
     #[tokio::test]
     async fn a_clean_file_reports_its_phases_in_order() {
         let dir = TempDir::new().unwrap();
@@ -2553,6 +2556,7 @@ mod tests {
             && p.batch_total == 3));
     }
 
+    // @covers translate-workflow/batch-level-progress-reporting#a-resent-batch-is-flagged
     #[tokio::test]
     async fn a_resent_batch_is_flagged_and_does_not_count_as_returned() {
         let dir = TempDir::new().unwrap();
@@ -2580,6 +2584,7 @@ mod tests {
         );
     }
 
+    // @covers translate-workflow/batch-level-progress-reporting#the-fill-in-pass-is-reported-as-its-own-phase
     #[tokio::test]
     async fn the_fill_in_pass_is_reported_as_its_own_phase() {
         let dir = TempDir::new().unwrap();
@@ -2605,6 +2610,7 @@ mod tests {
         assert_eq!(last.total_cues, 2);
     }
 
+    // @covers translate-workflow/per-file-completion-reporting#a-failed-file-reports-completion-and-the-batch-continues
     #[tokio::test]
     async fn a_failed_file_reports_completion_and_the_batch_continues() {
         /// Fails every request of the file whose cue text carries the marker,
@@ -2664,6 +2670,7 @@ mod tests {
         );
     }
 
+    // @covers translate-workflow/per-file-completion-reporting#cancellation-stops-progress
     #[tokio::test]
     async fn cancelling_while_a_batch_is_in_flight_stops_progress() {
         let dir = TempDir::new().unwrap();

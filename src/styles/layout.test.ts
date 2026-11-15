@@ -171,6 +171,7 @@ describe("the translate batch bar", () => {
 
   /// The in-flight hatch keeps its marking but stops marching; fills and
   /// counters are not animations, so they still update.
+  // @covers translate-workflow/run-step-progress-is-accessible-and-honours-reduced-motion#reduced-motion-keeps-the-information
   it("stops the in-flight animation under reduced motion", () => {
     const block = blockOf(css, "@media (prefers-reduced-motion: reduce)");
 

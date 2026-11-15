@@ -568,6 +568,7 @@ describe("the translate sources ledger", () => {
     return user;
   }
 
+  // @covers translate-workflow/multi-source-selection-with-cue-count-preview#each-found-subtitle-is-listed-once
   it("lists each found subtitle exactly once, in one list", async () => {
     await addSources(["/m/a.srt", "/m/b.srt"]);
 
@@ -578,6 +579,7 @@ describe("the translate sources ledger", () => {
     expect(screen.getAllByText("b.srt")).toHaveLength(1);
   });
 
+  // @covers translate-workflow/multi-source-selection-with-cue-count-preview#a-file-reachable-through-two-sources-is-listed-once
   it("lists a file added directly and through its folder once, attributed to the direct file", async () => {
     await addSources(["/m/a.srt", "/m/"], {
       files: [scanItem("a.srt", "/m/a.srt", 5), scanItem("b.srt", "/m/", 6)],
@@ -593,6 +595,7 @@ describe("the translate sources ledger", () => {
     expect(screen.queryByRole("button", { name: "Remove b.srt" })).not.toBeInTheDocument();
   });
 
+  // @covers translate-workflow/translate-sources-step-demonstrates-accepted-inputs#a-directly-added-file-can-be-removed-on-its-own
   it("removes a directly added file on its own and rescans exactly the other", async () => {
     const user = await addSources(["/m/a.srt", "/m/b.srt"]);
     await screen.findByText("2 files · 4 cues");
@@ -605,6 +608,7 @@ describe("the translate sources ledger", () => {
     expect(api.scanTranslateInputs).toHaveBeenLastCalledWith(["/m/b.srt"]);
   });
 
+  // @covers translate-workflow/translate-sources-step-demonstrates-accepted-inputs#files-inside-a-folder-or-archive-source-have-no-remove-action
   it("offers a group remove action but no row remove action for folder and archive sources", async () => {
     await addSources(["/show/", "/dl/subs.zip"], {
       files: [scanItem("e1.srt", "/show/", 10), scanItem("x.ass", "/dl/subs.zip", 20)],
@@ -618,6 +622,7 @@ describe("the translate sources ledger", () => {
     expect(screen.queryByRole("button", { name: "Remove x.ass" })).not.toBeInTheDocument();
   });
 
+  // @covers translate-workflow/sources-ledger-groups-and-totals#files-from-one-folder-share-a-group
   it("shows a folder of directly added files as one group with its count and subtotal", async () => {
     await addSources(["/m/a.srt", "/m/b.srt"], {
       files: [scanItem("a.srt", "/m/a.srt", 378), scanItem("b.srt", "/m/b.srt", 372)],
@@ -632,6 +637,7 @@ describe("the translate sources ledger", () => {
     expect(document.querySelectorAll(".translate-ledger__group")).toHaveLength(1);
   });
 
+  // @covers translate-workflow/sources-ledger-groups-and-totals#an-archive-source-is-its-own-group
   it("shows an archive source as its own group with the archive glyph", async () => {
     await addSources(["/m/a.srt", "/dl/subs.zip"], {
       files: [
@@ -651,6 +657,7 @@ describe("the translate sources ledger", () => {
     expect(ledgerGroup("/m/")).toHaveAttribute("data-kind", "folder");
   });
 
+  // @covers translate-workflow/sources-ledger-groups-and-totals#summary-excludes-unparsable-files-from-the-cue-total
   it("totals the files and excludes an unparsable file's cues, flagging it in text", async () => {
     await addSources(["/m/"], {
       files: [
@@ -668,6 +675,7 @@ describe("the translate sources ledger", () => {
     expect(row).toHaveTextContent("Unparsable");
   });
 
+  // @covers translate-workflow/sources-ledger-scanning-state#directly-added-files-show-a-placeholder-count
   it("lists a directly added file with a placeholder count while the scan runs", async () => {
     vi.mocked(api.scanTranslateInputs).mockReturnValue(new Promise(() => {}));
     await addSources(["/m/a.srt"]);
@@ -679,6 +687,7 @@ describe("the translate sources ledger", () => {
     expect(screen.queryByText(/^[\d,]+ (files · [\d,]+ )?cues$/)).not.toBeInTheDocument();
   });
 
+  // @covers translate-workflow/sources-ledger-scanning-state#a-folder-source-shows-only-its-header-while-scanning
   it("shows only a scanning header for a folder source while the scan runs", async () => {
     vi.mocked(api.scanTranslateInputs).mockReturnValue(new Promise(() => {}));
     await addSources(["/show/"]);
@@ -699,6 +708,7 @@ describe("the translate sources ledger", () => {
     expect(within(ledgerGroup("/m/")).getByRole("button", { name: "Remove all 1 items in /m/" })).toBeInTheDocument();
   });
 
+  // @covers translate-workflow/sources-ledger-scanning-state#a-failed-scan-keeps-the-list
   it("keeps the sources listed when the scan fails", async () => {
     vi.mocked(api.scanTranslateInputs).mockRejectedValue({
       code: "core.io",
@@ -774,6 +784,7 @@ describe("the translate run step", () => {
     return [...row.querySelectorAll<HTMLElement>(".batch-bar__segment")].map((segment) => segment.dataset.state);
   }
 
+  // @covers translate-workflow/run-step-shows-one-row-per-file#waiting-active-and-finished-rows
   it("shows a finished, an active and a waiting row", async () => {
     const { send } = await startRun([80, 120, 90]);
 
@@ -794,6 +805,7 @@ describe("the translate run step", () => {
     expect(rowOf(2)).toHaveTextContent("Waiting · 90 cues");
   });
 
+  // @covers translate-workflow/run-step-shows-one-row-per-file#a-failed-file-is-marked-in-text
   it("marks a failed file in text and moves on to the next", async () => {
     const { send } = await startRun([80, 120]);
 
@@ -833,6 +845,7 @@ describe("the translate run step", () => {
     ]);
   });
 
+  // @covers translate-workflow/segmented-bar-mirrors-real-batches#a-resend-is-marked-and-announced
   it("marks a resend and announces it", async () => {
     const { send } = await startRun([378]);
 
@@ -845,6 +858,7 @@ describe("the translate run step", () => {
     expect(within(rowOf(0)).getByText("Resending batch 6 of 10")).toBeInTheDocument();
   });
 
+  // @covers translate-workflow/elapsed-and-estimated-remaining-time#estimate-waits-for-two-batches
   it("works out the estimate only once two batches have returned", async () => {
     const now = vi.spyOn(Date, "now");
     try {
@@ -868,6 +882,7 @@ describe("the translate run step", () => {
     }
   });
 
+  // @covers translate-workflow/run-step-progress-is-accessible-and-honours-reduced-motion#one-status-line-carries-the-progress
   it("exposes one status line naming the file and batch position, and hides every bar", async () => {
     const { send } = await startRun([400, 120]);
 
@@ -882,6 +897,7 @@ describe("the translate run step", () => {
     bars.forEach((bar) => expect(bar).toHaveAttribute("aria-hidden", "true"));
   });
 
+  // @covers translate-workflow/run-step-progress-is-accessible-and-honours-reduced-motion#reduced-motion-keeps-the-information
   it("still fills the returned segment and updates the counter under reduced motion", async () => {
     const original = window.matchMedia;
     window.matchMedia = ((query: string) => ({

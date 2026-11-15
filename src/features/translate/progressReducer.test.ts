@@ -95,6 +95,7 @@ describe("reduceProgress", () => {
     expect(state.batchDurations).toEqual([5000, 2000]);
   });
 
+  // @covers translate-workflow/elapsed-and-estimated-remaining-time#estimate-covers-the-waiting-files
   it("withholds the estimate until two batches returned, then covers the waiting files", () => {
     let state = run([
       [{ stage: "terminology" }, 0],
