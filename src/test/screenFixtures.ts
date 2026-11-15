@@ -4,6 +4,8 @@
  * the screens a person reviews are the screens the gate checks.
  */
 
+import { reduceProgress, seedProgress } from "../features/translate/progressReducer";
+import type { RunProgress } from "../features/translate/progressReducer";
 import type {
   ConfigDto,
   ConvertPlanDto,
@@ -11,6 +13,7 @@ import type {
   MatchPlanDto,
   SyncDefaultsDto,
   TranslatePlanDto,
+  TranslateProgress,
   TranslateScanResult,
   TranslationReportDto,
   VersionInfoDto,
@@ -191,3 +194,46 @@ export const EXECUTION_PLAN: MatchPlanDto = {
   unmatchedVideos: [],
   unmatchedSubtitles: [],
 };
+
+/**
+ * A translate run with one finished file, one mid-batch with a resend and two
+ * batches returned, and one waiting, reduced from snapshots by the real
+ * reducer so every row state and the estimate reach the DOM.
+ */
+export const TRANSLATE_RUN_PROGRESS: RunProgress = (() => {
+  const items = [
+    { id: 0, inputName: "ep01.srt", cueCount: 80 },
+    { id: 1, inputName: "ep02.srt", cueCount: 120 },
+    { id: 2, inputName: "ep03.srt", cueCount: 90 },
+  ];
+  const base = (id: number, extra: Partial<TranslateProgress>): TranslateProgress => ({
+    stage: "translating",
+    index: id + 1,
+    total: items.length,
+    fileName: items[id].inputName,
+    itemId: id,
+    processedCues: 0,
+    totalCues: items[id].cueCount,
+    batchSize: 40,
+    batchTotal: Math.ceil(items[id].cueCount / 40),
+    batchesDone: 0,
+    batchInFlight: 0,
+    resend: false,
+    outcome: null,
+    ...extra,
+  });
+  const events: Array<[TranslateProgress, number]> = [
+    [base(0, { stage: "terminology" }), 0],
+    [base(0, { batchInFlight: 1 }), 1000],
+    [base(0, { batchesDone: 1, processedCues: 40 }), 4000],
+    [base(0, { batchInFlight: 2, batchesDone: 1, processedCues: 40 }), 4000],
+    [base(0, { batchesDone: 2, processedCues: 80 }), 8000],
+    [base(0, { stage: "fileDone", batchesDone: 2, processedCues: 80, outcome: "translated" }), 9000],
+    [base(1, { stage: "terminology" }), 9000],
+    [base(1, { batchInFlight: 1 }), 10000],
+    [base(1, { batchesDone: 1, processedCues: 40 }), 14000],
+    [base(1, { batchInFlight: 2, batchesDone: 1, processedCues: 40 }), 14000],
+    [base(1, { batchInFlight: 2, batchesDone: 1, processedCues: 40, resend: true }), 16000],
+  ];
+  return events.reduce((state, [event, at]) => reduceProgress(state, event, at), seedProgress(items, 0));
+})();

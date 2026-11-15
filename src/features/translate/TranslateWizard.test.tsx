@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { i18n, setupI18n } from "../../test/renderWithI18n";
 import type {
   TranslatePlanDto,
+  TranslateProgress,
   TranslateScanResult,
   TranslationReportDto,
 } from "../../types/ipc";
@@ -400,12 +401,12 @@ describe("the translate wizard", () => {
     vi.mocked(api.executeTranslation).mockImplementation((_planId, _ids, onProgress) => {
       onProgress({
         stage: "translating",
-        index: 2,
-        total: 3,
-        fileName: "two.srt",
-        itemId: 1,
+        index: 1,
+        total: 1,
+        fileName: "one.srt",
+        itemId: 0,
         processedCues: 0,
-        totalCues: 3,
+        totalCues: 2,
         batchSize: 40,
         batchTotal: 1,
         batchesDone: 0,
@@ -420,7 +421,7 @@ describe("the translate wizard", () => {
 
     await user.click(await within(actionBar()).findByRole("button", { name: "Translate now" }));
 
-    expect(await screen.findByText("Translating 2 of 3 · two.srt")).toBeInTheDocument();
+    expect(await screen.findByText("Translating 1 of 1 · one.srt · Batch 1 of 1")).toBeInTheDocument();
 
     pending.resolve(REPORT);
     await screen.findByText("Results");
@@ -709,6 +710,196 @@ describe("the translate sources ledger", () => {
     await waitFor(() => expect(document.querySelector(".error-notice")).not.toBeNull());
     expect(screen.getByText("a.srt")).toBeInTheDocument();
     expect(within(ledgerGroup("/show/")).getByRole("button", { name: "Remove all 1 items in /show/" })).toBeInTheDocument();
+  });
+});
+
+describe("the translate run step", () => {
+  /** Runnable items only, so every one is selected. */
+  function runPlan(cues: number[]): TranslatePlanDto {
+    return {
+      ...PLAN,
+      items: cues.map((cueCount, id) => ({
+        id,
+        inputName: `f${id + 1}.srt`,
+        inputPath: `/m/f${id + 1}.srt`,
+        outputPath: `/m/f${id + 1}.zh-TW.srt`,
+        cueCount,
+        outputExists: false,
+        skipReason: null,
+      })),
+    };
+  }
+
+  /** Reaches Step 3 with `cues.length` files, starts the run, and returns a way to push snapshots. */
+  async function startRun(cues: number[]) {
+    const user = userEvent.setup();
+    vi.mocked(api.previewTranslation).mockResolvedValue(runPlan(cues));
+    let emit: ((progress: TranslateProgress) => void) | undefined;
+    vi.mocked(api.executeTranslation).mockImplementation((_planId, _ids, onProgress) => {
+      emit = onProgress;
+      return new Promise(() => {});
+    });
+    renderWizard();
+    await reachRun(user);
+    await user.click(await within(actionBar()).findByRole("button", { name: "Translate now" }));
+    await screen.findByRole("list", { name: "Files in this run" });
+
+    const send = (file: number, extra: Partial<TranslateProgress>) =>
+      act(() => {
+        emit?.({
+          stage: "translating",
+          index: file + 1,
+          total: cues.length,
+          fileName: `f${file + 1}.srt`,
+          itemId: file,
+          processedCues: 0,
+          totalCues: cues[file],
+          batchSize: 40,
+          batchTotal: Math.ceil(cues[file] / 40),
+          batchesDone: 0,
+          batchInFlight: 0,
+          resend: false,
+          outcome: null,
+          ...extra,
+        });
+      });
+    return { send };
+  }
+
+  function rowOf(position: number): HTMLElement {
+    return within(screen.getByRole("list", { name: "Files in this run" })).getAllByRole("listitem")[position];
+  }
+
+  function segmentStates(row: HTMLElement): Array<string | undefined> {
+    return [...row.querySelectorAll<HTMLElement>(".batch-bar__segment")].map((segment) => segment.dataset.state);
+  }
+
+  it("shows a finished, an active and a waiting row", async () => {
+    const { send } = await startRun([80, 120, 90]);
+
+    await send(0, { stage: "terminology" });
+    await send(0, { batchInFlight: 1 });
+    await send(0, { batchesDone: 1, processedCues: 40 });
+    await send(0, { batchInFlight: 2, batchesDone: 1, processedCues: 40 });
+    await send(0, { batchesDone: 2, processedCues: 80 });
+    await send(0, { stage: "fileDone", batchesDone: 2, processedCues: 80, outcome: "translated" });
+    await send(1, { stage: "terminology" });
+    await send(1, { batchInFlight: 1 });
+
+    expect(rowOf(0)).toHaveTextContent(/✓ Done · 80 cues · \d+:\d\d/);
+    expect(rowOf(0).querySelector(".batch-bar")).toBeNull();
+    expect(within(rowOf(1)).getByText("Batch 1 of 3")).toBeInTheDocument();
+    expect(within(rowOf(1)).getByText("0 / 120 cues")).toBeInTheDocument();
+    expect(rowOf(1).querySelector(".batch-bar")).not.toBeNull();
+    expect(rowOf(2)).toHaveTextContent("Waiting · 90 cues");
+  });
+
+  it("marks a failed file in text and moves on to the next", async () => {
+    const { send } = await startRun([80, 120]);
+
+    await send(0, { stage: "terminology" });
+    await send(0, { stage: "fileDone", outcome: "failed" });
+    await send(1, { stage: "terminology" });
+
+    expect(rowOf(0)).toHaveTextContent(/✕ Failed · 80 cues/);
+    expect(rowOf(1)).toHaveAttribute("data-status", "active");
+    expect(within(rowOf(1)).getByText("Extracting terminology")).toBeInTheDocument();
+  });
+
+  it("marks a cancelled file in text", async () => {
+    const { send } = await startRun([80, 120]);
+
+    await send(0, { stage: "terminology" });
+    await send(0, { stage: "fileDone", outcome: "cancelled" });
+    await send(1, { stage: "fileDone", outcome: "cancelled" });
+
+    expect(rowOf(0)).toHaveTextContent("Cancelled · 80 cues");
+    expect(rowOf(1)).toHaveTextContent("Cancelled · 120 cues");
+  });
+
+  it("fills returned batches and marks the one in flight", async () => {
+    const { send } = await startRun([378]);
+
+    await send(0, { stage: "terminology" });
+    await send(0, { batchInFlight: 6, batchesDone: 5, processedCues: 200 });
+
+    expect(segmentStates(rowOf(0))).toEqual([
+      "done", "done", "done", "done", "done", "inflight", "empty", "empty", "empty", "empty",
+    ]);
+  });
+
+  it("marks a resend and announces it", async () => {
+    const { send } = await startRun([378]);
+
+    await send(0, { stage: "terminology" });
+    await send(0, { batchInFlight: 6, batchesDone: 5, processedCues: 200 });
+    await send(0, { batchInFlight: 6, batchesDone: 5, processedCues: 200, resend: true });
+
+    expect(segmentStates(rowOf(0))[5]).toBe("resend");
+    expect(screen.getByText("Batch 6 came back with an unknown cue, so it is being sent again.")).toBeInTheDocument();
+    expect(within(rowOf(0)).getByText("Resending batch 6 of 10")).toBeInTheDocument();
+  });
+
+  it("works out the estimate only once two batches have returned", async () => {
+    const now = vi.spyOn(Date, "now");
+    try {
+      now.mockReturnValue(0);
+      const { send } = await startRun([160]);
+      await send(0, { stage: "terminology" });
+      await send(0, { batchInFlight: 1 });
+      now.mockReturnValue(4000);
+      await send(0, { batchesDone: 1, processedCues: 40 });
+      await send(0, { batchInFlight: 2, batchesDone: 1, processedCues: 40 });
+
+      expect(screen.getByText("Estimating time remaining…")).toBeInTheDocument();
+
+      now.mockReturnValue(8000);
+      await send(0, { batchesDone: 2, processedCues: 80 });
+
+      // Two 4 s batches, two left.
+      expect(screen.getByText("About 0:08 remaining")).toBeInTheDocument();
+    } finally {
+      now.mockRestore();
+    }
+  });
+
+  it("exposes one status line naming the file and batch position, and hides every bar", async () => {
+    const { send } = await startRun([400, 120]);
+
+    await send(0, { stage: "terminology" });
+    await send(0, { batchInFlight: 6, batchesDone: 5, processedCues: 200 });
+
+    const statuses = screen.getAllByRole("status");
+    expect(statuses).toHaveLength(1);
+    expect(statuses[0]).toHaveTextContent("Translating 1 of 2 · f1.srt · Batch 6 of 10");
+    const bars = document.querySelectorAll(".batch-bar");
+    expect(bars.length).toBeGreaterThan(0);
+    bars.forEach((bar) => expect(bar).toHaveAttribute("aria-hidden", "true"));
+  });
+
+  it("still fills the returned segment and updates the counter under reduced motion", async () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes("prefers-reduced-motion"),
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as typeof window.matchMedia;
+    try {
+      const { send } = await startRun([80]);
+      await send(0, { stage: "terminology" });
+      await send(0, { batchInFlight: 1 });
+      await send(0, { batchesDone: 1, processedCues: 40 });
+
+      expect(segmentStates(rowOf(0))).toEqual(["done", "empty"]);
+      expect(within(rowOf(0)).getByText("40 / 80 cues")).toBeInTheDocument();
+    } finally {
+      window.matchMedia = original;
+    }
   });
 });
 

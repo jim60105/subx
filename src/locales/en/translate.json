@@ -53,8 +53,30 @@
     "start": "Translate now",
     "starting": "Starting…",
     "translating": "Translating…",
-    "progress": "Translating {{index}} of {{total}} · {{name}}",
-    "elapsed": "Elapsed: {{seconds}}s",
+    "status": "Translating {{index}} of {{total}} · {{name}} · {{phase}}",
+    "phase": {
+      "terminology": "Extracting terminology",
+      "translating": "Batch {{batch}} of {{batches}}",
+      "resending": "Resending batch {{batch}} of {{batches}}",
+      "fillIn": "Filling in missing cues",
+      "writing": "Writing",
+      "fileDone": "Done"
+    },
+    "elapsed": "Elapsed {{time}}",
+    "estimate": {
+      "pending": "Estimating time remaining…",
+      "value": "About {{time}} remaining"
+    },
+    "resend": "Batch {{batch}} came back with an unknown cue, so it is being sent again.",
+    "rowsLabel": "Files in this run",
+    "row": {
+      "waiting": "Waiting · {{cues}} cues",
+      "counter": "{{processed}} / {{total}} cues",
+      "translated": "Done · {{cues}} cues · {{time}}",
+      "failed": "Failed · {{cues}} cues · {{time}}",
+      "cancelled": "Cancelled · {{cues}} cues",
+      "skipped": "Skipped · {{cues}} cues"
+    },
     "cancel": "Cancel",
     "openSettings": "Open Settings",
     "restart": "Start over",

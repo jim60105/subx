@@ -53,8 +53,30 @@
     "start": "立即翻譯",
     "starting": "正在開始…",
     "translating": "翻譯中……",
-    "progress": "正在翻譯第 {{index}} / {{total}} 個 · {{name}}",
-    "elapsed": "已耗時：{{seconds}} 秒",
+    "status": "正在翻譯第 {{index}} / {{total}} 個檔案 · {{name}} · {{phase}}",
+    "phase": {
+      "terminology": "擷取專有名詞",
+      "translating": "翻譯第 {{batch}} / {{batches}} 批",
+      "resending": "重送第 {{batch}} / {{batches}} 批",
+      "fillIn": "補譯缺漏",
+      "writing": "寫入中",
+      "fileDone": "已結束"
+    },
+    "elapsed": "已耗時 {{time}}",
+    "estimate": {
+      "pending": "預估剩餘：估算中",
+      "value": "預估剩餘約 {{time}}"
+    },
+    "resend": "第 {{batch}} 批的回應含有未知的句子編號，已捨棄並重送。",
+    "rowsLabel": "本次翻譯的檔案",
+    "row": {
+      "waiting": "等待中 · {{cues}} 句",
+      "counter": "{{processed}} / {{total}} 句",
+      "translated": "完成 · {{cues}} 句 · {{time}}",
+      "failed": "失敗 · {{cues}} 句 · {{time}}",
+      "cancelled": "已取消 · {{cues}} 句",
+      "skipped": "已略過 · {{cues}} 句"
+    },
     "cancel": "取消",
     "openSettings": "開啟設定",
     "restart": "重新開始",

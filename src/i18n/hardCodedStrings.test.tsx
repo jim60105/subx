@@ -46,6 +46,7 @@ import {
   REVIEW_PLAN,
   SYNC_DEFAULTS,
   TRANSLATE_REPORT,
+  TRANSLATE_RUN_PROGRESS,
   TRANSLATE_SCAN,
   TRANSLATE_SOURCES,
 } from "../test/screenFixtures";
@@ -453,9 +454,9 @@ const SCREENS = [
     render: () =>
       renderWithI18n(
         <TranslateRunStep
-          selectedCount={1}
+          selectedCount={3}
           isTranslating={true}
-          progress={null}
+          progress={TRANSLATE_RUN_PROGRESS}
           translateError={undefined}
         />,
       ),

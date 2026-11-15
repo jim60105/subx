@@ -166,6 +166,18 @@ describe("reduced motion", () => {
   });
 });
 
+describe("the translate batch bar", () => {
+  const css = read("features", "translate", "BatchProgressBar.css");
+
+  /// The in-flight hatch keeps its marking but stops marching; fills and
+  /// counters are not animations, so they still update.
+  it("stops the in-flight animation under reduced motion", () => {
+    const block = blockOf(css, "@media (prefers-reduced-motion: reduce)");
+
+    expect(declarationsOf(block, ".batch-bar__segment::before")).toMatch(/animation:\s*none/);
+  });
+});
+
 describe("the convert source list", () => {
   // `GroupedFileList` is built to be a pinned step's only scroller
   // (`flex: 1 1 0`). The convert step keeps natural height inside the

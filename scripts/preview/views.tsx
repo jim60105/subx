@@ -32,6 +32,8 @@ import { TranslateReportStep } from "../../src/features/translate/TranslateRepor
 import { TranslateRunStep } from "../../src/features/translate/TranslateRunStep";
 import { TranslateSourcesStep } from "../../src/features/translate/TranslateSourcesStep";
 import { TRANSLATE_STEPS } from "../../src/features/translate/useTranslateWizard";
+import { reduceProgress, seedProgress } from "../../src/features/translate/progressReducer";
+import type { RunProgress } from "../../src/features/translate/progressReducer";
 import {
   CONFIG,
   CONVERT_PLAN,
@@ -41,6 +43,7 @@ import {
   REVIEW_PLAN,
   SYNC_DEFAULTS,
   TRANSLATE_REPORT,
+  TRANSLATE_RUN_PROGRESS,
 } from "../../src/test/screenFixtures";
 import type {
   ConvertFormatDto,
@@ -52,6 +55,7 @@ import type {
   RelocationModeDto,
   TranslateOutputModeDto,
   TranslatePlanDto,
+  TranslateProgress,
   TranslateScanResult,
 } from "../../src/types/ipc";
 
@@ -579,6 +583,91 @@ function TranslateSourcesView({ scanning }: { scanning: boolean }) {
   );
 }
 
+type RunSample = "mid" | "resend" | "done";
+
+/**
+ * A three-file run replayed through the real reducer: the first file done in
+ * 1:37, the second with batch 6 of 10 in flight (resent for `resend`), the
+ * third waiting; `done` finishes all three. Batches take 4 s each.
+ */
+function translateRunSample(sample: RunSample): RunProgress {
+  const files = [
+    { id: 0, inputName: `${SLF}[26][BDRIP][1080P][H264_FLAC].tc.srt`, cueCount: 378 },
+    { id: 1, inputName: `${SLF}[27][BDRIP][1080P][H264_FLAC].tc.srt`, cueCount: 372 },
+    { id: 2, inputName: "Frieren.S01E01.ja.ass", cueCount: 412 },
+  ];
+  const events: Array<[TranslateProgress, number]> = [];
+  let clock = 0;
+  const push = (file: (typeof files)[number], extra: Partial<TranslateProgress>, advance = 0) => {
+    clock += advance;
+    events.push([
+      {
+        stage: "translating",
+        index: file.id + 1,
+        total: files.length,
+        fileName: file.inputName,
+        itemId: file.id,
+        processedCues: 0,
+        totalCues: file.cueCount,
+        batchSize: 40,
+        batchTotal: Math.ceil(file.cueCount / 40),
+        batchesDone: 0,
+        batchInFlight: 0,
+        resend: false,
+        outcome: null,
+        ...extra,
+      },
+      clock,
+    ]);
+  };
+  const translate = (file: (typeof files)[number], upTo: number) => {
+    const batches = Math.ceil(file.cueCount / 40);
+    push(file, { stage: "terminology" });
+    for (let batch = 1; batch <= Math.min(upTo, batches); batch += 1) {
+      const before = Math.min((batch - 1) * 40, file.cueCount);
+      push(file, { batchInFlight: batch, batchesDone: batch - 1, processedCues: before }, batch === 1 ? 4000 : 0);
+      if (batch === upTo && upTo <= batches && sample !== "done" && file.id === 1) return;
+      push(file, { batchesDone: batch, processedCues: Math.min(batch * 40, file.cueCount) }, 4000);
+    }
+    push(file, { stage: "writing", batchesDone: batches, processedCues: file.cueCount });
+    push(file, { stage: "fileDone", batchesDone: batches, processedCues: file.cueCount, outcome: "translated" }, 1000);
+  };
+  translate(files[0], 10);
+  if (sample === "done") {
+    translate(files[1], 10);
+    translate(files[2], 11);
+    push(files[2], { stage: "finished", itemId: 0, fileName: "" });
+  } else {
+    translate(files[1], 6);
+    if (sample === "resend") {
+      push(files[1], { batchInFlight: 6, batchesDone: 5, processedCues: 200, resend: true }, 3000);
+    }
+  }
+  return events.reduce((state, [event, at]) => reduceProgress(state, event, at), seedProgress(files, 0));
+}
+
+/** Translate step 3 inside the real wizard frame; `?state=mid|resend|done`. */
+function TranslateRunView() {
+  const { t } = useTranslation("translate");
+  const state = params.get("state");
+  const sample: RunSample = state === "resend" || state === "done" ? state : "mid";
+  return (
+    <WizardShell
+      steps={TRANSLATE_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }))}
+      activeStep={2}
+      secondary={{ label: t("run.cancel"), onClick: noop }}
+      next={{ label: t("run.translating"), disabled: true, onClick: noop }}
+    >
+      <TranslateRunStep
+        selectedCount={3}
+        isTranslating
+        progress={translateRunSample(sample)}
+        translateError={undefined}
+      />
+    </WizardShell>
+  );
+}
+
 /** `?ms=` seeds the offset so a screenshot can pin a positive, zero or negative value. */
 function SyncOffsetView() {
   const initial = Number(params.get("ms") ?? "750");
@@ -690,6 +779,7 @@ export const VIEWS: Record<string, () => JSX.Element> = {
   "convert-run": () => <ConvertRunView />,
   "translate-sources": () => <TranslateSourcesView scanning={params.get("scanning") === "1"} />,
   "translate-options": () => <TranslateOptionsView />,
+  "translate-run": () => <TranslateRunView />,
   "sync-offset": () => <SyncOffsetView />,
   "sync-apply": () => <SyncApplyView />,
   "sync-method": () => <SyncMethodView />,
@@ -824,7 +914,7 @@ export const VIEWS: Record<string, () => JSX.Element> = {
     />
   ),
   TranslateRunStep: () => (
-    <TranslateRunStep selectedCount={1} isTranslating={true} progress={null} translateError={undefined} />
+    <TranslateRunStep selectedCount={3} isTranslating={true} progress={TRANSLATE_RUN_PROGRESS} translateError={undefined} />
   ),
   TranslateReportStep: () => <TranslateReportStep report={TRANSLATE_REPORT} />,
 };
