@@ -1,7 +1,7 @@
 # Translate Sources Ledger and Batch Progress — Design
 
 Date: 2026-11-15
-Status: approved in brainstorming; not yet proposed as an OpenSpec change
+Status: approved; proposed as OpenSpec change `redesign-translate-ledger-and-progress`, which depends on `add-translation-progress-events` in the `subx-core` repository
 
 ## Goal
 
@@ -27,7 +27,7 @@ The owner chose option `sources-a` ("分組帳本") and option `run-a`
 | Run layout | One row per file with a bar segmented by real AI batches |
 | Terminology strip | Not built |
 | Token usage, translated-text preview | Not built |
-| `subx-core` | No change required; `subx-core` 1.0.1 already exposes what is needed |
+| `subx-core` | Gains structured translation progress events in 1.1.0 (owner decision after this design was first written) |
 | Progress honesty | The display advances only on real events; no interpolated percentage |
 | Unparsable files | Behaviour unchanged: flagged in step 01, excluded in step 02, never block "繼續" |
 | Cancellation | Behaviour unchanged: the file in flight is abandoned unwritten |
@@ -80,8 +80,10 @@ the ledger keeps the rows it can derive from `sources`.
 `TranslateScanItemDto` gains one field, `source: String`: the source path the
 user added that produced this file (the file's own path for a directly added
 file, the folder path for a folder source, the archive path for an archive
-source). The frontend groups by it. `list_translate_inputs` already resolves
-inputs per source, so this is bookkeeping, not a new scan.
+source). The backend also deduplicates resolved subtitle paths, first
+occurrence in source order, so a file added directly and through its folder
+is listed once. The frontend groups by `source`. `list_translate_inputs`
+already resolves inputs per source, so this is bookkeeping, not a new scan.
 
 ### Components
 
@@ -139,66 +141,32 @@ a batch returns.
 
 ### Accessibility and motion
 
-- The status line is the only live region (`role="status"`). It changes when
-  the file, the phase or the batch number changes, never more often.
+- The status line is the only progress live region (`role="status"`), naming
+  the current file and batch position. It changes when the file, the phase or
+  the batch number changes, never more often. A run-level `ErrorNotice` uses
+  its `alert` role, not a second status line.
 - The bars are `aria-hidden`.
 - Under `prefers-reduced-motion` the hatch is static; numbers and fills still
   update. Use the existing `usePrefersReducedMotion` hook where logic needs it.
 
 ### Backend: collecting the events
 
-All of this lives in `src-tauri/src/commands/translate.rs`; `subx-core` is not
-modified.
-
-1. **Observing provider.** Wrap the `Arc<dyn AIProvider>` the factory returns
-   in a decorator that forwards every method and, around `chat_completion`,
-   reports "request sent" and "request returned". It classifies a request by
-   comparing its system message with the public
-   `TERMINOLOGY_SYSTEM_MESSAGE` / `TRANSLATION_SYSTEM_MESSAGE` constants.
-2. **Engine reporter.** Attach a `Reporter` with
-   `TranslationEngine::with_reporter`. After each batch the engine emits
-   `ProgressEvent::Message` containing "Processed cues: X/Y". Parse the two
-   numbers; this is the authoritative processed-cue count.
-3. **Fallback.** The message is free-form text. If it does not parse, estimate
-   the count as `min(returned_batches × batch_size, total)`. The bar stays
-   correct; only the cue counter may be slightly off for a file with missing
-   cues. A unit test pins the current message format so a `subx-core` upgrade
-   that changes it fails loudly.
-4. **Resend detection.** The engine emits its progress message after every
-   batch, including one that added no cues. A translation request sent when
-   no progress message has arrived since the previous translation request was
-   sent is therefore a resend of the same batch. Comparing cue counts instead
-   would misread a batch whose cues all came back missing.
-5. **Fill-in detection.** A translation request sent after
-   `ceil(cues / batch_size)` progress messages have arrived is the fill-in
-   pass.
-6. **Writing.** The command layer reports the writing phase itself, between
-   `translate_subtitle` returning and the output being written.
-
-Both observers report through the existing `TranslateReporter` seam, so tests
-keep running without a channel. Because one engine serves the whole batch, the
-observers read the current file's position from shared state that the batch
-loop updates before each file.
+The first draft of this section wrapped the AI provider and parsed the
+engine's `Processed cues: X/Y` text. The owner chose to add structured events
+upstream instead. `subx-core` 1.1.0 emits
+`ProgressEvent::Translation(TranslationProgress)` for the terminology request,
+each batch starting (with its attempt number) and finishing, and the fill-in
+pass. The backend attaches a `Reporter` to the engine and maps those events to
+progress snapshots; it parses no text and wraps no provider. The command layer
+reports the writing phase itself. See design decisions D5 and D6 of the
+OpenSpec change for the mapping.
 
 ### IPC contract
 
-`TranslateProgress` grows from file-level to batch-level. All counters are
-`u32` (no `u64` may cross the boundary).
-
-| Field | Meaning |
-|---|---|
-| `stage` | `terminology`, `translating`, `fillIn`, `writing`, `fileDone`, `finished` |
-| `index`, `total`, `fileName` | Unchanged: 1-based file position, file count, display name |
-| `itemId` | Plan item ID of the file, so the frontend can key rows |
-| `processedCues`, `totalCues` | Cue counters for the current file |
-| `batchIndex`, `batchTotal` | 1-based batch in flight, and batch count; `batchIndex` is 0 outside `translating` |
-| `batchSize` | Configured batch size, for segment widths |
-| `inFlight` | `true` between "request sent" and "request returned" |
-| `resend` | `true` while the batch in flight is a resend |
-
-`fileDone` is emitted once per file after it is written, fails or is skipped,
-so a row can collapse without waiting for the next file to start. `finished`
-keeps its current meaning. `src/types/bindings.ts` is regenerated with
+`TranslateProgress` grows from file-level to batch-level: phase, cue counters,
+batch size, batch count, batches returned, batch in flight, resend flag, and a
+per-file completion event carrying the outcome. The field table is D6 of the
+OpenSpec change. `src/types/bindings.ts` is regenerated with
 `npm run bindings:generate`.
 
 ### Frontend state
@@ -215,8 +183,9 @@ its own tests. `TranslateRunStep` renders from that state; a new
 - Progress stays best-effort: a failed channel send never fails the batch.
 - A file that fails mid-way emits `fileDone`; its row collapses to the failed
   marker and the batch continues, as today.
-- After cancellation no further progress events are emitted except the final
-  `finished`.
+- After cancellation the abandoned file and every file that never started are
+  reported with the cancelled outcome, then the final `finished` is emitted;
+  no further phase or batch progress follows.
 - A provider that fails the terminology request fails the file before any
   segment fills; the row goes straight from 擷取專有名詞 to failed.
 
@@ -230,8 +199,8 @@ Backend (scripted provider, recording reporter):
 - a scripted unknown-cue-ID response yields a `resend` event and no extra
   segment;
 - a scripted missing-cue response yields a `fillIn` stage;
-- the message-format pin test, and the fallback path when parsing fails;
-- no events after cancellation other than `finished`;
+- after cancellation only the cancelled `fileDone` events and the final
+  `finished`;
 - `source` is correct for file, folder and archive sources.
 
 Frontend:
@@ -245,9 +214,11 @@ Frontend:
 
 Specs: update `openspec/specs/translate-workflow/spec.md` through an OpenSpec
 change. The requirement "batch execution with per-file progress, cancellation
-and per-item report" changes to batch-level progress, and the sources
-requirement changes to a single list. Every new scenario gets a `// @covers`
-annotation on an active test. `npm run verify` must pass.
+and per-item report" keeps its name and scenario names while its text admits
+the row layout and batch-level detail, and the sources requirement changes to
+a single deduplicated list. New delta scenarios stay unannotated until archive
+syncs them, when each gets a `// @covers` annotation on an active test.
+`npm run verify` must pass.
 
 ## Out of scope
 
@@ -255,13 +226,11 @@ annotation on an active test. `npm run verify` must pass.
 - Per-file exclusion inside a folder or archive source at step 01.
 - Collapsible groups or virtual scrolling for very large source sets;
   `.wizard__content` remains the scroller.
-- A structured batch-progress event in `subx-core`. It would remove the string
-  parsing in "Engine reporter" above and can be requested upstream later; this
-  design does not depend on it.
 
 ## Delivery
 
-One OpenSpec change is enough; the two parts share the scan and progress DTOs
-and the same spec. If it proves larger than a workday, split it into
-`merge-translate-source-lists` and `show-translate-batch-progress`, in that
-order.
+Two OpenSpec changes, in order:
+
+1. `add-translation-progress-events` in the `subx-core` repository, released
+   as 1.1.0.
+2. `redesign-translate-ledger-and-progress` in this repository.
