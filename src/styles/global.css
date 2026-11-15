@@ -1,4 +1,5 @@
 @import "./tokens.css";
+@import "./fonts.css";
 
 *,
 *::before,
@@ -27,6 +28,21 @@ h2,
 h3,
 p {
   margin: 0;
+}
+
+/*
+ * The only rule that applies the serif. Headings carry it by element; brand,
+ * breadcrumb, ordinals, and large numerals opt in with `className="serif"`.
+ * The font ships in one weight, so nothing may ask the browser to fake another.
+ */
+h1,
+h2,
+h3,
+.serif {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-style: normal;
+  font-synthesis: none;
 }
 
 button {
