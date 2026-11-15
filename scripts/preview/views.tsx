@@ -349,7 +349,7 @@ export const VIEWS: Record<string, () => JSX.Element> = {
       scanError={undefined}
       onBrowseFiles={noop}
       onBrowseFolder={noop}
-      onRemoveSource={noop}
+      onRemoveSources={noop}
     />
   ),
   ConvertOptionsStep: () => (
@@ -429,7 +429,7 @@ export const VIEWS: Record<string, () => JSX.Element> = {
       scanError={undefined}
       onBrowseFiles={noop}
       onBrowseFolder={noop}
-      onRemoveSource={noop}
+      onRemoveSources={noop}
     />
   ),
   TranslateOptionsStep: () => (

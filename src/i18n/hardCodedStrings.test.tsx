@@ -273,7 +273,7 @@ const SCREENS = [
           scanError={undefined}
           onBrowseFiles={() => {}}
           onBrowseFolder={() => {}}
-          onRemoveSource={() => {}}
+          onRemoveSources={() => {}}
         />,
       ),
   },
@@ -381,7 +381,7 @@ const SCREENS = [
           scanError={undefined}
           onBrowseFiles={() => {}}
           onBrowseFolder={() => {}}
-          onRemoveSource={() => {}}
+          onRemoveSources={() => {}}
         />,
       ),
   },
