@@ -1,0 +1,42 @@
+.diff-preview {
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.diff-preview__line {
+  min-width: 0;
+}
+
+.diff-line {
+  display: flex;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.diff-line__mark {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1em;
+}
+
+.diff-line__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diff-line[data-kind="removed"] {
+  color: var(--del);
+}
+
+.diff-line[data-kind="removed"] .diff-line__text {
+  text-decoration: line-through;
+}
+
+.diff-line[data-kind="created"] {
+  color: var(--add);
+}

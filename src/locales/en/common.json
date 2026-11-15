@@ -34,5 +34,23 @@
     "maximize": "Maximize",
     "restore": "Restore",
     "close": "Close"
+  },
+  "dropZone": {
+    "label": "Drop files or folders anywhere on this window",
+    "browseFiles": "Browse files",
+    "browseFolder": "Browse folder"
+  },
+  "fileKinds": {
+    "folder": "Folder"
+  },
+  "fileList": {
+    "remove": "Remove {{name}}",
+    "removeGroup": "Remove all {{count}} items in {{folder}}",
+    "removeGroupShort": "Remove"
+  },
+  "diff": {
+    "removed": "removed",
+    "created": "created",
+    "kept": "unchanged"
   }
 }
