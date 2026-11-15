@@ -1,5 +1,7 @@
 /*
- * Natural height: `.wizard__content` is the scroller here, so the file list's
+ * Natural height: `.wizard__content` is the scroller here. The file list is
+ * built to be a step's only scroller (`flex: 1 1 0`), which in an unbounded
+ * column collapses it to nothing, so it sizes to its content instead, and its
  * own scroll fade would only clip its last row.
  */
 .convert-sources {
@@ -9,6 +11,7 @@
 }
 
 .convert-sources .file-groups {
+  flex: none;
   padding-bottom: 0;
   mask-image: none;
 }
