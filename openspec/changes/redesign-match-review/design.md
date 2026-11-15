@@ -132,7 +132,7 @@ Unmatched rows have no checkbox:
 Replace the file. Declarations the layout test asserts are marked †.
 
 ```css
-.review-step { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--space-3); min-height: 0; overflow: hidden; }  /* † overflow, min-height */
+.review-step { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--space-3); min-height: 0; }  /* † min-height; no overflow: hidden, so a too-small window scrolls the panel instead of clipping */
 .review-step__toolbar { display: flex; flex-shrink: 0; gap: var(--space-4); align-items: baseline; justify-content: space-between; }
 .review-step__filter { padding: 0 0 var(--space-1); font-size: var(--text-sm); color: var(--ink-3); cursor: pointer; background: none; border: none; border-bottom: 2px solid transparent; }
 .review-step__filter[aria-pressed="true"] { font-weight: 600; color: var(--ink); border-bottom-color: var(--accent); }
@@ -207,7 +207,7 @@ If `fontCoverage.test.ts` reports a zh-TW character the bundled serif lacks, rew
 
 ### D6: `hardCodedStrings.test.tsx`
 
-Extend `REVIEW_PLAN` with one operation whose confidence is below 80 and has reasoning (use digits-only reasoning text such as `"1"` so the fixture stays prose-free), plus one unmatched video and one unmatched subtitle (numeric names). Add to `ALLOWED`: `/^[A-Z]{2,3}$/` with the comment that language tags are the detector's short codes upper-cased — data, not prose. The existing zh-TW assertions on the language bar stay.
+Extend `REVIEW_PLAN` with one operation with `language: null` (so the existing per-language counts asserted in zh-TW do not change) whose confidence is below 80 and has reasoning (use digits-only reasoning text such as `"1"` so the fixture stays prose-free), plus one unmatched video and one unmatched subtitle (numeric names). Add to `ALLOWED`: `/^[A-Z]{2,3}$/` with the comment that language tags are the detector's short codes upper-cased — data, not prose. The existing zh-TW assertions on the language bar stay.
 
 ### D7: Preview view
 
