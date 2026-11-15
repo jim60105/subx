@@ -79,6 +79,8 @@
   align-items: center;
   padding: var(--space-3);
   margin: 0;
+  /* A fieldset draws its own box; keep only the hairline below. */
+  border: none;
   border-bottom: 1px solid var(--hair);
 }
 

@@ -46,8 +46,14 @@ h3,
   font-synthesis: none;
 }
 
-button {
+button,
+input,
+select,
+textarea {
   font: inherit;
+}
+
+button {
   color: inherit;
 }
 
