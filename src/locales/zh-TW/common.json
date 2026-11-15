@@ -34,5 +34,23 @@
     "maximize": "最大化",
     "restore": "還原",
     "close": "關閉"
+  },
+  "dropZone": {
+    "label": "將檔案或資料夾拖曳到視窗任一處",
+    "browseFiles": "瀏覽檔案",
+    "browseFolder": "瀏覽資料夾"
+  },
+  "fileKinds": {
+    "folder": "資料夾"
+  },
+  "fileList": {
+    "remove": "移除 {{name}}",
+    "removeGroup": "移除 {{folder}} 中的全部 {{count}} 個項目",
+    "removeGroupShort": "移除"
+  },
+  "diff": {
+    "removed": "移除",
+    "created": "建立",
+    "kept": "不變"
   }
 }

@@ -1,144 +1,100 @@
+/*
+ * A fixed-height column: the file list is the only scroller, so the
+ * relocation choice below it never scrolls out of view. Deliberately no
+ * `overflow: hidden` — when the pinned parts alone exceed a short window they
+ * overflow into `.wizard__content`, which scrolls, instead of being clipped.
+ */
 .sources-step {
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
   gap: var(--space-4);
+  min-height: 0;
 }
 
-.sources-step__intro {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.sources-step__title {
-  margin: 0;
-  font-size: var(--text-xl);
-  color: var(--ink);
-}
-
-.sources-step__description {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--ink-2);
-}
-
-.sources-step__dropzone {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-6);
-  text-align: center;
-  border: 1px dashed var(--ink-3);
-}
-
-.sources-step__dropzone-label {
-  margin: 0;
-  font-size: var(--text-base);
-  color: var(--ink);
-}
-
-.sources-step__dropzone-hint {
-  margin: 0;
-  font-size: var(--text-xs);
-  color: var(--ink-3);
-}
-
-.sources-step__buttons {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.sources-step__list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-.sources-step__empty {
-  font-size: var(--text-sm);
-  color: var(--ink-3);
-}
-
-.sources-step__item {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--hair);
-}
-
-.sources-step__path {
-  overflow: hidden;
-  font-size: var(--text-sm);
-  color: var(--ink);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sources-step__remove {
+.sources-step > :not(.file-groups) {
   flex-shrink: 0;
-  padding: var(--space-1) var(--space-2);
-  color: var(--ink-2);
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-control);
-}
-
-.sources-step__remove:hover {
-  color: var(--del);
-}
-
-.sources-step__modes {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  margin: 0;
-  /* A fieldset draws its own box; keep only the hairline below. */
-  border: none;
-  border-bottom: 1px solid var(--hair);
-}
-
-.sources-step__modes-legend {
-  padding: 0 var(--space-2);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.sources-step__mode {
-  display: flex;
-  gap: var(--space-2);
-  align-items: flex-start;
-  cursor: pointer;
-}
-
-.sources-step__mode-body {
-  display: flex;
-  flex-direction: column;
-}
-
-.sources-step__mode-name {
-  font-size: var(--text-sm);
-  color: var(--ink);
-}
-
-.sources-step__mode-hint {
-  font-size: var(--text-xs);
-  color: var(--ink-3);
 }
 
 .sources-step__scan {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  align-items: baseline;
   font-size: var(--text-sm);
   color: var(--ink-2);
+}
+
+.sources-step__tally {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: baseline;
+}
+
+.sources-step__figure {
+  font-size: var(--text-2xl);
+  line-height: 1;
+  color: var(--ink);
 }
 
 .sources-step__insufficient {
   color: var(--del);
+}
+
+.sources-step__modes {
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.sources-step__mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--hair);
+}
+
+.sources-step__mode {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  border-top: 2px solid transparent;
+  border-inline-end: 1px solid var(--hair);
+}
+
+.sources-step__mode:last-child {
+  border-inline-end: none;
+}
+
+.sources-step__mode[data-checked="true"] {
+  background: var(--paper-2);
+  border-top-color: var(--accent);
+}
+
+.sources-step__mode:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sources-step__mode-name {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.sources-step__mode-dot {
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid var(--ink-3);
+  border-radius: 50%;
+}
+
+.sources-step__mode[data-checked="true"] .sources-step__mode-dot {
+  border: 4px solid var(--accent);
 }

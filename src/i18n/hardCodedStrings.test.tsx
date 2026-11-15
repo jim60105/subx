@@ -14,6 +14,7 @@ import { act, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import App from "../App";
+import { KIND_CAPTIONS } from "../components/DropZone/DropZone";
 import { ConvertOptionsStep } from "../features/convert/ConvertOptionsStep";
 import { ConvertRunStep } from "../features/convert/ConvertRunStep";
 import { ConvertSourcesStep } from "../features/convert/ConvertSourcesStep";
@@ -22,6 +23,7 @@ import { SPECIMEN_TEXTS } from "../features/home/specimens";
 import { AnalysisStep } from "../features/match/AnalysisStep";
 import { ExecuteStep } from "../features/match/ExecuteStep";
 import { ReviewStep } from "../features/match/ReviewStep";
+import { RELOCATION_SAMPLES } from "../features/match/relocationSamples";
 import { SourcesStep } from "../features/match/SourcesStep";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
 import { SyncApplyStep } from "../features/sync/SyncApplyStep";
@@ -45,6 +47,11 @@ import {
   TRANSLATE_REPORT,
 } from "../test/screenFixtures";
 
+/** A pattern matching `text` and nothing else. */
+function exactly(text: string): RegExp {
+  return new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`);
+}
+
 /**
  * Text that legitimately reaches the DOM without a translation key.
  *
@@ -66,7 +73,13 @@ const ALLOWED = [
   /^\d+\.\d+\.\d+( · [0-9a-f]{7,40})?$/,
   // The home specimens' sample file names, extensions, and timecodes. They
   // demonstrate what a task does to files; they are not prose. Matched exactly.
-  ...SPECIMEN_TEXTS.map((text) => new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`)),
+  ...SPECIMEN_TEXTS.map(exactly),
+  // The drop zone's glyph captions are file extensions: data, not prose.
+  ...Object.values(KIND_CAPTIONS).map(exactly),
+  // The relocation diffs' sample file names are constants, never translated.
+  ...Object.values(RELOCATION_SAMPLES).flatMap((lines) => lines.map(({ text }) => exactly(text))),
+  // The populated sources fixture's paths are test data shown as folder headers and titles.
+  /^\/fixtures\/[\w./-]*$/,
 ];
 
 /**
@@ -151,7 +164,7 @@ afterEach(async () => {
 const SCREENS = [
   { name: "HomeScreen", render: () => renderWithI18n(<HomeScreen onOpenTask={() => {}} />) },
   {
-    name: "SourcesStep",
+    name: "SourcesStep (empty)",
     render: () =>
       renderWithI18n(
         <SourcesStep
@@ -162,7 +175,24 @@ const SCREENS = [
           mode="rename"
           onBrowseFiles={() => {}}
           onBrowseFolder={() => {}}
-          onRemoveSource={() => {}}
+          onRemoveSources={() => {}}
+          onModeChange={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "SourcesStep (populated)",
+    render: () =>
+      renderWithI18n(
+        <SourcesStep
+          sources={["/fixtures/show/ep01.mkv", "/fixtures/show/ep01.tc.ass"]}
+          scan={{ videoCount: 1, subtitleCount: 1 }}
+          isScanning={false}
+          scanError={undefined}
+          mode="rename"
+          onBrowseFiles={() => {}}
+          onBrowseFolder={() => {}}
+          onRemoveSources={() => {}}
           onModeChange={() => {}}
         />,
       ),

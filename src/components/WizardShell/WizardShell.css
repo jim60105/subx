@@ -49,6 +49,12 @@
 }
 
 .wizard__content {
+  /* A flex column so a step root can claim the remaining height and scroll
+     only part of itself (the match sources list). Other steps' roots keep
+     their natural height — flex items do not shrink below their content —
+     so this panel still scrolls them as before. */
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   padding: var(--space-4) 0;

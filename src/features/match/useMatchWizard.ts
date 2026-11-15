@@ -44,7 +44,8 @@ export interface MatchWizard {
   report: ExecutionReportDto | null;
   executeError: unknown;
   addSources: (paths: string[]) => void;
-  removeSource: (path: string) => void;
+  /** Removes every given source and rescans once. */
+  removeSources: (paths: string[]) => void;
   setMode: (mode: RelocationModeDto) => void;
   analyze: () => Promise<void>;
   cancel: () => Promise<void>;
@@ -125,10 +126,12 @@ export function useMatchWizard(): MatchWizard {
     [rescan],
   );
 
-  const removeSource = useCallback(
-    (path: string) => {
+  const removeSources = useCallback(
+    (paths: string[]) => {
       setSources((current) => {
-        const next = current.filter((entry) => entry !== path);
+        const next = current.filter((entry) => !paths.includes(entry));
+        // Nothing listed was removed: keep the scan that is already shown.
+        if (next.length === current.length) return current;
         void rescan(next);
         return next;
       });
@@ -250,7 +253,7 @@ export function useMatchWizard(): MatchWizard {
     report,
     executeError,
     addSources,
-    removeSource,
+    removeSources,
     setMode,
     analyze,
     cancel,

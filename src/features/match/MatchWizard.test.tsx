@@ -486,9 +486,12 @@ describe("the match wizard", () => {
     await user.click(screen.getByRole("button", { name: "Browse files" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Analyze" })).toBeEnabled());
 
+    expect(screen.getByRole("group", { name: "Selected sources" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Remove show.mkv" }));
 
-    expect(screen.getByText("No sources added yet.")).toBeInTheDocument();
+    // With nothing listed the list is gone and the drop zone is large again.
+    expect(screen.queryByRole("group", { name: "Selected sources" })).not.toBeInTheDocument();
+    expect(document.querySelector(".drop-zone")).toHaveAttribute("data-state", "large");
     expect(screen.getByRole("button", { name: "Analyze" })).toBeDisabled();
   });
 

@@ -1,0 +1,86 @@
+.file-groups {
+  flex: 1 1 0;
+  /* Lets the list shrink below its content so it, and only it, scrolls. */
+  min-height: 0;
+  padding-bottom: var(--space-6);
+  overflow-y: auto;
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  /* Only the alpha channel matters: `--ink` is opaque in both themes. The
+     bottom padding equals the fade so the last row can scroll clear of it. */
+  mask-image: linear-gradient(to bottom, var(--ink) calc(100% - var(--space-6)), transparent);
+}
+
+.file-groups__header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  background: var(--paper);
+}
+
+.file-groups__folder {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-groups__count {
+  flex-shrink: 0;
+}
+
+.file-groups__remove-group {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+}
+
+.file-groups__entries {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  columns: 2;
+  column-gap: var(--space-5);
+}
+
+.file-groups__entry {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  white-space: nowrap;
+  break-inside: avoid;
+}
+
+.file-groups__entry svg {
+  flex-shrink: 0;
+  color: var(--ink-3);
+}
+
+.file-groups__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-groups__remove {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+  color: var(--ink-3);
+  cursor: pointer;
+  background: none;
+  border: none;
+  opacity: 0;
+}
+
+.file-groups__entry:hover .file-groups__remove,
+.file-groups__remove:focus-visible {
+  opacity: 1;
+}

@@ -4,7 +4,7 @@
 
 ### Requirement: Multi-source selection with scan preview and relocation mode
 
-Step 1 of the match wizard SHALL accept multiple sources via drag-and-drop or file browser, where each source may be a folder, an individual video/subtitle file, or a supported archive (expanded via the crate's input handling, which also records each extracted file's archive origin). Step 1 SHALL also offer the relocation mode choice — rename in place / copy / move — defaulting to rename in place. Before any AI call, the wizard SHALL show a scan preview with the number of videos and subtitles discovered. If the sources contain no videos or no subtitles, the wizard SHALL explain this and SHALL NOT allow proceeding. The relocation choice SHALL stay visible however many sources are listed: only the source list scrolls. Each relocation option SHALL demonstrate its effect on a sample file as a diff rather than describe it in a sentence.
+Step 1 SHALL accept folders, video/subtitle files, and archives (expanded by the crate, recording each file's archive origin) via drag-and-drop or browser, and offer the relocation choice rename in place / copy / move, defaulting to rename in place. Before any AI call it SHALL show a scan preview of videos and subtitles found, and SHALL explain and block proceeding when either is missing. Only the source list SHALL scroll, and each relocation option SHALL demonstrate its effect as a diff.
 
 #### Scenario: Mixed sources are scanned
 
