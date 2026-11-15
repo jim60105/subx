@@ -50,7 +50,8 @@ export interface TranslateWizard {
   report: TranslationReportDto | null;
   translateError: unknown;
   addSources: (paths: string[]) => void;
-  removeSource: (path: string) => void;
+  /** Removes one entry (`[path]`) or a whole folder group, with one rescan. */
+  removeSources: (paths: string[]) => void;
   toOptions: () => void;
   setTargetLanguage: (value: string) => void;
   setSourceLanguage: (value: string) => void;
@@ -274,10 +275,12 @@ export function useTranslateWizard(): TranslateWizard {
     [rescan],
   );
 
-  const removeSource = useCallback(
-    (path: string) => {
+  const removeSources = useCallback(
+    (paths: string[]) => {
       setSources((current) => {
-        const next = current.filter((entry) => entry !== path);
+        const next = current.filter((entry) => !paths.includes(entry));
+        // Nothing listed was removed: keep the scan that is already shown.
+        if (next.length === current.length) return current;
         void rescan(next);
         return next;
       });
@@ -430,7 +433,7 @@ export function useTranslateWizard(): TranslateWizard {
     report,
     translateError,
     addSources,
-    removeSource,
+    removeSources,
     toOptions,
     setTargetLanguage,
     setSourceLanguage,

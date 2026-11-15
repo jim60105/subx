@@ -95,7 +95,7 @@ export function ConvertWizard() {
           scanError={wizard.scanError}
           onBrowseFiles={() => void pickFiles().then(addSources)}
           onBrowseFolder={() => void pickFolder().then(addSources)}
-          onRemoveSource={wizard.removeSource}
+          onRemoveSources={wizard.removeSources}
         />
       )}
       {wizard.step === "options" && (
@@ -116,6 +116,8 @@ export function ConvertWizard() {
           targetFormat={wizard.targetFormat}
           selectedCount={wizard.selectedCount}
           keepOriginal={wizard.keepOriginal}
+          plan={wizard.plan}
+          selectedIds={wizard.selectedIds}
           isConverting={wizard.isConverting}
           progress={wizard.progress}
           report={wizard.report}

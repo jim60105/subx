@@ -1,7 +1,9 @@
 import { useTranslation } from "react-i18next";
 
+import { DiffPreview } from "../../components/DiffPreview/DiffPreview";
 import { ErrorNotice } from "../../components/ErrorNotice/ErrorNotice";
 import type { ConvertFormatDto, ConvertItemDto, ConvertPlanDto } from "../../types/ipc";
+import { convertItemLines } from "./planLines";
 import "./ConvertOptionsStep.css";
 
 const FORMATS: readonly ConvertFormatDto[] = ["srt", "ass", "vtt", "sub"];
@@ -20,17 +22,23 @@ interface ConvertOptionsStepProps {
 
 interface PlanRowProps {
   item: ConvertItemDto;
+  keepOriginal: boolean;
   selected: boolean;
   onToggle: (id: number) => void;
 }
 
-function PlanRow({ item, selected, onToggle }: PlanRowProps) {
+function PlanRow({ item, keepOriginal, selected, onToggle }: PlanRowProps) {
   const { t } = useTranslation("convert");
   const { t: tError } = useTranslation("errors");
   const excluded = item.skipReason !== null;
 
   return (
-    <li className="convert-options__item" data-excluded={excluded ? "true" : undefined}>
+    // The diff line truncates a long output path; the row's title keeps it reachable.
+    <li
+      className="convert-options__item"
+      data-excluded={excluded ? "true" : undefined}
+      title={item.outputPath}
+    >
       <label className="convert-options__item-main">
         <input
           type="checkbox"
@@ -40,10 +48,7 @@ function PlanRow({ item, selected, onToggle }: PlanRowProps) {
           onChange={() => onToggle(item.id)}
         />
         <span className="convert-options__item-body">
-          <span className="convert-options__input">{item.inputName}</span>
-          <span className="convert-options__output">
-            {t("options.outputLabel")} <code>{item.outputPath}</code>
-          </span>
+          <DiffPreview lines={convertItemLines(item, keepOriginal)} label={item.inputName} />
         </span>
         {item.skipReason !== null && (
           <span className="convert-options__flag convert-options__flag--excluded">
@@ -63,10 +68,12 @@ function PlanRow({ item, selected, onToggle }: PlanRowProps) {
 /**
  * Step 2: choose the target format and see exactly what will be written.
  *
- * Every path shown is the one the backend resolved, not a guess re-derived
- * here, and each item carries at most one flag: an exclusion reason, or the
- * warning that it would replace an existing file. Excluded items cannot be
- * selected — the backend refuses them regardless.
+ * Each item is a diff: the output it creates, and its input kept or removed as
+ * keep-original says, so the toggle's consequence is visible rather than
+ * explained. Every path shown is the one the backend resolved, not a guess
+ * re-derived here, and each item carries at most one flag: an exclusion
+ * reason, or the warning that it would replace an existing file. Excluded
+ * items cannot be selected — the backend refuses them regardless.
  */
 export function ConvertOptionsStep({
   targetFormat,
@@ -83,10 +90,7 @@ export function ConvertOptionsStep({
 
   return (
     <div className="convert-options">
-      <header className="convert-options__intro">
-        <h2 className="convert-options__title">{t("options.title")}</h2>
-        <p className="convert-options__description">{t("options.description")}</p>
-      </header>
+      <h2 className="convert-options__title">{t("options.title")}</h2>
 
       <div className="convert-options__controls">
         <label className="convert-options__field">
@@ -111,10 +115,7 @@ export function ConvertOptionsStep({
             checked={keepOriginal}
             onChange={(event) => onKeepOriginalChange(event.target.checked)}
           />
-          <span className="convert-options__toggle-body">
-            <span className="convert-options__toggle-name">{t("options.keepOriginal")}</span>
-            <span className="convert-options__toggle-hint">{t("options.keepOriginalHint")}</span>
-          </span>
+          <span className="convert-options__toggle-name">{t("options.keepOriginal")}</span>
         </label>
       </div>
 
@@ -134,6 +135,7 @@ export function ConvertOptionsStep({
             <PlanRow
               key={item.id}
               item={item}
+              keepOriginal={keepOriginal}
               selected={selectedIds.has(item.id)}
               onToggle={onToggle}
             />

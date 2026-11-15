@@ -1,8 +1,14 @@
 import { useTranslation } from "react-i18next";
 
+import { DropZone } from "../../components/DropZone/DropZone";
+import type { IntakeKind } from "../../components/DropZone/DropZone";
 import { ErrorNotice } from "../../components/ErrorNotice/ErrorNotice";
+import { GroupedFileList } from "../../components/GroupedFileList/GroupedFileList";
 import type { TranslateScanResult } from "../../types/ipc";
 import "./TranslateSourcesStep.css";
+
+/** Translate takes subtitles, folders of them, and archives; never video. */
+const INTAKE_KINDS: readonly IntakeKind[] = ["folder", "subtitle", "archive"];
 
 interface TranslateSourcesStepProps {
   sources: string[];
@@ -11,19 +17,14 @@ interface TranslateSourcesStepProps {
   scanError: unknown;
   onBrowseFiles: () => void;
   onBrowseFolder: () => void;
-  onRemoveSource: (path: string) => void;
-}
-
-/** The last path segment, for a readable label of a long absolute path. */
-function basename(path: string): string {
-  const segments = path.split(/[\\/]/).filter(Boolean);
-  return segments[segments.length - 1] ?? path;
+  onRemoveSources: (paths: string[]) => void;
 }
 
 /**
  * Step 1: gather sources and preview what the scan found, with a per-file cue
  * count so the size of the coming AI job is visible before any request is
- * sent.
+ * sent. The drop zone shows the accepted inputs instead of describing them;
+ * the sentence stays for assistive technology only.
  *
  * The scan is deliberately its own backend call rather than the Step 2 plan:
  * a plan cannot be resolved without a target language, and the field that
@@ -36,7 +37,7 @@ export function TranslateSourcesStep({
   scanError,
   onBrowseFiles,
   onBrowseFolder,
-  onRemoveSource,
+  onRemoveSources,
 }: TranslateSourcesStepProps) {
   const { t } = useTranslation("translate");
   const { t: tError } = useTranslation("errors");
@@ -44,44 +45,19 @@ export function TranslateSourcesStep({
 
   return (
     <div className="translate-sources">
-      <header className="translate-sources__intro">
-        <h2 className="translate-sources__title">{t("sources.title")}</h2>
-        <p className="translate-sources__description">{t("sources.description")}</p>
-      </header>
+      <h2 className="visually-hidden">{t("sources.title")}</h2>
 
-      <div className="translate-sources__dropzone">
-        <p className="translate-sources__dropzone-label">{t("sources.dropzone")}</p>
-        <p className="translate-sources__dropzone-hint">{t("sources.dropHint")}</p>
-        <div className="translate-sources__buttons">
-          <button type="button" className="button translate-sources__button" onClick={onBrowseFiles}>
-            {t("sources.browseFiles")}
-          </button>
-          <button type="button" className="button translate-sources__button" onClick={onBrowseFolder}>
-            {t("sources.browseFolder")}
-          </button>
-        </div>
-      </div>
+      <DropZone
+        kinds={INTAKE_KINDS}
+        compact={sources.length > 0}
+        description={t("sources.description")}
+        onBrowseFiles={onBrowseFiles}
+        onBrowseFolder={onBrowseFolder}
+      />
 
-      <ul className="translate-sources__list" aria-label={t("sources.listLabel")}>
-        {sources.length === 0 && (
-          <li className="translate-sources__empty">{t("sources.empty")}</li>
-        )}
-        {sources.map((path) => (
-          <li key={path} className="translate-sources__item">
-            <span className="translate-sources__path" title={path}>
-              {basename(path)}
-            </span>
-            <button
-              type="button"
-              className="translate-sources__remove"
-              aria-label={t("sources.remove", { name: basename(path) })}
-              onClick={() => onRemoveSource(path)}
-            >
-              ✕
-            </button>
-          </li>
-        ))}
-      </ul>
+      {sources.length > 0 && (
+        <GroupedFileList paths={sources} label={t("sources.listLabel")} onRemove={onRemoveSources} />
+      )}
 
       <div className="translate-sources__scan" role="status">
         {isScanning && (

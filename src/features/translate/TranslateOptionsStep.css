@@ -4,22 +4,10 @@
   gap: var(--space-4);
 }
 
-.translate-options__intro {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
 .translate-options__title {
   margin: 0;
   font-size: var(--text-xl);
   color: var(--ink);
-}
-
-.translate-options__description {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--ink-2);
 }
 
 .translate-options__controls {
@@ -165,18 +153,8 @@
   flex: 1 1 auto;
   flex-direction: column;
   gap: var(--space-1);
-}
-
-.translate-options__input {
-  font-size: var(--text-sm);
-  color: var(--ink);
-  overflow-wrap: anywhere;
-}
-
-.translate-options__output {
-  font-size: var(--text-xs);
-  color: var(--ink-2);
-  overflow-wrap: anywhere;
+  /* Lets a long output path truncate instead of widening the row. */
+  min-width: 0;
 }
 
 .translate-options__cues {

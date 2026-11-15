@@ -4,22 +4,10 @@
   gap: var(--space-4);
 }
 
-.convert-options__intro {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
 .convert-options__title {
   margin: 0;
   font-size: var(--text-xl);
   color: var(--ink);
-}
-
-.convert-options__description {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--ink-2);
 }
 
 .convert-options__controls {
@@ -55,23 +43,13 @@
 .convert-options__toggle {
   display: flex;
   gap: var(--space-2);
-  align-items: flex-start;
+  align-items: center;
   cursor: pointer;
-}
-
-.convert-options__toggle-body {
-  display: flex;
-  flex-direction: column;
 }
 
 .convert-options__toggle-name {
   font-size: var(--text-sm);
   color: var(--ink);
-}
-
-.convert-options__toggle-hint {
-  font-size: var(--text-xs);
-  color: var(--ink-3);
 }
 
 .convert-options__note {
@@ -116,18 +94,8 @@
   flex: 1 1 auto;
   flex-direction: column;
   gap: var(--space-1);
-}
-
-.convert-options__input {
-  font-size: var(--text-sm);
-  color: var(--ink);
-  overflow-wrap: anywhere;
-}
-
-.convert-options__output {
-  font-size: var(--text-xs);
-  color: var(--ink-2);
-  overflow-wrap: anywhere;
+  /* Lets a long output path truncate instead of widening the row. */
+  min-width: 0;
 }
 
 .convert-options__flag {
