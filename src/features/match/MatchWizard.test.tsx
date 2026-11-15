@@ -413,6 +413,59 @@ describe("the match wizard", () => {
     expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
   });
 
+  it("filtering does not change selection", async () => {
+    const user = userEvent.setup();
+    const plan: MatchPlanDto = {
+      ...PLAN,
+      videos: [
+        {
+          ...PLAN.videos[0],
+          matches: PLAN.videos[0].matches.map((match) =>
+            match.id === 2 ? { ...match, confidence: 40, reasoning: ["1"] } : match,
+          ),
+        },
+        PLAN.videos[1],
+      ],
+    };
+    vi.mocked(api.analyzeSources).mockResolvedValueOnce(plan);
+    renderWizard();
+    await reachAnalysis(user);
+
+    const status = await within(actionBar()).findByRole("status");
+    expect(status).toHaveTextContent("5 of 5 selected");
+    await user.click(screen.getByRole("button", { name: /^Needs review/ }));
+
+    // Only the low pairing is displayed; the selection is still the whole plan.
+    expect(screen.getAllByRole("checkbox", { name: /^Include / })).toHaveLength(1);
+    expect(within(actionBar()).getByText("5 / 5")).toBeInTheDocument();
+    expect(status).toHaveTextContent("5 of 5 selected");
+
+    await user.click(within(actionBar()).getByRole("button", { name: "Continue" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Apply now" }));
+
+    await waitFor(() => expect(api.executeSelected).toHaveBeenCalledWith("plan-1", [0, 1, 2, 3, 4]));
+  });
+
+  it("count follows the selection", async () => {
+    const user = userEvent.setup();
+    const plan: MatchPlanDto = {
+      ...PLAN,
+      videos: [{ ...PLAN.videos[0], matches: PLAN.videos[0].matches.slice(0, 3) }],
+    };
+    vi.mocked(api.analyzeSources).mockResolvedValueOnce(plan);
+    renderWizard();
+    await reachAnalysis(user);
+
+    const status = await within(actionBar()).findByRole("status");
+    expect(within(status).getByText("3 / 3")).toBeInTheDocument();
+    expect(within(status).getByText("3 of 3 selected")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "Include show.sc.srt" }));
+
+    expect(within(status).getByText("2 / 3")).toBeInTheDocument();
+    expect(within(status).getByText("2 of 3 selected")).toBeInTheDocument();
+  });
+
   it("offers a restart when execution hits a stale plan", async () => {
     const user = userEvent.setup();
     vi.mocked(api.executeSelected).mockRejectedValue({

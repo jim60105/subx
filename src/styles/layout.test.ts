@@ -106,6 +106,25 @@ describe("the match sources step", () => {
   });
 });
 
+describe("the match review step", () => {
+  const css = read("features", "match", "ReviewStep.css");
+
+  /// The step claims the panel's height and lets the ledger, not the step,
+  /// scroll, so the filters above and the action bar below stay put.
+  it("scrolls only the ledger", () => {
+    expect(declarationsOf(css, ".review-step")).toMatch(/min-height:\s*0/);
+    expect(declarationsOf(css, ".review-step")).not.toMatch(/overflow/);
+    expect(declarationsOf(css, ".review-ledger")).toMatch(/overflow-y:\s*auto/);
+    expect(declarationsOf(css, ".review-ledger")).toMatch(/min-height:\s*0/);
+  });
+
+  it("marks a low-confidence row with an accent rule at its inline start", () => {
+    expect(declarationsOf(css, '.review-ledger__row[data-low="true"]')).toMatch(
+      /border-inline-start-color:\s*var\(--accent\)/,
+    );
+  });
+});
+
 describe("the app header build identity", () => {
   const css = read("components", "AppHeader", "AppHeader.css");
 
