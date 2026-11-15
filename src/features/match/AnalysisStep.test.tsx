@@ -35,6 +35,7 @@ afterEach(() => {
 });
 
 describe("the analysis step", () => {
+  // @covers match-workflow/analysis-illustration-never-claims-progress#illustration-carries-no-progress-semantics
   it.each(STAGES)("exposes no progress semantics while %s", (stage) => {
     const { container } = renderStep(stage);
 
@@ -43,6 +44,7 @@ describe("the analysis step", () => {
     expect(container.textContent).not.toContain("%");
   });
 
+  // @covers match-workflow/analysis-illustration-never-claims-progress#illustration-size-is-independent-of-the-scan
   it("draws the same number of shapes whatever the scan found", () => {
     const small = renderStep("analyzing", { videoCount: 3, subtitleCount: 5 });
     const smallVideos = small.container.querySelectorAll(".analysis-loom__video").length;
@@ -59,6 +61,7 @@ describe("the analysis step", () => {
     expect(smallSubtitles).toBe(SUBTITLE_BARS);
   });
 
+  // @covers match-workflow/analysis-illustration-never-claims-progress#scan-totals-are-the-only-data-shown
   it("shows the two scan totals with their nouns and no text in the illustration", () => {
     const { container } = renderStep("analyzing", { videoCount: 24, subtitleCount: 1 });
 
@@ -74,6 +77,7 @@ describe("the analysis step", () => {
     expect(container.querySelector(".analysis-step__totals")).toBeNull();
   });
 
+  // @covers match-workflow/analysis-illustration-never-claims-progress#reduced-motion-renders-a-static-illustration
   it("renders a static illustration under reduced motion while the stage word still moves", () => {
     setPrefersReducedMotion(true);
     const setIntervalSpy = vi.spyOn(window, "setInterval");

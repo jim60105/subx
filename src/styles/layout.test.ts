@@ -154,6 +154,7 @@ describe("reduced motion", () => {
 
   /// A staggered reveal is a delay, not a duration: zeroing only the
   /// durations would still reveal rows one after another.
+  // @covers match-workflow/execute-step-resolves-each-row-from-the-single-report#reduced-motion-reveals-the-final-state-at-once
   it("collapses every duration and delay so the final state appears at once", () => {
     const declarations = declarationsOf(block, "*::after");
 

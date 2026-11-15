@@ -84,6 +84,7 @@ beforeEach(async () => {
 });
 
 describe("the execute step before running", () => {
+  // @covers match-workflow/execute-step-lists-every-selected-operation-before-running#selected-operations-are-listed-before-running
   it("lists the selected operations under their count and the relocation mode", () => {
     const { container } = renderStep({ selectedIds: new Set([0, 2]) });
 
@@ -98,6 +99,7 @@ describe("the execute step before running", () => {
     for (const row of listed) expect(row).not.toHaveTextContent("/media/show/");
   });
 
+  // @covers match-workflow/execute-step-lists-every-selected-operation-before-running#deselected-operations-are-absent
   it("omits a deselected operation", () => {
     renderStep({ selectedIds: new Set([0, 2]) });
     expect(screen.queryByText("ep01.en.srt")).toBeNull();
@@ -116,6 +118,7 @@ describe("the execute step before running", () => {
 });
 
 describe("the execute step while running", () => {
+  // @covers match-workflow/execute-step-resolves-each-row-from-the-single-report#running-shows-no-per-row-outcome
   it("shows an indeterminate indicator and no per-row outcome", () => {
     const { container } = renderStep({ isExecuting: true });
 
@@ -130,7 +133,8 @@ describe("the execute step while running", () => {
 });
 
 describe("the execute step after the report", () => {
-  it.each<RelocationModeDto>(["rename", "move"])("resolves a success as removed and created under %s", (mode) => {
+  // @covers match-workflow/execute-step-resolves-each-row-from-the-single-report#a-successful-row-resolves-as-removed-and-created
+  it.each(["rename", "move"] as const)("resolves a success as removed and created under %s", (mode) => {
     renderStep({
       selectedIds: new Set([0]),
       mode,
@@ -145,6 +149,7 @@ describe("the execute step after the report", () => {
     expect(row).toHaveTextContent("✓");
   });
 
+  // @covers match-workflow/execute-step-resolves-each-row-from-the-single-report#a-successful-copy-keeps-the-original
   it("keeps the original of a successful copy", () => {
     renderStep({
       selectedIds: new Set([0]),
@@ -158,6 +163,7 @@ describe("the execute step after the report", () => {
     expect(row.querySelector('[data-kind="created"]')).toHaveTextContent("Show.S01E01.tc.srt");
   });
 
+  // @covers match-workflow/execute-step-resolves-each-row-from-the-single-report#a-failed-row-shows-its-error-beneath-it
   it("shows a failure's localized error inside its row and keeps the other outcomes", () => {
     renderStep({
       report: { outcomes: [applied(EP01_TC), failed(EP01_EN), applied(EP02_TC)], successCount: 2, failureCount: 1 },
@@ -173,6 +179,7 @@ describe("the execute step after the report", () => {
     expect(rowOf("ep02.tc.srt")).toHaveAttribute("data-status", "ok");
   });
 
+  // @covers match-workflow/execute-step-resolves-each-row-from-the-single-report#totals-count-successes-and-failures
   it("shows the success and failure totals in place of the pre-run count", () => {
     const { container } = renderStep({
       report: { outcomes: [applied(EP01_TC), failed(EP01_EN), applied(EP02_TC)], successCount: 2, failureCount: 1 },
