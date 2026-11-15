@@ -47,6 +47,15 @@ import {
   TRANSLATE_REPORT,
 } from "../test/screenFixtures";
 
+/** The upper-cased language tags the review fixture puts on its ledger rows. */
+const REVIEW_LANGUAGE_TAGS = [
+  ...new Set(
+    REVIEW_PLAN.videos.flatMap((video) =>
+      video.matches.flatMap((match) => (match.language === null ? [] : [match.language.toUpperCase()])),
+    ),
+  ),
+];
+
 /** A pattern matching `text` and nothing else. */
 function exactly(text: string): RegExp {
   return new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`);
@@ -80,6 +89,10 @@ const ALLOWED = [
   ...Object.values(RELOCATION_SAMPLES).flatMap((lines) => lines.map(({ text }) => exactly(text))),
   // The populated sources fixture's paths are test data shown as folder headers and titles.
   /^\/fixtures\/[\w./-]*$/,
+  // The review ledger's language tags are the detector's short codes
+  // upper-cased: data, not prose. Only the fixture's own codes are allowed, so
+  // a stray short key elsewhere still fails.
+  ...REVIEW_LANGUAGE_TAGS.map(exactly),
 ];
 
 /**

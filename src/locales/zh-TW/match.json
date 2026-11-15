@@ -43,12 +43,19 @@
   },
   "review": {
     "title": "檢視配對結果",
-    "description": "取消勾選任何你不想套用的項目。",
+    "ledgerLabel": "配對結果",
+    "filterLabel": "顯示範圍",
+    "filters": {
+      "all": "全部",
+      "needsReview": "需確認",
+      "unmatched": "未配對"
+    },
+    "filterEmpty": "這個篩選條件下沒有項目。",
+    "noSubtitle": "沒有配對的字幕",
+    "noVideo": "沒有配對的影片",
     "confidence": "{{value}}% 相符",
     "targetLabel": "將變成",
     "reasoningToggle": "為什麼這樣配對？",
-    "unmatchedVideos": "沒有配對的影片",
-    "unmatchedSubtitles": "沒有配對的字幕",
     "selection": "包含 {{name}}",
     "selectedCount": "已選取 {{total}} 中的 {{count}} 個",
     "languageBarLabel": "依語言快速選取",

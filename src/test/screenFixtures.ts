@@ -31,7 +31,10 @@ export const BUILD_INFO: VersionInfoDto = {
   debug: true,
 };
 
-/** A small populated plan makes the language-bar translations reach the DOM. */
+/**
+ * A small populated plan makes the language-bar and ledger translations reach
+ * the DOM. Names are digits so no fixture text reads as prose.
+ */
 export const REVIEW_PLAN: MatchPlanDto = {
   planId: "plan-1",
   relocationMode: "rename",
@@ -63,11 +66,22 @@ export const REVIEW_PLAN: MatchPlanDto = {
           language: null,
           reasoning: [],
         },
+        // Below the review threshold, so the meter, the figure, and the
+        // expanded reasoning reach the DOM. No language, so the per-language
+        // counts above stay as they are.
+        {
+          id: 3,
+          subtitleName: "4",
+          targetPath: "/4",
+          confidence: 52,
+          language: null,
+          reasoning: ["1"],
+        },
       ],
     },
   ],
-  unmatchedVideos: [],
-  unmatchedSubtitles: [],
+  unmatchedVideos: ["5"],
+  unmatchedSubtitles: ["6"],
 };
 
 /** The convert equivalent: chrome only, no file names to read as prose. */

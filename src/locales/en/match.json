@@ -43,12 +43,19 @@
   },
   "review": {
     "title": "Review the matches",
-    "description": "Uncheck anything you don't want to apply.",
+    "ledgerLabel": "Matches",
+    "filterLabel": "Show",
+    "filters": {
+      "all": "All",
+      "needsReview": "Needs review",
+      "unmatched": "Unmatched"
+    },
+    "filterEmpty": "Nothing to show for this filter.",
+    "noSubtitle": "No matching subtitle",
+    "noVideo": "No matching video",
     "confidence": "{{value}}% match",
     "targetLabel": "Will become",
     "reasoningToggle": "Why this match?",
-    "unmatchedVideos": "Videos with no match",
-    "unmatchedSubtitles": "Subtitles with no match",
     "selection": "Include {{name}}",
     "selectedCount": "{{count}} of {{total}} selected",
     "languageBarLabel": "Quick select by language",

@@ -244,10 +244,11 @@ describe("the match wizard", () => {
     renderWizard();
     await reachAnalysis(user);
 
-    expect(await screen.findByText("show.mkv")).toBeInTheDocument();
+    // Shown on the video's first row; its later rows carry it visually hidden.
+    expect(await screen.findAllByText("show.mkv")).toHaveLength(4);
     expect(screen.getByRole("checkbox", { name: "Include show.en.srt" })).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "Include show.tc.srt" })).toBeInTheDocument();
-    // Set-difference unmatched sections, not AI rejections.
+    // Set-difference unmatched entries, not AI rejections, in the same ledger.
     expect(screen.getByText("lonely.mkv")).toBeInTheDocument();
     expect(screen.getByText("orphan.srt")).toBeInTheDocument();
   });
