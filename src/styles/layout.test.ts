@@ -118,6 +118,12 @@ describe("the match review step", () => {
     expect(declarationsOf(css, ".review-ledger")).toMatch(/min-height:\s*0/);
   });
 
+  /// Rows carry visually hidden text, which is absolutely positioned; the
+  /// ledger must contain it or it overflows the document past the window.
+  it("contains the rows' visually hidden text inside the scroller", () => {
+    expect(declarationsOf(css, ".review-ledger")).toMatch(/position:\s*relative/);
+  });
+
   it("marks a low-confidence row with an accent rule at its inline start", () => {
     expect(declarationsOf(css, '.review-ledger__row[data-low="true"]')).toMatch(
       /border-inline-start-color:\s*var\(--accent\)/,
