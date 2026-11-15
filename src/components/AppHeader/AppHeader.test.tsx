@@ -39,10 +39,18 @@ vi.mock("@tauri-apps/api/window", () => ({
   }),
 }));
 
-function renderHeader(onNavigateHome?: () => void, onOpenSettings?: () => void) {
+function renderHeader(
+  onNavigateHome?: () => void,
+  onOpenSettings?: () => void,
+  currentTitle?: string,
+) {
   return renderWithI18n(
     <ThemeProvider>
-      <AppHeader onNavigateHome={onNavigateHome} onOpenSettings={onOpenSettings} />
+      <AppHeader
+        onNavigateHome={onNavigateHome}
+        onOpenSettings={onOpenSettings}
+        currentTitle={currentTitle}
+      />
     </ThemeProvider>,
   );
 }
@@ -162,9 +170,36 @@ describe("AppHeader", () => {
     expect(badge).toHaveClass("app-header__version");
     expect(badge.parentElement).toBe(header);
     expect(brand.contains(badge)).toBe(false);
-    expect(brand).toHaveAccessibleName("SubX AI-powered subtitle tooling Back to home");
+    expect(brand).toHaveAccessibleName("SubX Back to home");
     expect(badge.nextElementSibling).toHaveClass("app-header__controls");
     expect(userSelectValues).toEqual(["text"]);
+  });
+
+  it("shows the current screen as plain text after the brand", () => {
+    renderHeader(() => {}, undefined, "Match subtitles");
+
+    const nav = screen.getByRole("navigation", { name: "Breadcrumb" });
+    const current = screen.getByText("Match subtitles");
+    expect(nav).toContainElement(current);
+    expect(current).toHaveAttribute("aria-current", "page");
+    expect(current.closest("button")).toBeNull();
+    expect(nav).toHaveTextContent(/^SubX.*\/Match subtitles$/);
+  });
+
+  it("shows no current-screen segment when no title is given", () => {
+    const { container } = renderHeader();
+
+    expect(container.querySelector("[aria-current]")).toBeNull();
+    expect(container.querySelector(".app-header__slash")).toBeNull();
+  });
+
+  it("labels the settings control with visible text rather than an icon", () => {
+    renderHeader(undefined, () => {});
+    const settings = screen.getByRole("button", { name: "Settings" });
+
+    expect(settings).toHaveTextContent("Settings");
+    expect(settings).not.toHaveAttribute("aria-label");
+    expect(settings.querySelector("svg")).toBeNull();
   });
 
   it("returns to the hub when the brand is used", async () => {
@@ -218,7 +253,7 @@ describe("AppHeader", () => {
     expect(screen.getByRole("button", { name: /回到首頁/ })).toBeInTheDocument();
     expect(screen.getByLabelText("主題")).toBeInTheDocument();
     expect(screen.getByLabelText("語言")).toBeInTheDocument();
-    expect(screen.getByText("AI 字幕工具")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "導覽路徑" })).toBeInTheDocument();
     expect(window.localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe("zh-TW");
   });
 

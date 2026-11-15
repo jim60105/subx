@@ -167,6 +167,33 @@ describe("app shell", () => {
     expect(screen.queryByRole("button", { name: /Back to home/ })).not.toBeInTheDocument();
   });
 
+  it("names the current screen in the breadcrumb, and nothing on the hub", async () => {
+    mockIPC((command) => {
+      if (command === "get_build_info") return structuredClone(BUILD_INFO);
+      if (command === "get_config") return structuredClone(CONFIG);
+      throw new Error(`unexpected command: ${command}`);
+    });
+    const { container } = renderWithI18n(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+    const current = () => container.querySelectorAll('[aria-current="page"]');
+
+    expect(current()).toHaveLength(0);
+
+    await userEvent.click(screen.getByRole("button", { name: /Match subtitles/ }));
+    expect(current()).toHaveLength(1);
+    expect(current()[0]).toHaveTextContent("Match subtitles");
+    expect(current()[0].closest("button")).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expect(await screen.findByRole("heading", { name: "Settings" })).toBeInTheDocument();
+    expect(current()).toHaveLength(1);
+    expect(current()[0]).toHaveTextContent("Settings");
+    expect(current()[0].closest("button")).toBeNull();
+  });
+
   // @covers app-shell/navigation-between-home-and-feature-screens#brand-returns-home-from-a-mid-flow-wizard-step
   it("returns home from a wizard step past the first, and re-enters fresh", async () => {
     mockIPC((command) => {
