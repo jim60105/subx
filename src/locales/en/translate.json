@@ -63,7 +63,12 @@
       "resending": "Resending batch {{batch}} of {{batches}}",
       "fillIn": "Filling in missing cues",
       "writing": "Writing",
-      "fileDone": "Done"
+      "ended": {
+        "translated": "Done",
+        "failed": "Failed",
+        "cancelled": "Cancelled",
+        "skipped": "Skipped"
+      }
     },
     "elapsed": "Elapsed {{time}}",
     "estimate": {

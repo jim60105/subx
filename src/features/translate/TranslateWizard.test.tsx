@@ -802,6 +802,7 @@ describe("the translate run step", () => {
     await send(1, { stage: "terminology" });
 
     expect(rowOf(0)).toHaveTextContent(/✕ Failed · 80 cues/);
+    expect(screen.getByRole("status")).toHaveTextContent("Translating 2 of 2 · f2.srt · Extracting terminology");
     expect(rowOf(1)).toHaveAttribute("data-status", "active");
     expect(within(rowOf(1)).getByText("Extracting terminology")).toBeInTheDocument();
   });
@@ -812,6 +813,7 @@ describe("the translate run step", () => {
     await send(0, { stage: "terminology" });
     await send(0, { stage: "fileDone", outcome: "cancelled" });
     await send(1, { stage: "fileDone", outcome: "cancelled" });
+    expect(screen.getByRole("status")).toHaveTextContent("Translating 2 of 2 · f2.srt · Cancelled");
     await send(1, { stage: "finished", itemId: 0, fileName: "" });
 
     expect(rowOf(0)).toHaveTextContent("Cancelled · 80 cues");

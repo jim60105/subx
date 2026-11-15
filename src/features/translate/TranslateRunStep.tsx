@@ -70,7 +70,18 @@ function phaseLabel(t: TFunction<"translate">, row: ProgressRow, forStatus: bool
     case "writing":
       return t("run.phase.writing");
     default:
-      return t("run.phase.fileDone");
+      // A file that ended: name how, so a cancelled or failed file never
+      // reads as done.
+      switch (row.outcome) {
+        case "failed":
+          return t("run.phase.ended.failed");
+        case "cancelled":
+          return t("run.phase.ended.cancelled");
+        case "skipped":
+          return t("run.phase.ended.skipped");
+        default:
+          return t("run.phase.ended.translated");
+      }
   }
 }
 

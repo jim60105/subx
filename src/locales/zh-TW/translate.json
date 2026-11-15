@@ -63,7 +63,12 @@
       "resending": "重送第 {{batch}} / {{batches}} 批",
       "fillIn": "補譯缺漏",
       "writing": "寫入中",
-      "fileDone": "已結束"
+      "ended": {
+        "translated": "已完成",
+        "failed": "失敗",
+        "cancelled": "已取消",
+        "skipped": "已略過"
+      }
     },
     "elapsed": "已耗時 {{time}}",
     "estimate": {
