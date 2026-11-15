@@ -41,6 +41,7 @@ import {
   CONFIG,
   EMPTY_CONVERT_PLAN,
   EMPTY_TRANSLATE_PLAN,
+  EXECUTION_PLAN,
   EXECUTION_REPORT,
   REVIEW_PLAN,
   SYNC_DEFAULTS,
@@ -234,12 +235,28 @@ const SCREENS = [
       ),
   },
   {
-    name: "ExecuteStep",
+    name: "ExecuteStep (idle)",
     render: () =>
       renderWithI18n(
         <ExecuteStep
+          plan={EXECUTION_PLAN}
+          selectedIds={new Set([0])}
           mode="rename"
-          selectedCount={1}
+          isExecuting={false}
+          report={null}
+          executeError={undefined}
+        />,
+      ),
+  },
+  {
+    name: "ExecuteStep (done)",
+    render: () =>
+      renderWithI18n(
+        <ExecuteStep
+          plan={EXECUTION_PLAN}
+          selectedIds={new Set([0])}
+          mode="rename"
+          isExecuting={false}
           report={EXECUTION_REPORT}
           executeError={undefined}
         />,

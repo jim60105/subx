@@ -28,6 +28,7 @@ import { TranslateSourcesStep } from "../../src/features/translate/TranslateSour
 import {
   EMPTY_CONVERT_PLAN,
   EMPTY_TRANSLATE_PLAN,
+  EXECUTION_PLAN,
   EXECUTION_REPORT,
   REVIEW_PLAN,
   SYNC_DEFAULTS,
@@ -195,7 +196,14 @@ export const VIEWS: Record<string, () => JSX.Element> = {
     <ReviewStep plan={REVIEW_PLAN} selectedIds={new Set([0, 1, 2])} onToggle={noop} onToggleLanguage={noop} />
   ),
   ExecuteStep: () => (
-    <ExecuteStep mode="rename" selectedCount={1} report={EXECUTION_REPORT} executeError={undefined} />
+    <ExecuteStep
+      plan={EXECUTION_PLAN}
+      selectedIds={new Set([0])}
+      mode="rename"
+      isExecuting={false}
+      report={EXECUTION_REPORT}
+      executeError={undefined}
+    />
   ),
   ConvertSourcesStep: () => (
     <ConvertSourcesStep

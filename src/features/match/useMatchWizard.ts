@@ -218,7 +218,9 @@ export function useMatchWizard(): MatchWizard {
     setIsExecuting(true);
     setExecuteError(undefined);
     try {
-      setReport(await executeSelected(plan.planId, [...selectedIds]));
+      // Ascending, the order the backend runs them in and reports them back:
+      // the execute step maps outcomes onto rows by that order.
+      setReport(await executeSelected(plan.planId, [...selectedIds].sort((a, b) => a - b)));
     } catch (error) {
       setExecuteError(error);
     } finally {

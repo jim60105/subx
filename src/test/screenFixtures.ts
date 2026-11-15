@@ -134,3 +134,19 @@ export const EXECUTION_REPORT: ExecutionReportDto = {
   successCount: 1,
   failureCount: 0,
 };
+
+/** The one-operation plan `EXECUTION_REPORT` reports on, so the execute step maps its outcome. */
+export const EXECUTION_PLAN: MatchPlanDto = {
+  planId: "plan-execute",
+  relocationMode: "rename",
+  videos: [
+    {
+      videoName: "ep01.mkv",
+      matches: [
+        { id: 0, subtitleName: "ep01.srt", targetPath: "/tmp/ep01.srt", confidence: 90, language: null, reasoning: [] },
+      ],
+    },
+  ],
+  unmatchedVideos: [],
+  unmatchedSubtitles: [],
+};

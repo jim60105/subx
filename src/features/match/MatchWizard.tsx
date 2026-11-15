@@ -143,10 +143,12 @@ export function MatchWizard({ onOpenSettings }: MatchWizardProps) {
           onToggleLanguage={wizard.toggleLanguageSelection}
         />
       )}
-      {wizard.step === "execute" && (
+      {wizard.step === "execute" && wizard.plan !== null && (
         <ExecuteStep
+          plan={wizard.plan}
+          selectedIds={wizard.selectedIds}
           mode={wizard.mode}
-          selectedCount={wizard.selectedCount}
+          isExecuting={wizard.isExecuting}
           report={wizard.report}
           executeError={wizard.executeError}
         />

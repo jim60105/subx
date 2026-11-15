@@ -1,78 +1,151 @@
+/* No overflow: hidden, so a too-small window scrolls the panel instead of clipping. */
 .execute-step {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.execute-step__intro {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.execute-step__title {
-  margin: 0;
-  font-size: var(--text-xl);
-  color: var(--ink);
-}
-
-.execute-step__summary {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--ink-2);
-}
-
-.execute-step__report {
-  display: flex;
+  flex: 1 1 0;
   flex-direction: column;
   gap: var(--space-3);
+  min-height: 0;
 }
 
-.execute-step__report-title {
-  margin: 0;
-  font-size: var(--text-base);
-  color: var(--ink);
+.execute-step__figures {
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  gap: var(--space-6);
+  align-items: baseline;
 }
 
-.execute-step__report-summary {
-  margin: 0;
+.execute-step__tally {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: baseline;
   font-size: var(--text-sm);
   color: var(--ink-2);
 }
 
-.execute-step__outcomes {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+.execute-step__figure {
+  font-size: var(--text-3xl);
+  line-height: 1;
+  color: var(--ink);
+}
+
+.execute-step__tally[data-result="failure"] .execute-step__figure {
+  color: var(--del);
+}
+
+.execute-step__sweep {
+  position: relative;
+  flex-shrink: 0;
+  height: 2px;
+  overflow: hidden;
+  background: var(--hair);
+}
+
+.execute-step__sweep::after {
+  position: absolute;
+  inset: 0;
+  width: 30%;
+  content: "";
+  background: var(--accent);
+  transform: translateX(-100%);
+}
+
+.execute-step[data-phase="running"] .execute-step__sweep::after {
+  animation: execute-sweep 1s linear infinite;
+}
+
+.execute-step[data-phase="done"] .execute-step__sweep {
+  background: var(--ink);
+}
+
+.execute-step__error {
+  flex-shrink: 0;
+}
+
+.execute-step__rows {
+  flex: 1 1 0;
+  min-height: 0;
   padding: 0;
   margin: 0;
+  overflow-y: auto;
   list-style: none;
 }
 
-.execute-step__outcome {
-  display: flex;
-  flex-direction: column;
+.execute-step__row {
+  --row: 0;
+
+  display: grid;
+  grid-template-columns: 1.125rem minmax(0, 1fr) 1.25rem minmax(0, 1fr);
   gap: var(--space-2);
-  padding: var(--space-3);
-  border-bottom: 1px solid var(--hair);
-  border-left: 3px solid var(--hair);
-}
-
-.execute-step__outcome[data-status="ok"] {
-  border-left-color: var(--add);
-}
-
-.execute-step__outcome[data-status="failed"] {
-  border-left-color: var(--del);
-}
-
-.execute-step__outcome-name {
+  align-items: baseline;
+  padding: var(--space-2) 0;
+  font-family: var(--font-mono);
   font-size: var(--text-sm);
-  color: var(--ink);
-  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--hair);
 }
 
-.execute-step__outcome-status {
-  font-size: var(--text-xs);
-  color: var(--ink-2);
+.execute-step__mark,
+.execute-step__arrow {
+  color: var(--ink-3);
+}
+
+.execute-step__name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.execute-step__name[data-role="new"] {
+  color: var(--ink-3);
+}
+
+/* Diff lines take the row's size rather than their compact default. */
+.execute-step__row .diff-line {
+  font-size: inherit;
+}
+
+.execute-step[data-phase="running"] .execute-step__row {
+  animation: execute-breathe 1.2s ease-in-out infinite;
+}
+
+.execute-step__row[data-status="ok"],
+.execute-step__row[data-status="failed"] {
+  animation: execute-reveal var(--motion-base) var(--ease-out) both;
+  animation-delay: calc(var(--motion-stagger) * var(--row));
+}
+
+.execute-step__row[data-status="failed"] .execute-step__mark,
+.execute-step__row[data-status="failed"] [data-role="new"] {
+  color: var(--del);
+}
+
+.execute-step__row[data-status="ok"] .execute-step__mark {
+  color: var(--add);
+}
+
+.execute-step__row-error {
+  grid-column: 2 / -1;
+}
+
+@keyframes execute-sweep {
+  to {
+    transform: translateX(340%);
+  }
+}
+
+@keyframes execute-breathe {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes execute-reveal {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
 }

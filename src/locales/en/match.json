@@ -79,7 +79,9 @@
   },
   "execute": {
     "title": "Apply the changes",
-    "summary": "{{count}} operations · {{mode}}",
+    "summaryLabel_one": "operation · {{mode}}",
+    "summaryLabel_other": "operations · {{mode}}",
+    "listLabel": "Operations",
     "modes": {
       "rename": "rename in place",
       "copy": "copy to the video",
@@ -89,8 +91,10 @@
     "running": "Applying…",
     "back": "Back",
     "report": {
-      "title": "Results",
-      "summary": "{{success}} succeeded · {{failure}} failed",
+      "succeededLabel_one": "succeeded",
+      "succeededLabel_other": "succeeded",
+      "failedLabel_one": "failed",
+      "failedLabel_other": "failed",
       "succeeded": "Done",
       "failed": "Failed",
       "finish": "Finish"
