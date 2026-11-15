@@ -28,7 +28,7 @@ Read `design.md` first; every "D<n>" below refers to it. Prerequisite: `editoria
 
 ## 5. Integration
 
-- [ ] 5.1 Run `npm run verify`. Verify: it exits 0, `npm run spec:trace` reports 0 unverified scenarios and 0 dangling annotations, and frontend coverage stays at or above 85 % on every metric (close any gap with tests, not exclusions).
+- [x] 5.1 Run `npm run verify`. Verify: it exits 0, `npm run spec:trace` reports 0 unverified scenarios and 0 dangling annotations, and frontend coverage stays at or above 85 % on every metric (close any gap with tests, not exclusions).
 
 ## Workflow follow-up
 
