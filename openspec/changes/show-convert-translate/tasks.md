@@ -4,7 +4,7 @@ Read `design.md` first; every "D<n>" below refers to it. Prerequisites: `editori
 
 ## 1. Spec sync
 
-- [ ] 1.1 Validate the deltas without syncing them: `openspec/specs/` is left untouched, because the delta requirement IDs only exist after archive sync. Verify: `openspec validate show-convert-translate --strict` passes and `npm run spec:trace -- --report` still reports the existing convert and translate scenarios as verified. The tests for the eleven new scenarios (six convert, five translate) are written unannotated below; archive syncs the specs and annotates them post-sync. Never hand-build or borrow an ID.
+- [x] 1.1 Validate the deltas without syncing them: `openspec/specs/` is left untouched, because the delta requirement IDs only exist after archive sync. Verify: `openspec validate show-convert-translate --strict` passes and `npm run spec:trace -- --report` still reports the existing convert and translate scenarios as verified. The tests for the eleven new scenarios (six convert, five translate) are written unannotated below; archive syncs the specs and annotates them post-sync. Never hand-build or borrow an ID.
 
 ## 2. Convert
 
