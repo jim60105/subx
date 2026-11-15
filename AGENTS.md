@@ -18,6 +18,8 @@ npm run verify             # complete verification suite — mandatory before pu
 
 `npm run dev:app` (`scripts/dev.sh`) first kills every leftover dev process (`target/debug/subx`, `tauri dev`, vite, anything holding port 1420) before launching. Orphaned instances survive bare restarts and keep serving stale webview sessions, so a merged/rebuilt app can look unchanged forever. Frontend edits hot-reload via vite; Rust edits rebuild and restart via tauri's `src-tauri` watcher.
 
+Dev mode is a cargo-feature decision, not a CLI one: Tauri's build script sets `dev = !custom-protocol`, and `tauri dev` relies on `--no-default-features` to turn that feature off. `src-tauri/Cargo.toml` must keep `custom-protocol` in its own `default` feature, never on the `tauri` dependency — with it pinned on there, every launch is a production build that serves the embedded `dist/` bundle `npm run dev:app` never regenerates, so merged frontend code silently never appears. `scripts/dev-mode.test.ts` guards this.
+
 `npm run verify` executes: `tsc --noEmit` → `npm run test:coverage` → `npm run test:rust:coverage` → `npm run spec:trace` → `npm run bindings:check` → `npm run icons:check`.
 
 Narrower verification commands:

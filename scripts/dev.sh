@@ -34,6 +34,14 @@
 #
 # After launch: frontend changes hot-reload via vite HMR (vite watches src/);
 # backend changes rebuild + restart the app via tauri's src-tauri watcher.
+#
+# Hot reload only works while Tauri is in dev mode, and Tauri decides that from
+# one cargo feature: its build script sets `dev = !custom-protocol`, expecting
+# `tauri dev`'s `--no-default-features` to turn it off. `src-tauri/Cargo.toml`
+# must therefore declare custom-protocol as a *default* feature rather than on
+# the `tauri` dependency; otherwise every build here is a production build, the
+# window loads the embedded `../dist` bundle this script never regenerates, and
+# merged frontend changes never appear. `scripts/dev-mode.test.ts` pins that.
 
 # ------------------------------------------------------------------
 # 1. Utility functions
