@@ -197,6 +197,7 @@ describe("WizardShell", () => {
     expect(bar?.parentElement).toBe(content?.parentElement);
   });
 
+  // @covers app-shell/primary-action-can-carry-a-status-note#a-note-renders-beside-the-primary-action
   it("renders a note beside the primary action as a non-focusable status", () => {
     const { container } = renderWithI18n(
       <WizardShell
@@ -219,6 +220,7 @@ describe("WizardShell", () => {
     expect(screen.getByText("12 / 14")).toHaveAttribute("aria-hidden", "true");
   });
 
+  // @covers app-shell/primary-action-can-carry-a-status-note#no-note-leaves-the-action-bar-unchanged
   it("renders no status in the action bar when the primary action has no note", () => {
     const { container } = renderWithI18n(
       <WizardShell

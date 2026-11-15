@@ -413,6 +413,7 @@ describe("the match wizard", () => {
     expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
   });
 
+  // @covers match-workflow/review-filters-narrow-the-ledger-without-changing-selection#filtering-does-not-change-selection
   it("filtering does not change selection", async () => {
     const user = userEvent.setup();
     const plan: MatchPlanDto = {
@@ -446,6 +447,7 @@ describe("the match wizard", () => {
     await waitFor(() => expect(api.executeSelected).toHaveBeenCalledWith("plan-1", [0, 1, 2, 3, 4]));
   });
 
+  // @covers match-workflow/selected-count-is-shown-beside-the-primary-action#count-follows-the-selection
   it("count follows the selection", async () => {
     const user = userEvent.setup();
     const plan: MatchPlanDto = {

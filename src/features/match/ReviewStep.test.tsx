@@ -100,6 +100,7 @@ describe("ReviewStep ledger", () => {
     await setupI18n("en");
   });
 
+  // @covers match-workflow/review-of-the-match-plan-grouped-by-video#rows-keep-plan-order-regardless-of-confidence
   it("rows keep plan order regardless of confidence", () => {
     const plan: MatchPlanDto = {
       ...LEDGER_PLAN,
@@ -115,6 +116,7 @@ describe("ReviewStep ledger", () => {
     expect(names).toEqual(["sub-0.srt", "sub-1.srt", "sub-2.srt"]);
   });
 
+  // @covers match-workflow/review-of-the-match-plan-grouped-by-video#a-repeated-video-name-is-omitted
   it("a repeated video name is omitted", () => {
     const { container } = renderReview(LEDGER_PLAN, new Set());
 
@@ -136,6 +138,7 @@ describe("ReviewStep ledger", () => {
     expect(rowOf("sub-1.srt").querySelector(".review-ledger__lang")).toBeNull();
   });
 
+  // @covers match-workflow/review-of-the-match-plan-grouped-by-video#confidence-is-shown-only-below-the-threshold
   it("confidence is shown only below the threshold", () => {
     renderReview(LEDGER_PLAN, new Set());
 
@@ -153,6 +156,7 @@ describe("ReviewStep ledger", () => {
     expect(within(confident).getByText("Same episode number.").closest("details")).not.toBeNull();
   });
 
+  // @covers match-workflow/review-of-the-match-plan-grouped-by-video#reasoning-of-a-confident-row-is-available-on-demand
   it("reasoning of a confident row is available on demand", async () => {
     const user = userEvent.setup();
     renderReview(LEDGER_PLAN, new Set());
@@ -167,6 +171,7 @@ describe("ReviewStep ledger", () => {
     expect(within(details as HTMLElement).getByText("Same episode number.").textContent).toBe("Same episode number.");
   });
 
+  // @covers match-workflow/review-of-the-match-plan-grouped-by-video#unmatched-entries-show-an-empty-slot-on-the-missing-side
   it("unmatched entries show an empty slot on the missing side", () => {
     const { container } = renderReview(LEDGER_PLAN, new Set());
 
@@ -185,6 +190,7 @@ describe("ReviewStep ledger", () => {
     expect(within(subtitle).getByRole("img", { name: "No matching video" })).toBeInTheDocument();
   });
 
+  // @covers match-workflow/review-filters-narrow-the-ledger-without-changing-selection#filter-counts-describe-the-whole-plan
   it("filter counts describe the whole plan", () => {
     renderReview(LEDGER_PLAN, new Set());
 
@@ -194,6 +200,7 @@ describe("ReviewStep ledger", () => {
     expect(filterButton(/^All/)).toHaveAttribute("aria-pressed", "true");
   });
 
+  // @covers match-workflow/review-filters-narrow-the-ledger-without-changing-selection#needs-review-filter-shows-only-low-confidence-pairings
   it("needs-review filter shows only low-confidence pairings", async () => {
     const user = userEvent.setup();
     const { container } = renderReview(LEDGER_PLAN, new Set([0, 1, 2, 3]));
@@ -212,6 +219,7 @@ describe("ReviewStep ledger", () => {
     expect(filterButton(/^All/)).toHaveTextContent("All 4");
   });
 
+  // @covers match-workflow/review-filters-narrow-the-ledger-without-changing-selection#unmatched-filter-shows-only-unmatched-entries
   it("unmatched filter shows only unmatched entries", async () => {
     const user = userEvent.setup();
     const { container } = renderReview(LEDGER_PLAN, new Set());
