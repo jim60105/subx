@@ -1,0 +1,42 @@
+.offset-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.offset-preview__lane {
+  display: grid;
+  grid-template-columns: 4rem 1fr;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.offset-preview__label {
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+
+.offset-preview__track {
+  position: relative;
+  height: 30px;
+  overflow: hidden;
+}
+
+.offset-preview__cue {
+  position: absolute;
+  top: 6px;
+  box-sizing: border-box;
+  height: 18px;
+  border-radius: var(--radius-control);
+}
+
+.offset-preview__cue[data-row="original"] {
+  border: 1px dashed var(--ink-3);
+}
+
+/* The global reduced-motion rule zeroes this; the bars then jump to place. */
+.offset-preview__cue[data-row="shifted"] {
+  background: var(--accent);
+  transition: left var(--motion-base) var(--ease-out);
+}

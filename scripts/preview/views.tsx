@@ -632,6 +632,7 @@ export const VIEWS: Record<string, () => JSX.Element> = {
   SyncApplyStep: () => (
     <SyncApplyStep
       offsetMs={0}
+      subtitlePath={null}
       outputPath=""
       applyResult={null}
       applyError={undefined}

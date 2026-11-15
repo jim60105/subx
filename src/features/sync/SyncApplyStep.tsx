@@ -1,11 +1,16 @@
 import { useTranslation } from "react-i18next";
 
+import { DiffPreview } from "../../components/DiffPreview/DiffPreview";
+import type { DiffLineSpec } from "../../components/DiffPreview/DiffPreview";
 import { ErrorNotice } from "../../components/ErrorNotice/ErrorNotice";
+import { baseName } from "../../platform/fileKind";
 import type { SyncApplyResultDto } from "../../types/ipc";
 import "./SyncApplyStep.css";
 
 interface SyncApplyStepProps {
   offsetMs: number;
+  /** The subtitle being shifted; shown as the diff's kept line. */
+  subtitlePath: string | null;
   outputPath: string;
   applyResult: SyncApplyResultDto | null;
   applyError: unknown;
@@ -21,9 +26,13 @@ interface SyncApplyStepProps {
  * the confirmation that retries with the overwrite allowed (design D5), which
  * keeps `sync`'s block-by-default contract rather than borrowing `convert`'s
  * silent replacement.
+ *
+ * Rather than a sentence saying the original is untouched, the step shows the
+ * two files as a diff: the source unmarked, the output created.
  */
 export function SyncApplyStep({
   offsetMs,
+  subtitlePath,
   outputPath,
   applyResult,
   applyError,
@@ -31,6 +40,10 @@ export function SyncApplyStep({
 }: SyncApplyStepProps) {
   const { t } = useTranslation("sync");
   const done = applyResult !== null;
+  const diffLines: DiffLineSpec[] = [
+    ...(subtitlePath === null ? [] : [{ kind: "kept" as const, text: baseName(subtitlePath) }]),
+    { kind: "created", text: baseName(outputPath) },
+  ];
 
   return (
     <div className="sync-apply">
@@ -52,7 +65,7 @@ export function SyncApplyStep({
               onChange={(event) => onOutputPathChange(event.target.value)}
             />
           </label>
-          <p className="sync-apply__note">{t("apply.originalKept")}</p>
+          <DiffPreview label={t("apply.outputLabel")} lines={diffLines} />
         </>
       )}
 

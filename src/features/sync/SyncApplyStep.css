@@ -44,12 +44,6 @@
   border-radius: var(--radius-control);
 }
 
-.sync-apply__note {
-  margin: 0;
-  font-size: var(--text-xs);
-  color: var(--ink-3);
-}
-
 .sync-apply__error {
   display: flex;
   flex-direction: column;

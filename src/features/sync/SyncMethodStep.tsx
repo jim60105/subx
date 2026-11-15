@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ErrorNotice } from "../../components/ErrorNotice/ErrorNotice";
@@ -41,6 +42,7 @@ export function SyncMethodStep({
   onOffsetChange,
 }: SyncMethodStepProps) {
   const { t } = useTranslation("sync");
+  const sensitivityHintId = useId();
 
   return (
     <div className="sync-method">
@@ -91,21 +93,32 @@ export function SyncMethodStep({
         <div className="sync-method__panel">
           <label className="sync-method__sensitivity">
             <span className="sync-method__sensitivity-label">{t("method.sensitivity.label")}</span>
-            <input
-              type="range"
-              className="sync-method__slider"
-              min={0}
-              max={100}
-              step={5}
-              value={sensitivity ?? 50}
-              disabled={defaults === null}
-              onChange={(event) => onSensitivityChange(Number(event.target.value))}
-            />
+            {/* The end labels replace the sentence that explained the scale;
+                they are visual, and the sentence stays as the description. */}
+            <span className="sync-method__track">
+              <input
+                type="range"
+                className="sync-method__slider"
+                min={0}
+                max={100}
+                step={5}
+                value={sensitivity ?? 50}
+                disabled={defaults === null}
+                aria-describedby={sensitivityHintId}
+                onChange={(event) => onSensitivityChange(Number(event.target.value))}
+              />
+              <span className="sync-method__ends" aria-hidden="true">
+                <span>{t("method.sensitivity.low")}</span>
+                <span>{t("method.sensitivity.high")}</span>
+              </span>
+            </span>
             <span className="sync-method__sensitivity-value">
               {t("method.sensitivity.value", { percent: sensitivity ?? 0 })}
             </span>
           </label>
-          <p className="sync-method__sensitivity-hint">{t("method.sensitivity.hint")}</p>
+          <p id={sensitivityHintId} className="visually-hidden">
+            {t("method.sensitivity.hint")}
+          </p>
           <p className="sync-method__sensitivity-note">{t("method.sensitivity.perRun")}</p>
         </div>
       )}
