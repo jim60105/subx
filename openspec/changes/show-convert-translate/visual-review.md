@@ -6,19 +6,19 @@ Reference: `docs/superpowers/specs/2026-11-15-editorial-redesign-design.md` ("Ot
 
 | # | What to judge | Observed | Screenshot | Verdict |
 |---|---|---|---|---|
-| 1 | Convert and translate source steps look and behave like the match sources step (drop zone large → strip, folder groups) | | | |
-| 2 | Convert options, keep-original on: each item reads "source stays, output appears" at a glance | | | |
-| 3 | Convert options, keep-original off: the struck source line makes the deletion obvious without a sentence | | | |
-| 4 | Excluded and overwrite-flagged items are still clearly distinguishable | | | |
-| 5 | Convert run step before starting: the list replaces the "originals" sentence without losing information | | | |
-| 6 | Translate options, suffix vs replace: the difference is visible in the lines; replace mode's `− file` / `+ file` pair is understandable | | | |
-| 7 | Long output paths truncate cleanly and the full path is reachable | | | |
+| 1 | Convert and translate source steps look and behave like the match sources step (drop zone large → strip, folder groups) | With sources listed the drop zone is the compact strip (folder, subtitle, archive glyphs; no video) and the sources sit in two folder groups with counts and Remove. The first capture showed the list collapsed to zero height (its `flex: 1 1 0` in a natural-height column); fixed with `flex: none` in 7175d97 and re-captured. Same in both themes and languages. | `/tmp/claude-1000/-var-home-jim60105-repos-subx/59017e25-5572-485b-8962-f7bbf9c234d1/scratchpad/shots/convert-sources-light-en.png`, `/tmp/claude-1000/-var-home-jim60105-repos-subx/59017e25-5572-485b-8962-f7bbf9c234d1/scratchpad/shots/convert-sources-dark-zh-TW.png` | |
+| 2 | Convert options, keep-original on: each item reads "source stays, output appears" at a glance | Each runnable row: unmarked input name, then a green `+` line with the full output path. No explanatory sentence or "will be written to" label remains. | `/tmp/claude-1000/-var-home-jim60105-repos-subx/59017e25-5572-485b-8962-f7bbf9c234d1/scratchpad/shots/convert-options-light-en.png`, `/tmp/claude-1000/-var-home-jim60105-repos-subx/59017e25-5572-485b-8962-f7bbf9c234d1/scratchpad/shots/convert-options-dark-zh-TW.png` | |
+| 3 | Convert options, keep-original off: the struck source line makes the deletion obvious without a sentence | Runnable rows turn the input red with `−` and strike-through; excluded rows keep their plain input line. The deletion reads clearly in both themes. | `/tmp/claude-1000/-var-home-jim60105-repos-subx/59017e25-5572-485b-8962-f7bbf9c234d1/scratchpad/shots/convert-options_keep_0-light-en.png`, `/tmp/claude-1000/-var-home-jim60105-repos-subx/59017e25-5572-485b-8962-f7bbf9c234d1/scratchpad/shots/convert-options_keep_0-dark-zh-TW.png` | |
+| 4 | Excluded and overwrite-flagged items are still clearly distinguishable | Overwrite-flagged row keeps its checkbox on, its diff, and the accent "Replaces an existing file" chip. Excluded rows are dimmed, disabled, show only the input line and a grey reason chip (same format, collision, output exists). | `/tmp/claude-1000/-var-home-jim60105-repos-subx/59017e25-5572-485b-8962-f7bbf9c234d1/scratchpad/shots/convert-options-light-en.png`, `/tmp/claude-1000/-var-home-jim60105-repos-subx/59017e25-5572-485b-8962-f7bbf9c234d1/scratchpad/shots/translate-options-light-en-list.png` | |
+| 5 | Convert run step before starting: the list replaces the "originals" sentence without losing information | Summary line stays ("2 files · VTT"); below it exactly the two selected items as diffs. With keep-original off the struck inputs show what the old sentence said; with it on the inputs are unmarked. | `/tmp/claude-1000/-var-home-jim60105-repos-subx/59017e25-5572-485b-8962-f7bbf9c234d1/scratchpad/shots/convert-run-light-en.png`, `/tmp/claude-1000/-var-home-jim60105-repos-subx/59017e25-5572-485b-8962-f7bbf9c234d1/scratchpad/shots/convert-run_keep_0-light-en.png`, `/tmp/claude-1000/-var-home-jim60105-repos-subx/59017e25-5572-485b-8962-f7bbf9c234d1/scratchpad/shots/convert-run_keep_0-dark-zh-TW.png` | |
+| 6 | Translate options, suffix vs replace: the difference is visible in the lines; replace mode's `− file` / `+ file` pair is understandable | Suffix: unmarked input + created `.zh-TW.srt` path. Replace: struck input name + created path equal to the input's full path; the backup note beside the mode choice explains the pair. Cue counts stay under each diff. Readability of the replace pair is left to the owner, as the design's risk note asks. | `/tmp/claude-1000/-var-home-jim60105-repos-subx/59017e25-5572-485b-8962-f7bbf9c234d1/scratchpad/shots/translate-options-light-en-list.png`, `/tmp/claude-1000/-var-home-jim60105-repos-subx/59017e25-5572-485b-8962-f7bbf9c234d1/scratchpad/shots/translate-options_mode_replace-dark-zh-TW-list.png` | |
+| 7 | Long output paths truncate cleanly and the full path is reachable | At 760 px the long created path ends in an ellipsis inside the row without pushing the flag column; the row's `title` carries the full output path (checked via the DOM attribute). | `/tmp/claude-1000/-var-home-jim60105-repos-subx/59017e25-5572-485b-8962-f7bbf9c234d1/scratchpad/shots/convert-options-narrow.png`, `/tmp/claude-1000/-var-home-jim60105-repos-subx/59017e25-5572-485b-8962-f7bbf9c234d1/scratchpad/shots/translate-options-narrow.png` | |
 
 ## Deviations from the design document found during review
 
-(list, or "none")
+- D1's file-list override needed `flex: none` in addition to `mask-image: none; padding-bottom: 0`; without it the list collapsed to zero height. Design D1 now records it.
 
 ## Sign-off
 
-- Implementer:
+- Implementer: filled in by the apply agent (headless Chromium, both themes, en and zh-TW).
 - Owner:
