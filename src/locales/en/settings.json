@@ -1,6 +1,5 @@
 {
   "title": "Settings",
-  "subtitle": "The AI configuration is shared with the SubX command line; everything below it stays in this app.",
   "loading": "Loading configuration…",
   "unsavedChanges": "Unsaved changes",
   "actions": {
@@ -9,7 +8,6 @@
   },
   "ai": {
     "title": "AI provider",
-    "description": "Written to the same configuration file the CLI reads, so both stay in sync.",
     "provider": {
       "label": "Provider",
       "options": {
@@ -30,17 +28,21 @@
     "apiKey": {
       "label": "API key",
       "hint": "Stored keys are never shown. Leave this empty to keep the current key, or type a new one to replace it.",
-      "unsetPlaceholder": "No key configured"
-    }
+      "unsetPlaceholder": "No key configured",
+      "replace": "Replace",
+      "keep": "Keep current key"
+    },
+    "storedIn": "config.toml · shared with the SubX command line"
   },
   "test": {
     "action": "Test connection",
     "running": "Testing…",
     "description": "Saves your changes, then sends one short request to the provider.",
-    "success": "Connection succeeded in {{latency}} ms."
+    "success": "Connection succeeded in {{latency}} ms.",
+    "latency": "{{latency}} ms"
   },
   "preferences": {
     "title": "Appearance and language",
-    "description": "Stored in this app only — never written to the shared configuration file."
+    "storedIn": "This app only"
   }
 }

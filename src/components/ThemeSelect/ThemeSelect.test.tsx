@@ -36,4 +36,21 @@ describe("ThemeSelect", () => {
     expect(document.documentElement).toHaveAttribute("data-theme", "light");
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe("light");
   });
+
+  it("lays every option out inline in the inline variant", async () => {
+    setPrefersDark(false);
+    renderWithI18n(
+      <ThemeProvider>
+        <ThemeSelect variant="inline" />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByRole("group", { name: "Theme" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Follow system" })).toBeChecked();
+
+    await userEvent.click(screen.getByRole("radio", { name: "Dark" }));
+
+    expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
+  });
 });

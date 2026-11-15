@@ -46,20 +46,6 @@ describe("PreferenceSelect", () => {
     expect(screen.getByLabelText("Pick one")).toBeInTheDocument();
   });
 
-  it("shows the label visibly in the labeled variant", () => {
-    render(
-      <PreferenceSelect
-        label="Pick one"
-        value="a"
-        options={OPTIONS}
-        onChange={() => {}}
-        variant="labeled"
-      />,
-    );
-
-    expect(screen.getByText("Pick one")).not.toHaveClass("visually-hidden");
-  });
-
   // @covers theme-system/preference-dropdown-controls-render-custom-dom-popovers-matching-active-theme#preference-select-popover-adapts-to-light-theme
   // @covers theme-system/preference-dropdown-controls-render-custom-dom-popovers-matching-active-theme#preference-select-popover-adapts-to-dark-theme
   it("opens custom DOM popover when trigger button is clicked", async () => {

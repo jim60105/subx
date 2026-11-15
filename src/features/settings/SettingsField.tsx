@@ -13,6 +13,15 @@ interface SettingsFieldProps {
   label: string;
   /** Static guidance, shown whether or not the field is in error. */
   hint?: ReactNode;
+  /** Keeps the hint for assistive technology only. */
+  hintHidden?: boolean;
+  /**
+   * Whether a labelable control is rendered. When `false` (a read-only value
+   * with an action, such as the masked API key) the label becomes plain text
+   * with the id `{id}-label` for the caller to reference, since a `<label for>`
+   * pointing at a non-labelable element is a dead association.
+   */
+  labelsControl?: boolean;
   /** Raw command rejection for this field; localized here. */
   error?: unknown;
   children: (control: FieldControlProps) => ReactNode;
@@ -25,7 +34,15 @@ interface SettingsFieldProps {
  * not: they come from here as `control` props, so no field can accidentally
  * lose the association between its label, its input and its error text.
  */
-export function SettingsField({ id, label, hint, error, children }: SettingsFieldProps) {
+export function SettingsField({
+  id,
+  label,
+  hint,
+  hintHidden = false,
+  labelsControl = true,
+  error,
+  children,
+}: SettingsFieldProps) {
   const localizeError = useLocalizedError();
   const localized = error === undefined ? undefined : localizeError(error);
 
@@ -37,9 +54,15 @@ export function SettingsField({ id, label, hint, error, children }: SettingsFiel
 
   return (
     <div className="settings-field">
-      <label className="settings-field__label" htmlFor={id}>
-        {label}
-      </label>
+      {labelsControl ? (
+        <label className="settings-field__label" htmlFor={id}>
+          {label}
+        </label>
+      ) : (
+        <span className="settings-field__label" id={`${id}-label`}>
+          {label}
+        </span>
+      )}
 
       {children({
         id,
@@ -48,7 +71,7 @@ export function SettingsField({ id, label, hint, error, children }: SettingsFiel
       })}
 
       {hint && (
-        <p className="settings-field__hint" id={hintId}>
+        <p className={hintHidden ? "visually-hidden" : "settings-field__hint"} id={hintId}>
           {hint}
         </p>
       )}

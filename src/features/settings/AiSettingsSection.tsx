@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { AiConfigDto } from "../../types/ipc";
+import { ApiKeyField } from "./ApiKeyField";
 import { SettingsField } from "./SettingsField";
 import { AI_PROVIDERS } from "./settingsApi";
 import type { AiField } from "./settingsApi";
@@ -7,7 +8,7 @@ import type { AiDraft, FieldErrors } from "./useSettingsForm";
 
 interface AiSettingsSectionProps {
   draft: AiDraft;
-  /** Last values read from disk; supplies the API key's masked placeholder. */
+  /** Last values read from disk; supplies the API key's masked form. */
   saved: AiConfigDto;
   fieldErrors: FieldErrors;
   disabled: boolean;
@@ -81,28 +82,13 @@ export function AiSettingsSection({
         )}
       </SettingsField>
 
-      <SettingsField
-        id="ai-api-key"
-        label={t("ai.apiKey.label")}
-        hint={t("ai.apiKey.hint")}
+      <ApiKeyField
+        saved={saved}
+        value={draft.apiKey}
         error={fieldErrors.apiKey}
-      >
-        {(control) => (
-          <input
-            {...control}
-            className="settings-control"
-            type="password"
-            spellCheck={false}
-            autoComplete="off"
-            /* Empty by default and never pre-filled: the stored key is
-               write-only, so the mask is a placeholder, not a value. */
-            placeholder={saved.apiKeySet ? saved.apiKeyMasked : t("ai.apiKey.unsetPlaceholder")}
-            value={draft.apiKey}
-            disabled={disabled}
-            onChange={(event) => onChange("apiKey", event.target.value)}
-          />
-        )}
-      </SettingsField>
+        disabled={disabled}
+        onChange={(value) => onChange("apiKey", value)}
+      />
     </div>
   );
 }

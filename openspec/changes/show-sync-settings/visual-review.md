@@ -14,7 +14,7 @@ Each row is checked in light and dark, in `en` and `zh-TW`.
 | 4 | The preview does not look like real audio or real cue timing | | | |
 | 5 | Sync apply: source unmarked, output `+`; the "untouched" sentence is not missed | | | |
 | 6 | Sensitivity slider: end labels read naturally in both languages | | | |
-| 7 | Settings headings: storage label at the inline end; `config.toml · shared with subx-cli` is acceptable in place of a full path | | | |
+| 7 | Settings headings: storage label at the inline end; `config.toml · shared with the SubX command line` is acceptable in place of a full path | | | |
 | 8 | API key: masked key with "Replace"; the replace / keep flow is clear | | | |
 | 9 | Connection test: status dot and latency beside the button | | | |
 | 10 | Language and theme: inline options with the accent underline on the current one; title-bar dropdowns unchanged | | | |

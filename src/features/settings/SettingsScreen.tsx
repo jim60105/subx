@@ -11,6 +11,9 @@ import "./SettingsScreen.css";
  *
  * Two sections that look alike but store nothing alike: the AI configuration
  * is the CLI's own `config.toml`, the preferences below it never leave the GUI.
+ * Each heading says where its values live at its inline end, in place of a
+ * sentence beneath it. The page title is for assistive technology only: the
+ * title-bar breadcrumb already names the screen.
  */
 export function SettingsScreen() {
   const { t } = useTranslation("settings");
@@ -19,15 +22,12 @@ export function SettingsScreen() {
 
   return (
     <section className="settings">
-      <header className="settings__intro">
-        <h1 className="settings__heading">{t("title")}</h1>
-        <p className="settings__subheading">{t("subtitle")}</p>
-      </header>
+      <h1 className="settings__heading visually-hidden">{t("title")}</h1>
 
       <section className="settings-section">
         <header className="settings-section__header">
           <h2 className="settings-section__title">{t("ai.title")}</h2>
-          <p className="settings-section__description">{t("ai.description")}</p>
+          <span className="settings-section__where">{t("ai.storedIn")}</span>
         </header>
 
         {form.loadError !== undefined && <ErrorNotice error={form.loadError} />}
@@ -71,7 +71,7 @@ export function SettingsScreen() {
       <section className="settings-section">
         <header className="settings-section__header">
           <h2 className="settings-section__title">{t("preferences.title")}</h2>
-          <p className="settings-section__description">{t("preferences.description")}</p>
+          <span className="settings-section__where">{t("preferences.storedIn")}</span>
         </header>
         <PreferencesSection />
       </section>

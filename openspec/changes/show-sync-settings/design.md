@@ -146,11 +146,13 @@ Add to `settings.json`:
 
 | Key | en | zh-TW |
 |---|---|---|
-| `ai.storedIn` | config.toml · shared with subx-cli | config.toml · 與 subx-cli 共用 |
+| `ai.storedIn` | config.toml · shared with the SubX command line | config.toml · 與 SubX 命令列共用 |
 | `preferences.storedIn` | This app only | 僅此應用程式 |
 | `ai.apiKey.replace` | Replace | 取代 |
 | `ai.apiKey.keep` | Keep current key | 保留現有金鑰 |
 | `test.latency` | {{latency}} ms | {{latency}} ms |
+
+(`ai.storedIn` was revised during apply: the original value named `subx-cli`, but `app-shell` "Thin Tauri command layer structure" forbids naming the engine crate anywhere outside `src-tauri/`, enforced by `backendCodeParity.test.ts`. The label uses the product term the removed subtitle already used.)
 
 Delete from `settings.json`: `subtitle`, `ai.description`, `preferences.description`. Keep `title`, `ai.apiKey.hint`, `test.description`, `test.success` (now visually hidden).
 

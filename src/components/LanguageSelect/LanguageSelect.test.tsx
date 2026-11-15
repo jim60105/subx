@@ -26,4 +26,15 @@ describe("LanguageSelect", () => {
     expect(await screen.findByLabelText("語言")).toBeInTheDocument();
     expect(window.localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe("zh-TW");
   });
+
+  it("lays every language out inline in the inline variant", async () => {
+    renderWithI18n(<LanguageSelect variant="inline" />);
+
+    expect(screen.getByRole("radio", { name: "English" })).toBeChecked();
+    await userEvent.click(screen.getByRole("radio", { name: "正體中文" }));
+
+    expect(await screen.findByRole("group", { name: "語言" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "正體中文" })).toBeChecked();
+    expect(window.localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe("zh-TW");
+  });
 });
