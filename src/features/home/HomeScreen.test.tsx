@@ -9,7 +9,7 @@ describe("home task-entry hub", () => {
     await setupI18n("en");
   });
 
-  // @covers app-shell/desktop-application-launches-with-the-home-task-entry-hub#first-launch-shows-the-hub
+  // @covers app-shell/desktop-application-launches-with-the-home-task-list#first-launch-shows-the-hub
   it("shows a card for every task", () => {
     renderWithI18n(<HomeScreen onOpenTask={() => {}} />);
 
@@ -18,6 +18,7 @@ describe("home task-entry hub", () => {
     }
   });
 
+  // @covers app-shell/desktop-application-launches-with-the-home-task-list#tasks-form-one-numbered-list
   it("lists the four tasks as one numbered list, one control per entry", () => {
     renderWithI18n(<HomeScreen onOpenTask={() => {}} />);
 
@@ -39,6 +40,7 @@ describe("home task-entry hub", () => {
     );
   });
 
+  // @covers app-shell/desktop-application-launches-with-the-home-task-list#each-entry-demonstrates-its-task-with-a-specimen
   it("gives every entry a hidden specimen and describes it with the task description", () => {
     const { container } = renderWithI18n(<HomeScreen onOpenTask={() => {}} />);
 

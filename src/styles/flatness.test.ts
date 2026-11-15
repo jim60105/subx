@@ -49,14 +49,17 @@ function scan(check: (declarations: Declaration[]) => string[]): string[] {
 }
 
 describe("flat surfaces", () => {
+  // @covers theme-system/dual-light-dark-themes-with-editorial-paper-and-ink-identity#no-glass-gradient-glow-or-shadow
   it("declares no blur, shadow, colour mix, or gradient outside a mask", () => {
     expect(scan(depthViolations)).toEqual([]);
   });
 
+  // @covers theme-system/dual-light-dark-themes-with-editorial-paper-and-ink-identity#corners-are-square
   it("declares every corner radius as the control radius, zero, or a circle", () => {
     expect(scan(radiusViolations)).toEqual([]);
   });
 
+  // @covers theme-system/dual-light-dark-themes-with-editorial-paper-and-ink-identity#primary-buttons-are-ink-filled
   it("fills the primary button with ink and never with the accent", () => {
     const declarations = declarationsIn(read(path.join(SRC, "styles", "buttons.css")));
     const primary = declarations.filter(({ selector }) => selector === ".button--primary");

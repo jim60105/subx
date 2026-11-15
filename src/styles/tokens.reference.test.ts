@@ -35,6 +35,7 @@ export function undeclaredReferences(files: Array<{ name: string; text: string }
 }
 
 describe("token references", () => {
+  // @covers theme-system/dual-light-dark-themes-with-editorial-paper-and-ink-identity#every-referenced-token-is-declared
   it("resolves every var(--…) in stylesheets and components to a declared token", () => {
     const tokens = declaredIn(stripComments(read(TOKENS_FILE)));
     const files = [...stylesheets(), ...componentSources()].map((file) => ({

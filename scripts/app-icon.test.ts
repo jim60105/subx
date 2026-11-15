@@ -201,11 +201,11 @@ describe("the application icon is generated from a committed vector source", () 
 });
 
 // =============================================================================
-// Requirement: The mark stays inside the product's declared brand palette
+// Requirement: The mark's colours are brand constants declared in its source
 // =============================================================================
 
-describe("the mark stays inside the product's declared brand palette", () => {
-  // @covers app-icon/the-mark-stays-inside-the-product-s-declared-brand-palette#the-backplate-gradient-is-the-token-gradient
+describe("the mark's colours are brand constants declared in its source", () => {
+  // @covers app-icon/the-mark-s-colours-are-brand-constants-declared-in-its-source#every-icon-source-declares-the-same-brand-gradient
   it("every source with a plate declares the master's brand gradient", () => {
     // The mark keeps its own brand gradient; the UI tokens no longer carry it.
     const master = plateGradientStops(MASTER);
@@ -219,14 +219,14 @@ describe("the mark stays inside the product's declared brand palette", () => {
     }
   });
 
-  // @covers app-icon/the-mark-stays-inside-the-product-s-declared-brand-palette#the-foreground-clears-wcag-aa-against-every-point-of-the-plate
+  // @covers app-icon/the-mark-s-colours-are-brand-constants-declared-in-its-source#the-foreground-clears-wcag-aa-against-every-point-of-the-plate
   it("white foreground clears 4.5:1 against every sampled point of the plate", () => {
     const white: Rgb = { r: 255, g: 255, b: 255 };
     const worst = Math.min(...plateGradientSamples(MASTER).map((colour) => contrastRatio(white, colour)));
     expect(worst).toBeGreaterThanOrEqual(4.5);
   });
 
-  // @covers app-icon/the-mark-stays-inside-the-product-s-declared-brand-palette#the-tile-is-distinguishable-from-the-surfaces-it-sits-on
+  // @covers app-icon/the-mark-s-colours-are-brand-constants-declared-in-its-source#the-tile-is-distinguishable-from-the-surfaces-it-sits-on
   it("the tile's outer edge clears 3:1 against both themes' window background", () => {
     // The outermost pixels are plate colour only — the rim sits 3px inset
     // (design.md §1.4) — so the worst-case point along the gradient is what
@@ -238,7 +238,7 @@ describe("the mark stays inside the product's declared brand palette", () => {
     }
   });
 
-  // @covers app-icon/the-mark-stays-inside-the-product-s-declared-brand-palette#the-tile-edge-survives-the-darkest-chrome-it-ships-against
+  // @covers app-icon/the-mark-s-colours-are-brand-constants-declared-in-its-source#the-tile-edge-survives-the-darkest-chrome-it-ships-against
   it("the inset rim, but not the plate alone, clears 3:1 against the darkest shipping chrome", () => {
     const darkChrome: Rgb = { r: 0x20, g: 0x21, b: 0x24 };
     const rimMatch = /stroke="#ffffff"\s+stroke-opacity="([\d.]+)"\s+stroke-width="6"/.exec(MASTER);

@@ -46,7 +46,7 @@ describe("app shell", () => {
     clearMocks();
   });
 
-  // @covers app-shell/desktop-application-launches-with-the-home-task-entry-hub#first-launch-shows-the-hub
+  // @covers app-shell/desktop-application-launches-with-the-home-task-list#first-launch-shows-the-hub
   it("starts on the home hub", () => {
     renderWithI18n(
       <ThemeProvider>
@@ -167,6 +167,7 @@ describe("app shell", () => {
     expect(screen.queryByRole("button", { name: /Back to home/ })).not.toBeInTheDocument();
   });
 
+  // @covers app-shell/navigation-between-home-and-feature-screens#breadcrumb-names-the-current-screen
   it("names the current screen in the breadcrumb, and nothing on the hub", async () => {
     mockIPC((command) => {
       if (command === "get_build_info") return structuredClone(BUILD_INFO);

@@ -29,43 +29,6 @@ reaches outside the file or depends on filter fidelity does not survive that tri
 - **THEN** it contains no `.svg` file, so the one editable definition of the mark
   is the one under `assets/brand/`
 
-### Requirement: The mark stays inside the product's declared brand palette
-
-The icon SHALL introduce no colour that the theme token system does not already
-declare. Its backplate SHALL be filled with the gradient declared as
-`--accent-gradient-strong` in `src/styles/tokens.css`, and its foreground SHALL be
-pure white. This is the token that exists specifically to carry white at WCAG AA;
-the softer `--accent-gradient` SHALL NOT be used, because white on its light stop
-measures 3.64:1 and fails.
-
-#### Scenario: The backplate gradient is the token gradient
-
-- **WHEN** the gradient stops declared in the icon source are compared with the
-  `--accent-gradient-strong` declaration in `src/styles/tokens.css`
-- **THEN** they are the same two colour values, so re-tuning the token and
-  forgetting the icon fails the test suite and names the drift
-
-#### Scenario: The foreground clears WCAG AA against every point of the plate
-
-- **WHEN** the contrast ratio between the icon's foreground colour and each of the
-  backplate's gradient stops is computed from the source file
-- **THEN** every ratio is at least 4.5:1
-
-#### Scenario: The tile is distinguishable from the surfaces it sits on
-
-- **WHEN** the contrast between the icon's outermost edge and both the
-  application's dark base and its light base is computed
-- **THEN** each is at least 3:1
-
-#### Scenario: The tile edge survives the darkest chrome it ships against
-
-- **WHEN** the icon's outermost edge is composited and measured against the
-  darkest desktop chrome the icon is documented to land on, which is darker than
-  either application base
-- **THEN** the result is at least 3:1 — a bar the backplate colour alone does not
-  clear, so the light inset rim that carries it cannot be thinned or deleted
-  without failing the test suite
-
 ### Requirement: The mark's construction is held to its specification
 
 The generated `icon.ico` carries a 16×16 frame, which Windows renders in the
@@ -174,3 +137,27 @@ something noticed later in a screenshot.
 - **WHEN** `npm run verify` is inspected
 - **THEN** it runs the icon check, so the gate cannot be satisfied only by
   remembering to run it
+
+### Requirement: The mark's colours are brand constants declared in its source
+
+The icon's colours SHALL be brand constants declared in its committed vector sources, not values derived from the UI theme tokens. The backplate SHALL be one two-stop brand gradient, identical in every source that draws a plate, and the foreground SHALL be pure white. The white foreground SHALL meet WCAG AA on every point of the plate, and the tile's edge SHALL stay distinguishable from the application's window backgrounds and the darkest chrome it ships against.
+
+#### Scenario: Every icon source declares the same brand gradient
+
+- **WHEN** the backplate gradient stops of the master source and of every other icon source that draws a plate are read from the files
+- **THEN** each declares the same two opaque colour values in the same order, so re-tinting one source and forgetting another fails the test suite and names the drift
+
+#### Scenario: The foreground clears WCAG AA against every point of the plate
+
+- **WHEN** the contrast ratio between the icon's foreground colour and each of the backplate's gradient stops is computed from the source file
+- **THEN** every ratio is at least 4.5:1
+
+#### Scenario: The tile is distinguishable from the surfaces it sits on
+
+- **WHEN** the contrast between the icon's outermost edge and the window background of each application theme, as declared in the token file, is computed
+- **THEN** each is at least 3:1
+
+#### Scenario: The tile edge survives the darkest chrome it ships against
+
+- **WHEN** the icon's outermost edge is composited and measured against the darkest desktop chrome the icon is documented to land on, which is darker than either application base
+- **THEN** the result is at least 3:1 — a bar the backplate colour alone does not clear, so the light inset rim that carries it cannot be thinned or deleted without failing the test suite

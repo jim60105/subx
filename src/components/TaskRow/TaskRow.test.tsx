@@ -29,6 +29,7 @@ describe("task row", () => {
     expect(onSelect).toHaveBeenCalledOnce();
   });
 
+  // @covers app-shell/desktop-application-launches-with-the-home-task-list#unimplemented-features-are-visibly-disabled
   it("shows a disabled 'coming soon' row for an unimplemented task and does not select it", async () => {
     const onSelect = vi.fn();
     renderWithI18n(

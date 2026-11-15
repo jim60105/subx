@@ -62,7 +62,7 @@ function colorLiteralsIn(text: string): string[] {
 }
 
 describe("no component hard-codes a colour", () => {
-  // @covers theme-system/dual-light-dark-themes-with-neon-gradient-identity#both-themes-render-every-shell-screen
+  // @covers theme-system/dual-light-dark-themes-with-editorial-paper-and-ink-identity#colours-are-declared-only-in-the-token-file
   it("declares every colour literal in tokens.css and nowhere else", () => {
     const offenders: string[] = [];
 
@@ -80,6 +80,7 @@ describe("no component hard-codes a colour", () => {
     expect(offenders, "colours belong in tokens.css, referenced as var(--…)").toEqual([]);
   });
 
+  // @covers theme-system/dual-light-dark-themes-with-editorial-paper-and-ink-identity#colours-are-declared-only-in-the-token-file
   it("keeps colour literals out of inline style props too", () => {
     const offenders: string[] = [];
 

@@ -154,7 +154,7 @@ const CHECKS: Array<{ foreground: string; background: string; where: string; min
 describe.each(THEMES)("%s theme", (theme) => {
   const tokens = themeTokens(theme);
 
-  // @covers theme-system/dual-light-dark-themes-with-neon-gradient-identity#both-themes-render-every-shell-screen
+  // @covers theme-system/dual-light-dark-themes-with-editorial-paper-and-ink-identity#both-themes-render-every-shell-screen
   it.each(CHECKS)(
     "$foreground on $background meets $minimum:1 ($where)",
     ({ foreground, background, minimum }) => {

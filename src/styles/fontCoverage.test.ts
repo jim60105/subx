@@ -69,6 +69,7 @@ export function uncoveredCharacters(sources: Source[], covered: Set<number>): st
 }
 
 describe("the bundled serif", () => {
+  // @covers theme-system/bundled-serif-typeface#every-locale-string-is-covered
   it(
     "has a glyph for every character of every locale string",
     () => {
@@ -86,6 +87,7 @@ describe("the bundled serif", () => {
     30_000,
   );
 
+  // @covers theme-system/bundled-serif-typeface#serif-is-served-from-the-application-bundle
   it("is served from a file inside the source tree, and nothing loads from a remote host", () => {
     const fontFaces = stylesheets().flatMap((file) =>
       declarationsIn(read(file))
@@ -114,6 +116,7 @@ describe("the bundled serif", () => {
     expect(entry).not.toMatch(/https?:/i);
   });
 
+  // @covers theme-system/bundled-serif-typeface#serif-is-regular-weight-without-synthesis
   it("is applied by one shared rule at regular weight with synthesis off", () => {
     const users = stylesheets()
       .filter((file) => relative(file) !== path.join("styles", "tokens.css"))

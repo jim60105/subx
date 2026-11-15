@@ -42,6 +42,7 @@ describe("WizardShell", () => {
     expect(screen.getByText("Step 3 of 4")).toBeInTheDocument();
   });
 
+  // @covers app-shell/step-indicator-shows-two-digit-ordinals-and-hides-the-step-counter#ordinals-stay-visible-in-every-state
   it("shows a two-digit ordinal for a completed, the active, and an upcoming step", () => {
     const { container } = renderWithI18n(
       <WizardShell steps={STEPS.slice(0, 3)} activeStep={1}>
@@ -58,6 +59,7 @@ describe("WizardShell", () => {
     ]);
   });
 
+  // @covers app-shell/step-indicator-shows-two-digit-ordinals-and-hides-the-step-counter#step-counter-is-announced-but-not-shown
   it("keeps the step counter in the document but visually hidden", () => {
     renderWithI18n(
       <WizardShell steps={STEPS} activeStep={1}>
