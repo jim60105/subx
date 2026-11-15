@@ -8,8 +8,8 @@ Read `design.md` first; every "D<n>" below refers to it. Prerequisites: `editori
 
 ## 2. Motion foundation
 
-- [ ] 2.1 Add the two tokens and replace the reduced-motion block per D1. In `src/styles/layout.test.ts` add a "reduced motion" test asserting that the `@media (prefers-reduced-motion: reduce)` block of `global.css` declares `animation-delay: 0s !important` and `transition-delay: 0s !important` (plus the three existing declarations), unannotated, for "Reduced motion reveals the final state at once". Verify: `npx vitest run src/styles` passes.
-- [ ] 2.2 Extend `src/test/matchMedia.ts` and add `src/theme/usePrefersReducedMotion.ts` with `usePrefersReducedMotion.test.tsx` per D2. Verify: `npx vitest run src/theme` passes, including the existing `themeController.test.tsx` unchanged.
+- [x] 2.1 Add the two tokens and replace the reduced-motion block per D1. In `src/styles/layout.test.ts` add a "reduced motion" test asserting that the `@media (prefers-reduced-motion: reduce)` block of `global.css` declares `animation-delay: 0s !important` and `transition-delay: 0s !important` (plus the three existing declarations), unannotated, for "Reduced motion reveals the final state at once". Verify: `npx vitest run src/styles` passes.
+- [x] 2.2 Extend `src/test/matchMedia.ts` and add `src/theme/usePrefersReducedMotion.ts` with `usePrefersReducedMotion.test.tsx` per D2. Verify: `npx vitest run src/theme` passes, including the existing `themeController.test.tsx` unchanged.
 
 ## 3. Analysis step
 

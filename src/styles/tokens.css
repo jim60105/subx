@@ -42,6 +42,10 @@
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Delay between consecutive items of a staggered reveal. */
+  --motion-stagger: 130ms;
+  /* One step of the analysis illustration's pairing sequence. */
+  --motion-loom-tick: 190ms;
 
   /* Titlebar window controls */
   --titlebar-btn-size: var(--control-height);
