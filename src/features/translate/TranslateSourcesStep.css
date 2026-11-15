@@ -13,13 +13,13 @@
 .translate-sources__title {
   margin: 0;
   font-size: var(--text-xl);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .translate-sources__description {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .translate-sources__dropzone {
@@ -29,41 +29,24 @@
   gap: var(--space-2);
   padding: var(--space-6);
   text-align: center;
-  background: var(--surface);
-  border: 1px dashed var(--surface-border);
-  border-radius: var(--radius-lg);
+  border: 1px dashed var(--ink-3);
 }
 
 .translate-sources__dropzone-label {
   margin: 0;
   font-size: var(--text-base);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .translate-sources__dropzone-hint {
   margin: 0;
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .translate-sources__buttons {
   display: flex;
   gap: var(--space-2);
-}
-
-.translate-sources__button {
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
-  background: var(--surface-hover);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
-  transition: transform var(--motion-fast) var(--ease-out);
-}
-
-.translate-sources__button:hover {
-  transform: translateY(-1px);
 }
 
 .translate-sources__list {
@@ -77,7 +60,7 @@
 
 .translate-sources__empty {
   font-size: var(--text-sm);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .translate-sources__item {
@@ -86,15 +69,13 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-2) var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--hair);
 }
 
 .translate-sources__path {
   overflow: hidden;
   font-size: var(--text-sm);
-  color: var(--text-primary);
+  color: var(--ink);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -102,20 +83,20 @@
 .translate-sources__remove {
   flex-shrink: 0;
   padding: var(--space-1) var(--space-2);
-  color: var(--text-secondary);
+  color: var(--ink-2);
   cursor: pointer;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
 }
 
 .translate-sources__remove:hover {
-  color: var(--danger);
+  color: var(--del);
 }
 
 .translate-sources__scan {
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .translate-sources__files {
@@ -133,15 +114,13 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-2) var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--hair);
 }
 
 .translate-sources__file-name {
   overflow: hidden;
   font-size: var(--text-sm);
-  color: var(--text-primary);
+  color: var(--ink);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -149,14 +128,14 @@
 .translate-sources__file-cues {
   flex-shrink: 0;
   font-size: var(--text-xs);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .translate-sources__file-flag {
   flex-shrink: 0;
   padding: var(--space-1) var(--space-2);
   font-size: var(--text-xs);
-  color: var(--text-muted);
-  background: var(--surface-hover);
-  border-radius: var(--radius-pill);
+  color: var(--ink-3);
+  background: var(--paper-2);
+  border-radius: var(--radius-control);
 }

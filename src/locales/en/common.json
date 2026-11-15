@@ -1,6 +1,6 @@
 {
   "appName": "SubX",
-  "tagline": "AI-powered subtitle tooling",
+  "breadcrumb": "Breadcrumb",
   "version": "Running build",
   "actions": {
     "back": "Back",

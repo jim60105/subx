@@ -1,0 +1,37 @@
+/*
+ * The three button ranks. Secondary is the base `.button` (ink outline);
+ * primary is solid ink; tertiary (back, cancel) is text only. The accent is a
+ * marker colour and never fills a button. Feature classes stay on the element
+ * as layout and test hooks and declare no colour, border, or radius.
+ */
+.button {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
+  box-sizing: border-box;
+  padding: 0 var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-control);
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    opacity var(--motion-fast) var(--ease-out);
+}
+.button:not(:disabled):hover { background: var(--paper-2); }
+.button--primary {
+  min-height: var(--control-height-lg);
+  padding: 0 var(--space-5);
+  color: var(--on-ink);
+  background: var(--ink);
+}
+.button--primary:not(:disabled):hover { background: var(--ink); opacity: 0.85; }
+.button--tertiary { padding-inline: 0; color: var(--ink-2); border-color: transparent; }
+.button--tertiary:not(:disabled):hover { color: var(--ink); text-decoration: underline; background: transparent; }
+.button:disabled { cursor: not-allowed; opacity: 0.45; }

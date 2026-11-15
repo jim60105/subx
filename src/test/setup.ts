@@ -7,6 +7,8 @@ import { installMatchMedia } from "./matchMedia";
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 beforeEach(() => {
+  // A file that opts into `@vitest-environment node` has no DOM to reset.
+  if (typeof window === "undefined") return;
   window.localStorage.clear();
   document.documentElement.removeAttribute("data-theme");
   installMatchMedia();

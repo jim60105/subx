@@ -1,0 +1,12 @@
+/*
+ * The bundled serif. A local source only: the app must render identically
+ * offline, and the CSP allows `font-src 'self'`. Regular weight only — the
+ * serif rule in global.css disables synthetic bold and italic.
+ */
+@font-face {
+  font-family: "UoqMunThenKhung";
+  src: url("../assets/fonts/UoqMunThenKhung-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}

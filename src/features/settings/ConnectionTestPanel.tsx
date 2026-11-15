@@ -23,7 +23,7 @@ export function ConnectionTestPanel({ status, result, busy, onTest }: Connection
   return (
     <div className="settings-test">
       <div className="settings-test__action">
-        <button type="button" className="settings-button" disabled={busy} onClick={onTest}>
+        <button type="button" className="button settings-button" disabled={busy} onClick={onTest}>
           {status === "running" ? t("test.running") : t("test.action")}
         </button>
         <p className="settings-test__description">{t("test.description")}</p>

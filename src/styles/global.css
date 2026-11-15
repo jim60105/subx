@@ -1,4 +1,6 @@
 @import "./tokens.css";
+@import "./fonts.css";
+@import "./buttons.css";
 
 *,
 *::before,
@@ -17,10 +19,8 @@ body {
   font-family: var(--font-sans);
   font-size: var(--text-base);
   line-height: 1.55;
-  color: var(--text-primary);
-  background-color: var(--bg-base);
-  background-image: var(--bg-gradient);
-  background-attachment: fixed;
+  color: var(--ink);
+  background-color: var(--paper);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -31,22 +31,36 @@ p {
   margin: 0;
 }
 
-button {
+/*
+ * The only rule that applies the serif. Headings carry it by element; brand,
+ * breadcrumb, ordinals, and large numerals opt in with `className="serif"`.
+ * The font ships in one weight, so nothing may ask the browser to fake another.
+ */
+h1,
+h2,
+h3,
+.serif {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-style: normal;
+  font-synthesis: none;
+}
+
+button,
+input,
+select,
+textarea {
   font: inherit;
+}
+
+button {
   color: inherit;
 }
 
 /* A single visible focus treatment for every interactive element. */
 :focus-visible {
-  outline: 2px solid var(--focus-ring);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-.gradient-text {
-  background: var(--accent-gradient-strong);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
 }
 
 /* Visible only to screen readers. */

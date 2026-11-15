@@ -13,13 +13,13 @@
 .execute-step__title {
   margin: 0;
   font-size: var(--text-xl);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .execute-step__summary {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .execute-step__report {
@@ -31,13 +31,13 @@
 .execute-step__report-title {
   margin: 0;
   font-size: var(--text-base);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .execute-step__report-summary {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .execute-step__outcomes {
@@ -54,27 +54,25 @@
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-left: 3px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--hair);
+  border-left: 3px solid var(--hair);
 }
 
 .execute-step__outcome[data-status="ok"] {
-  border-left-color: var(--success);
+  border-left-color: var(--add);
 }
 
 .execute-step__outcome[data-status="failed"] {
-  border-left-color: var(--danger);
+  border-left-color: var(--del);
 }
 
 .execute-step__outcome-name {
   font-size: var(--text-sm);
-  color: var(--text-primary);
+  color: var(--ink);
   overflow-wrap: anywhere;
 }
 
 .execute-step__outcome-status {
   font-size: var(--text-xs);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }

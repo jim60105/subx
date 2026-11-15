@@ -13,13 +13,13 @@
 .sources-step__title {
   margin: 0;
   font-size: var(--text-xl);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .sources-step__description {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .sources-step__dropzone {
@@ -29,41 +29,24 @@
   gap: var(--space-2);
   padding: var(--space-6);
   text-align: center;
-  background: var(--surface);
-  border: 1px dashed var(--surface-border);
-  border-radius: var(--radius-lg);
+  border: 1px dashed var(--ink-3);
 }
 
 .sources-step__dropzone-label {
   margin: 0;
   font-size: var(--text-base);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .sources-step__dropzone-hint {
   margin: 0;
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .sources-step__buttons {
   display: flex;
   gap: var(--space-2);
-}
-
-.sources-step__button {
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
-  background: var(--surface-hover);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
-  transition: transform var(--motion-fast) var(--ease-out);
-}
-
-.sources-step__button:hover {
-  transform: translateY(-1px);
 }
 
 .sources-step__list {
@@ -77,7 +60,7 @@
 
 .sources-step__empty {
   font-size: var(--text-sm);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .sources-step__item {
@@ -86,15 +69,13 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-2) var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--hair);
 }
 
 .sources-step__path {
   overflow: hidden;
   font-size: var(--text-sm);
-  color: var(--text-primary);
+  color: var(--ink);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -102,15 +83,15 @@
 .sources-step__remove {
   flex-shrink: 0;
   padding: var(--space-1) var(--space-2);
-  color: var(--text-secondary);
+  color: var(--ink-2);
   cursor: pointer;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
 }
 
 .sources-step__remove:hover {
-  color: var(--danger);
+  color: var(--del);
 }
 
 .sources-step__modes {
@@ -119,15 +100,16 @@
   gap: var(--space-2);
   padding: var(--space-3);
   margin: 0;
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  /* A fieldset draws its own box; keep only the hairline below. */
+  border: none;
+  border-bottom: 1px solid var(--hair);
 }
 
 .sources-step__modes-legend {
   padding: 0 var(--space-2);
   font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .sources-step__mode {
@@ -144,19 +126,19 @@
 
 .sources-step__mode-name {
   font-size: var(--text-sm);
-  color: var(--text-primary);
+  color: var(--ink);
 }
 
 .sources-step__mode-hint {
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .sources-step__scan {
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .sources-step__insufficient {
-  color: var(--danger);
+  color: var(--del);
 }

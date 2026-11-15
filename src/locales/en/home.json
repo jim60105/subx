@@ -1,6 +1,5 @@
 {
   "heading": "What would you like to do?",
-  "subheading": "Pick a task to start. SubX runs everything locally through the subx engine.",
   "tasks": {
     "match": {
       "name": "Match subtitles",
@@ -17,6 +16,12 @@
     "translate": {
       "name": "Translate",
       "description": "Translate subtitles into another language with AI."
+    }
+  },
+  "specimens": {
+    "translate": {
+      "source": "Long time no see.",
+      "target": "好久不見。"
     }
   }
 }

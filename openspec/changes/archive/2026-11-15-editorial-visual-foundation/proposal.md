@@ -28,6 +28,7 @@ Human-reviewed, not specified: visual fidelity to the mockup, typographic polish
 - `theme-system`: the identity requirement is renamed and rewritten (editorial paper and ink, marker-only accent, no glass/gradient/shadow); a new requirement covers the bundled serif. The `## Purpose` line is updated when the delta is synced. Follow-system, override, and popover requirements are unchanged.
 - `app-shell`: the home hub requirement is removed and re-added as a numbered list with specimens (a MODIFIED block cannot drop its two grid scenarios); the header home affordance becomes a breadcrumb that names the current screen; the header no longer blurs; a new requirement covers the two-digit stepper and the hidden step counter.
 - `build-identity`: the narrowest-window scenario names the breadcrumb title, not the removed tagline, as the element that truncates first.
+- `app-icon`: the palette requirement tied the icon's backplate to the `--accent-gradient-strong` token, which this change deletes. It is removed and re-added as "The mark's colours are brand constants declared in its source": the artwork is unchanged, its gradient is checked for drift between the icon sources instead of against a token, and the contrast scenarios carry over against the new window backgrounds. (Added during apply, when the deleted token broke `scripts/app-icon.test.ts`.)
 
 ## Impact
 
@@ -35,7 +36,7 @@ Human-reviewed, not specified: visual fidelity to the mockup, typographic polish
 - Components: `AppHeader`, `WizardShell`, `HomeScreen`, `App.tsx`; `TaskCard`, `TaskIcons`, and `SettingsIcon` are deleted; new `TaskRow` and `TaskSpecimen`.
 - Assets: new `src/assets/fonts/` (WOFF2, `OFL.txt`, `README.md` with provenance and measured size).
 - Locales: `common.tagline` and `home.subheading` deleted from `en` and `zh-TW`; `home.specimens.translate.*` added to both.
-- Tests: `tokens.contrast.test.ts` rewritten; `tokens.colorLiteral.test.ts`, `layout.test.ts`, `hardCodedStrings.test.tsx`, `AppHeader.test.tsx`, `App.test.tsx`, `WizardShell.test.tsx`, `HomeScreen.test.tsx` updated; new `tokens.reference.test.ts`, `flatness.test.ts`, `fontCoverage.test.ts`, `TaskRow.test.tsx`.
+- Tests: `tokens.contrast.test.ts` rewritten; `scripts/app-icon.test.ts` palette tests re-based on the icon sources and `--paper`; `tokens.colorLiteral.test.ts`, `layout.test.ts`, `hardCodedStrings.test.tsx`, `AppHeader.test.tsx`, `App.test.tsx`, `WizardShell.test.tsx`, `HomeScreen.test.tsx` updated; new `tokens.reference.test.ts`, `flatness.test.ts`, `fontCoverage.test.ts`, `TaskRow.test.tsx`.
 - Dependencies: new devDependency `fontkit` (reads the WOFF2 character map in the coverage test). No runtime dependency.
 - No backend, IPC, or `config.toml` change. Theme storage (`localStorage` key `subx.theme`) is untouched.
 

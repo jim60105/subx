@@ -18,6 +18,7 @@ import { ConvertOptionsStep } from "../features/convert/ConvertOptionsStep";
 import { ConvertRunStep } from "../features/convert/ConvertRunStep";
 import { ConvertSourcesStep } from "../features/convert/ConvertSourcesStep";
 import { HomeScreen } from "../features/home/HomeScreen";
+import { SPECIMEN_TEXTS } from "../features/home/specimens";
 import { AnalysisStep } from "../features/match/AnalysisStep";
 import { ExecuteStep } from "../features/match/ExecuteStep";
 import { ReviewStep } from "../features/match/ReviewStep";
@@ -33,32 +34,16 @@ import { TranslateRunStep } from "../features/translate/TranslateRunStep";
 import { TranslateSourcesStep } from "../features/translate/TranslateSourcesStep";
 import { ThemeProvider } from "../theme/ThemeProvider";
 import { i18n, renderWithI18n, setupI18n } from "../test/renderWithI18n";
-import type {
-  ConfigDto,
-  ConvertPlanDto,
-  ExecutionReportDto,
-  MatchPlanDto,
-  SyncDefaultsDto,
-  TranslatePlanDto,
-  TranslationReportDto,
-  VersionInfoDto,
-} from "../types/ipc";
-
-const CONFIG: ConfigDto = {
-  ai: {
-    provider: "openai",
-    model: "gpt-4.1-mini",
-    baseUrl: "https://api.openai.com/v1",
-    apiKeyMasked: "****1234",
-    apiKeySet: true,
-  },
-};
-
-const BUILD_INFO: VersionInfoDto = {
-  version: "0.2.0",
-  gitHash: "abc1234",
-  debug: true,
-};
+import {
+  BUILD_INFO,
+  CONFIG,
+  EMPTY_CONVERT_PLAN,
+  EMPTY_TRANSLATE_PLAN,
+  EXECUTION_REPORT,
+  REVIEW_PLAN,
+  SYNC_DEFAULTS,
+  TRANSLATE_REPORT,
+} from "../test/screenFixtures";
 
 /**
  * Text that legitimately reaches the DOM without a translation key.
@@ -79,6 +64,9 @@ const ALLOWED = [
   /^\*{4}1234$/,
   // The build identity is backend data, not localized prose.
   /^\d+\.\d+\.\d+( · [0-9a-f]{7,40})?$/,
+  // The home specimens' sample file names, extensions, and timecodes. They
+  // demonstrate what a task does to files; they are not prose. Matched exactly.
+  ...SPECIMEN_TEXTS.map((text) => new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`)),
 ];
 
 /**
@@ -153,96 +141,6 @@ afterEach(async () => {
     await i18n.changeLanguage("en");
   });
 });
-
-/** A small populated plan makes the language-bar translations reach the DOM. */
-const REVIEW_PLAN: MatchPlanDto = {
-  planId: "plan-1",
-  relocationMode: "rename",
-  videos: [
-    {
-      videoName: "1",
-      matches: [
-        {
-          id: 0,
-          subtitleName: "1",
-          targetPath: "/1",
-          confidence: 90,
-          language: "tc",
-          reasoning: [],
-        },
-        {
-          id: 1,
-          subtitleName: "2",
-          targetPath: "/2",
-          confidence: 90,
-          language: "en",
-          reasoning: [],
-        },
-        {
-          id: 2,
-          subtitleName: "3",
-          targetPath: "/3",
-          confidence: 90,
-          language: null,
-          reasoning: [],
-        },
-      ],
-    },
-  ],
-  unmatchedVideos: [],
-  unmatchedSubtitles: [],
-};
-
-/** The convert equivalent: chrome only, no file names to read as prose. */
-const EMPTY_CONVERT_PLAN: ConvertPlanDto = {
-  planId: "convert-1",
-  targetFormat: "srt",
-  keepOriginal: true,
-  items: [],
-};
-
-/** The sync steps' seed values; all three are numbers, never prose. */
-const SYNC_DEFAULTS: SyncDefaultsDto = {
-  defaultMethod: "auto",
-  vadSensitivity: 0.5,
-  maxOffsetMs: 60_000,
-};
-
-/** The translate equivalent: chrome only, no file names to read as prose. */
-const EMPTY_TRANSLATE_PLAN: TranslatePlanDto = {
-  planId: "translate-1",
-  targetLanguage: "zh-TW",
-  outputMode: "suffix",
-  items: [],
-};
-
-/*
- * The report fixtures carry one outcome each. Since the wizards took over the
- * navigation buttons these panels are outcome lists and nothing else, so an
- * empty report renders only its heading — too little for the "did this screen
- * actually render?" floor below to mean anything.
- */
-const TRANSLATE_REPORT: TranslationReportDto = {
-  outcomes: [
-    {
-      inputName: "ep01.srt",
-      outputPath: "/tmp/ep01.zh-TW.srt",
-      status: "translated",
-      backupPath: null,
-      error: null,
-      warning: null,
-    },
-  ],
-  successCount: 1,
-  failureCount: 0,
-  cancelled: false,
-};
-
-const EXECUTION_REPORT: ExecutionReportDto = {
-  outcomes: [{ subtitleName: "ep01.srt", targetPath: "/tmp/ep01.srt", applied: true, error: null }],
-  successCount: 1,
-  failureCount: 0,
-};
 
 /**
  * Every screen that exists today. `add-match-wizard` extends this list with its

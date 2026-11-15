@@ -13,45 +13,39 @@
 
 .settings__heading {
   font-size: var(--text-2xl);
-  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .settings__subheading {
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .settings__loading {
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
-/* Glassmorphism panel, matching the home hub's cards. */
+/* No panel: a section is its heading on an ink rule, then its fields. */
 .settings-section {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  padding: var(--space-5);
-  background: var(--surface);
-  backdrop-filter: var(--surface-blur);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-panel);
 }
 
 .settings-section__header {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--ink);
 }
 
 .settings-section__title {
   font-size: var(--text-lg);
-  font-weight: 700;
 }
 
 .settings-section__description {
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .settings-section__fields {
@@ -74,14 +68,14 @@
 .settings-field__label {
   font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .settings-field__hint,
 .settings-field__error-hint,
 .settings-field__error-detail {
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .settings-field__error {
@@ -92,7 +86,7 @@
 
 .settings-field__error-message {
   font-size: var(--text-sm);
-  color: var(--danger);
+  color: var(--del);
 }
 
 .settings-field__error-detail {
@@ -105,10 +99,10 @@
   padding: var(--space-2) var(--space-3);
   font: inherit;
   font-size: var(--text-sm);
-  color: var(--text-primary);
-  background: var(--surface-hover);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-control);
 }
 
 .settings-control:disabled {
@@ -117,34 +111,7 @@
 }
 
 .settings-control[aria-invalid="true"] {
-  border-color: var(--danger);
-}
-
-.settings-button {
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
-  background: var(--surface-hover);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-md);
-  transition: transform var(--motion-fast) var(--ease-out);
-}
-
-.settings-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-.settings-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.settings-button--primary {
-  color: var(--text-on-accent);
-  background: var(--accent-gradient-strong);
-  border-color: transparent;
-  box-shadow: var(--shadow-raised);
+  border-color: var(--del);
 }
 
 /* The save button sits inline-end-most, on the same side as every wizard's
@@ -158,7 +125,7 @@
 
 .settings__dirty {
   font-size: var(--text-sm);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .settings-test {
@@ -166,7 +133,7 @@
   flex-direction: column;
   gap: var(--space-3);
   padding-top: var(--space-4);
-  border-top: 1px solid var(--surface-border);
+  border-top: 1px solid var(--hair);
 }
 
 .settings-test__action {
@@ -177,17 +144,16 @@
 
 .settings-test__description {
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--ink-3);
 }
 
 .settings-test__success {
-  padding: var(--space-3) var(--space-4);
+  padding-block: var(--space-2);
+  padding-inline-start: var(--space-3);
   font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--success);
-  background: var(--success-surface);
-  border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
-  border-radius: var(--radius-md);
+  color: var(--add);
+  border-inline-start: 2px solid var(--add);
 }
 
 @media (width <= 30rem) {

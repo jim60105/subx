@@ -62,7 +62,7 @@ function colorLiteralsIn(text: string): string[] {
 }
 
 describe("no component hard-codes a colour", () => {
-  // @covers theme-system/dual-light-dark-themes-with-neon-gradient-identity#both-themes-render-every-shell-screen
+  // @covers theme-system/dual-light-dark-themes-with-editorial-paper-and-ink-identity#colours-are-declared-only-in-the-token-file
   it("declares every colour literal in tokens.css and nowhere else", () => {
     const offenders: string[] = [];
 
@@ -80,6 +80,7 @@ describe("no component hard-codes a colour", () => {
     expect(offenders, "colours belong in tokens.css, referenced as var(--…)").toEqual([]);
   });
 
+  // @covers theme-system/dual-light-dark-themes-with-editorial-paper-and-ink-identity#colours-are-declared-only-in-the-token-file
   it("keeps colour literals out of inline style props too", () => {
     const offenders: string[] = [];
 
@@ -105,8 +106,8 @@ describe("no component hard-codes a colour", () => {
     expect(colorLiteralsIn("background: rgba(0, 0, 0, 0.5);")).toContain("rgba(");
     expect(colorLiteralsIn("border-color: red;")).toContain("red");
     expect(colorLiteralsIn("background: transparent;")).toEqual([]);
-    expect(colorLiteralsIn("color: var(--text-primary);")).toEqual([]);
+    expect(colorLiteralsIn("color: var(--ink);")).toEqual([]);
     // A token name that merely contains a colour word is not a literal.
-    expect(colorLiteralsIn("color: var(--accent-text);")).toEqual([]);
+    expect(colorLiteralsIn("color: var(--accent-ink);")).toEqual([]);
   });
 });
