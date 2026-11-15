@@ -4,7 +4,7 @@ Read `design.md` first; every "D<n>" below refers to it. Prerequisites: `editori
 
 ## 1. Spec sync
 
-- [ ] 1.1 Validate the deltas without syncing them: `openspec/specs/` is left untouched, because the delta requirement IDs only exist after archive sync. Verify: `openspec validate redesign-match-review --strict` passes; `npm run spec:trace -- --report` shows the two pre-existing review scenarios still verified by their Rust tests. The tests for the twelve new scenarios (five review, four filter, one count, two note) are written unannotated below; archive syncs the specs and annotates them post-sync. Never hand-build or borrow an ID.
+- [x] 1.1 Validate the deltas without syncing them: `openspec/specs/` is left untouched, because the delta requirement IDs only exist after archive sync. Verify: `openspec validate redesign-match-review --strict` passes; `npm run spec:trace -- --report` shows the two pre-existing review scenarios still verified by their Rust tests. The tests for the twelve new scenarios (five review, four filter, one count, two note) are written unannotated below; archive syncs the specs and annotates them post-sync. Never hand-build or borrow an ID.
 
 ## 2. Ledger derivation
 
@@ -29,7 +29,7 @@ Read `design.md` first; every "D<n>" below refers to it. Prerequisites: `editori
 
 ## 6. Integration
 
-- [ ] 6.1 Run `npm run verify`. Verify: it exits 0, `npm run spec:trace` reports 0 unverified scenarios and 0 dangling annotations, and frontend coverage stays at or above 85 % on every metric (close any gap with tests, not exclusions).
+- [x] 6.1 Run `npm run verify`. Verify: it exits 0, `npm run spec:trace` reports 0 unverified scenarios and 0 dangling annotations, and frontend coverage stays at or above 85 % on every metric (close any gap with tests, not exclusions).
 
 ## Workflow follow-up
 
