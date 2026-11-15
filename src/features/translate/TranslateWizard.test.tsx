@@ -485,6 +485,7 @@ describe("the translate wizard", () => {
 });
 
 describe("the translate sources step", () => {
+  // @covers translate-workflow/translate-sources-step-demonstrates-accepted-inputs#drop-zone-shows-the-kinds-translate-accepts
   it("shows the kinds it accepts as glyphs and keeps the sentence for assistive technology", () => {
     renderWizard();
 
@@ -499,6 +500,7 @@ describe("the translate sources step", () => {
     expect(sentence.closest(".visually-hidden")).not.toBeNull();
   });
 
+  // @covers translate-workflow/translate-sources-step-demonstrates-accepted-inputs#removing-a-folder-group-rescans-without-it
   it("removes a whole folder group and rescans with what is left", async () => {
     const user = userEvent.setup();
     vi.mocked(pickers.pickFiles).mockResolvedValue(["/a/1.srt", "/a/2.srt", "/b/3.srt"]);
@@ -530,6 +532,7 @@ describe("useTranslateWizard source removal", () => {
 });
 
 describe("planned translations as file consequences", () => {
+  // @covers translate-workflow/planned-translations-render-as-file-consequences#suffix-mode-keeps-the-input-and-creates-the-output
   it("keeps the input and creates the suffixed output in suffix mode", async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -542,6 +545,7 @@ describe("planned translations as file consequences", () => {
     ]);
   });
 
+  // @covers translate-workflow/planned-translations-render-as-file-consequences#replace-mode-removes-and-re-creates-the-file
   it("removes the input and creates the same path again in replace mode", async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -563,6 +567,7 @@ describe("planned translations as file consequences", () => {
     );
   });
 
+  // @covers translate-workflow/planned-translations-render-as-file-consequences#excluded-item-shows-no-created-line
   it("shows an excluded item as its kept input and its reason, with nothing created", async () => {
     const user = userEvent.setup();
     renderWizard();

@@ -386,6 +386,7 @@ describe("the convert wizard", () => {
 });
 
 describe("the convert sources step", () => {
+  // @covers convert-workflow/convert-sources-step-demonstrates-accepted-inputs#drop-zone-shows-the-kinds-convert-accepts
   it("shows the kinds it accepts as glyphs and keeps the sentence for assistive technology", () => {
     renderWizard();
 
@@ -400,6 +401,7 @@ describe("the convert sources step", () => {
     expect(sentence.closest(".visually-hidden")).not.toBeNull();
   });
 
+  // @covers convert-workflow/convert-sources-step-demonstrates-accepted-inputs#removing-a-folder-group-rescans-without-it
   it("removes a whole folder group and rescans with what is left", async () => {
     const user = userEvent.setup();
     vi.mocked(pickers.pickFiles).mockResolvedValue(["/a/1.srt", "/a/2.srt", "/b/3.srt"]);
@@ -431,6 +433,7 @@ describe("useConvertWizard source removal", () => {
 });
 
 describe("planned conversions as file consequences", () => {
+  // @covers convert-workflow/planned-conversions-render-as-file-consequences#keep-original-on-keeps-the-source-line
   it("keeps the source line and creates the output while keep-original is on", async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -443,6 +446,7 @@ describe("planned conversions as file consequences", () => {
     ]);
   });
 
+  // @covers convert-workflow/planned-conversions-render-as-file-consequences#keep-original-off-marks-the-source-removed
   it("marks every runnable source removed once keep-original is off", async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -464,6 +468,7 @@ describe("planned conversions as file consequences", () => {
     ]);
   });
 
+  // @covers convert-workflow/planned-conversions-render-as-file-consequences#excluded-item-shows-no-created-line
   it("shows an excluded item as its kept source and its reason, with nothing created", async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -476,6 +481,7 @@ describe("planned conversions as file consequences", () => {
     expect(row?.querySelector('[data-kind="created"]')).toBeNull();
   });
 
+  // @covers convert-workflow/planned-conversions-render-as-file-consequences#run-step-lists-the-selected-conversions-before-starting
   it("lists exactly the selected conversions on the run step before it starts", () => {
     const plan: ConvertPlanDto = {
       ...PLAN,
