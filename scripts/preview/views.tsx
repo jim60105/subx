@@ -27,7 +27,7 @@ import { TranslateRunStep } from "../../src/features/translate/TranslateRunStep"
 import { TranslateSourcesStep } from "../../src/features/translate/TranslateSourcesStep";
 import {
   CONVERT_PLAN,
-  EMPTY_TRANSLATE_PLAN,
+  TRANSLATE_PLAN,
   EXECUTION_PLAN,
   EXECUTION_REPORT,
   REVIEW_PLAN,
@@ -436,7 +436,7 @@ export const VIEWS: Record<string, () => JSX.Element> = {
   ),
   TranslateOptionsStep: () => (
     <TranslateOptionsStep
-      plan={EMPTY_TRANSLATE_PLAN}
+      plan={TRANSLATE_PLAN}
       isPreviewing={false}
       previewError={undefined}
       targetLanguage="zh-TW"

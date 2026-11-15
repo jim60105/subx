@@ -112,12 +112,22 @@ export const SYNC_DEFAULTS: SyncDefaultsDto = {
   maxOffsetMs: 60_000,
 };
 
-/** The translate equivalent: chrome only, no file names to read as prose. */
-export const EMPTY_TRANSLATE_PLAN: TranslatePlanDto = {
+/** The translate equivalent: one runnable item, under the same rules. */
+export const TRANSLATE_PLAN: TranslatePlanDto = {
   planId: "translate-1",
   targetLanguage: "zh-TW",
   outputMode: "suffix",
-  items: [],
+  items: [
+    {
+      id: 0,
+      inputName: "ep01.srt",
+      inputPath: "/fixtures/a/ep01.srt",
+      outputPath: "/fixtures/a/ep01.zh-TW.srt",
+      cueCount: 12,
+      outputExists: false,
+      skipReason: null,
+    },
+  ],
 };
 
 /*

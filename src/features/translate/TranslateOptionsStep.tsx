@@ -1,7 +1,9 @@
 import { useTranslation } from "react-i18next";
 
+import { DiffPreview } from "../../components/DiffPreview/DiffPreview";
 import { ErrorNotice } from "../../components/ErrorNotice/ErrorNotice";
 import type { TranslateItemDto, TranslateOutputModeDto, TranslatePlanDto } from "../../types/ipc";
+import { translateItemLines } from "./planLines";
 import "./TranslateOptionsStep.css";
 
 interface TranslateOptionsStepProps {
@@ -26,11 +28,12 @@ interface TranslateOptionsStepProps {
 
 interface PlanRowProps {
   item: TranslateItemDto;
+  outputMode: TranslateOutputModeDto;
   selected: boolean;
   onToggle: (id: number) => void;
 }
 
-function PlanRow({ item, selected, onToggle }: PlanRowProps) {
+function PlanRow({ item, outputMode, selected, onToggle }: PlanRowProps) {
   const { t } = useTranslation("translate");
   const { t: tError } = useTranslation("errors");
   const excluded = item.skipReason !== null;
@@ -39,7 +42,12 @@ function PlanRow({ item, selected, onToggle }: PlanRowProps) {
   const willOverwrite = item.outputExists && !excluded;
 
   return (
-    <li className="translate-options__item" data-excluded={excluded ? "true" : undefined}>
+    // The diff line truncates a long output path; the row's title keeps it reachable.
+    <li
+      className="translate-options__item"
+      data-excluded={excluded ? "true" : undefined}
+      title={item.outputPath}
+    >
       <label className="translate-options__item-main">
         <input
           type="checkbox"
@@ -49,10 +57,7 @@ function PlanRow({ item, selected, onToggle }: PlanRowProps) {
           onChange={() => onToggle(item.id)}
         />
         <span className="translate-options__item-body">
-          <span className="translate-options__input">{item.inputName}</span>
-          <span className="translate-options__output">
-            {t("options.outputLabel")} <code>{item.outputPath}</code>
-          </span>
+          <DiffPreview lines={translateItemLines(item, outputMode)} label={item.inputName} />
           <span className="translate-options__cues">
             {t("options.cueCount", { count: item.cueCount })}
           </span>
@@ -74,7 +79,8 @@ function PlanRow({ item, selected, onToggle }: PlanRowProps) {
 
 /**
  * Step 2: language, glossary and output settings, with the exact plan the
- * options currently produce shown below — every option, including the
+ * options currently produce shown below as diffs, so suffix and replace mode
+ * differ visibly on every file — every option, including the
  * free-text ones, re-previews immediately (design: cheap, AI-free filesystem
  * calls, so the plan the user is about to authorize is never stale).
  */
@@ -101,10 +107,7 @@ export function TranslateOptionsStep({
 
   return (
     <div className="translate-options">
-      <header className="translate-options__intro">
-        <h2 className="translate-options__title">{t("options.title")}</h2>
-        <p className="translate-options__description">{t("options.description")}</p>
-      </header>
+      <h2 className="translate-options__title">{t("options.title")}</h2>
 
       <div className="translate-options__controls">
         <label className="translate-options__field">
@@ -205,6 +208,7 @@ export function TranslateOptionsStep({
             <PlanRow
               key={item.id}
               item={item}
+              outputMode={outputMode}
               selected={selectedIds.has(item.id)}
               onToggle={onToggle}
             />

@@ -8,13 +8,7 @@
   "sources": {
     "title": "選擇要翻譯的檔案",
     "description": "加入想要翻譯的字幕。資料夾、單一檔案與壓縮檔都可以。",
-    "dropzone": "將檔案或資料夾拖曳到這裡",
-    "dropHint": "或使用下方按鈕",
-    "browseFiles": "瀏覽檔案",
-    "browseFolder": "瀏覽資料夾",
     "listLabel": "已選來源",
-    "empty": "尚未加入任何來源。",
-    "remove": "移除 {{name}}",
     "scan": {
       "scanning": "正在掃描來源…",
       "count": "共 {{total}} 句字幕",
@@ -25,7 +19,6 @@
   },
   "options": {
     "title": "設定語言與詞彙表",
-    "description": "以下每個檔案都會顯示翻譯結果實際寫入的位置。",
     "targetLanguageLabel": "翻譯成",
     "targetLanguagePlaceholder": "例如：zh-TW",
     "sourceLanguageLabel": "來源語言（選填）",
@@ -47,7 +40,6 @@
     "previewing": "正在準備預覽…",
     "listLabel": "預定的翻譯",
     "selection": "包含 {{name}}",
-    "outputLabel": "將寫入到",
     "cueCount": "{{count}} 句",
     "overwrite": "會覆蓋既有檔案",
     "back": "上一步",

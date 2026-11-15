@@ -40,7 +40,7 @@ import {
   BUILD_INFO,
   CONFIG,
   CONVERT_PLAN,
-  EMPTY_TRANSLATE_PLAN,
+  TRANSLATE_PLAN,
   EXECUTION_PLAN,
   EXECUTION_REPORT,
   REVIEW_PLAN,
@@ -392,7 +392,7 @@ const SCREENS = [
     render: () =>
       renderWithI18n(
         <TranslateOptionsStep
-          plan={EMPTY_TRANSLATE_PLAN}
+          plan={TRANSLATE_PLAN}
           isPreviewing={false}
           previewError={undefined}
           targetLanguage="zh-TW"
@@ -401,7 +401,7 @@ const SCREENS = [
           glossaryText=""
           outputMode="suffix"
           overwrite={false}
-          selectedIds={new Set()}
+          selectedIds={new Set([0])}
           onTargetLanguageChange={() => {}}
           onSourceLanguageChange={() => {}}
           onContextChange={() => {}}

@@ -258,7 +258,9 @@ describe("the translate wizard", () => {
 
     await reachOptions(user);
 
-    expect(await screen.findByText("/m/two.zh-TW.srt")).toBeInTheDocument();
+    // A runnable item shows its resolved output; an excluded one shows none.
+    expect(await screen.findByText("/m/one.zh-TW.srt")).toBeInTheDocument();
+    expect(screen.queryByText("/m/two.zh-TW.srt")).not.toBeInTheDocument();
     const excluded = screen.getByRole("checkbox", { name: "Include two.srt" });
     expect(excluded).toBeDisabled();
     expect(excluded).not.toBeChecked();
