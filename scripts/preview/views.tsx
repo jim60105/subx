@@ -52,6 +52,7 @@ import type {
   RelocationModeDto,
   TranslateOutputModeDto,
   TranslatePlanDto,
+  TranslateScanResult,
 } from "../../src/types/ipc";
 
 const noop = () => {};
@@ -524,6 +525,60 @@ function TranslateOptionsView() {
   );
 }
 
+const SLF = "[Shangri-La Frontier]";
+const SLF_FOLDER =
+  "/mnt/ds920p/BT_Disk_3/[2024][Shangri-La Frontier S2][BDRIP][1080P][1-25(26-50)Fin+SP]/";
+
+/**
+ * Two files added directly from one long-named folder, a folder source, and
+ * an archive source holding one unparsable file: every ledger group and row
+ * kind, with paths and names long enough to truncate.
+ */
+const TRANSLATE_SAMPLE_SOURCES = [
+  `${SLF_FOLDER}${SLF}[26][BDRIP][1080P][H264_FLAC].tc.srt`,
+  `${SLF_FOLDER}${SLF}[27][BDRIP][1080P][H264_FLAC].tc.srt`,
+  "/media/Show/Season 1/",
+  "/home/jim/Downloads/Frieren_S01_subs.zip",
+];
+
+const TRANSLATE_SAMPLE_SCAN: TranslateScanResult = {
+  files: [
+    { name: `${SLF}[26][BDRIP][1080P][H264_FLAC].tc.srt`, source: TRANSLATE_SAMPLE_SOURCES[0], cueCount: 378, unparsable: false },
+    { name: `${SLF}[27][BDRIP][1080P][H264_FLAC].tc.srt`, source: TRANSLATE_SAMPLE_SOURCES[1], cueCount: 372, unparsable: false },
+    { name: "Show.S01E01.ja.srt", source: TRANSLATE_SAMPLE_SOURCES[2], cueCount: 0, unparsable: true },
+    { name: "Frieren.S01E01.ja.ass", source: TRANSLATE_SAMPLE_SOURCES[3], cueCount: 412, unparsable: false },
+    { name: "Frieren.S01E02.ja.ass", source: TRANSLATE_SAMPLE_SOURCES[3], cueCount: 389, unparsable: false },
+  ],
+  defaultTargetLanguage: "zh-TW",
+};
+
+/** Translate step 1 inside the real wizard frame; `?scanning=1` shows the scan in flight. Removal is live. */
+function TranslateSourcesView({ scanning }: { scanning: boolean }) {
+  const { t } = useTranslation("translate");
+  const [sources, setSources] = useState(TRANSLATE_SAMPLE_SOURCES);
+  const scan: TranslateScanResult = {
+    ...TRANSLATE_SAMPLE_SCAN,
+    files: TRANSLATE_SAMPLE_SCAN.files.filter((file) => sources.includes(file.source)),
+  };
+  return (
+    <WizardShell
+      steps={TRANSLATE_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }))}
+      activeStep={0}
+      next={{ label: t("sources.continue"), disabled: scanning, onClick: noop }}
+    >
+      <TranslateSourcesStep
+        sources={sources}
+        scan={scanning ? null : scan}
+        isScanning={scanning}
+        scanError={undefined}
+        onBrowseFiles={noop}
+        onBrowseFolder={noop}
+        onRemoveSources={(paths) => setSources((current) => current.filter((path) => !paths.includes(path)))}
+      />
+    </WizardShell>
+  );
+}
+
 /** `?ms=` seeds the offset so a screenshot can pin a positive, zero or negative value. */
 function SyncOffsetView() {
   const initial = Number(params.get("ms") ?? "750");
@@ -633,6 +688,7 @@ export const VIEWS: Record<string, () => JSX.Element> = {
   "convert-sources": () => <ConvertSourcesView />,
   "convert-options": () => <ConvertOptionsView />,
   "convert-run": () => <ConvertRunView />,
+  "translate-sources": () => <TranslateSourcesView scanning={params.get("scanning") === "1"} />,
   "translate-options": () => <TranslateOptionsView />,
   "sync-offset": () => <SyncOffsetView />,
   "sync-apply": () => <SyncApplyView />,

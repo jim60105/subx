@@ -9,12 +9,14 @@
     "title": "Choose what to translate",
     "description": "Add the subtitles you want translated. Folders, individual files, and archives all work.",
     "listLabel": "Selected sources",
-    "scan": {
-      "scanning": "Scanning sources…",
-      "count": "{{total}} cues total",
-      "cues": "{{count}} cues"
+    "ledger": {
+      "summary": "{{files}} files · {{cues}} cues",
+      "scanning": "Scanning…",
+      "files": "{{files}} files",
+      "cues": "{{cues}} cues",
+      "unparsable": "Unparsable",
+      "counting": "Counting cues"
     },
-    "filesLabel": "Subtitle files found",
     "continue": "Continue"
   },
   "options": {

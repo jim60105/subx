@@ -166,13 +166,13 @@ describe("reduced motion", () => {
   });
 });
 
-describe("the convert and translate source lists", () => {
+describe("the convert source list", () => {
   // `GroupedFileList` is built to be a pinned step's only scroller
-  // (`flex: 1 1 0`). These two steps keep natural height inside the scrolling
-  // `.wizard__content`, where that basis collapses the list to nothing.
+  // (`flex: 1 1 0`). The convert step keeps natural height inside the
+  // scrolling `.wizard__content`, where that basis collapses the list to
+  // nothing. (Translate lists its sources in its own ledger instead.)
   it.each([
     ["convert", "ConvertSourcesStep.css", ".convert-sources .file-groups"],
-    ["translate", "TranslateSourcesStep.css", ".translate-sources .file-groups"],
   ])("lets the %s list size to its content without a scroll fade", (feature, file, selector) => {
     const declarations = declarationsOf(read("features", feature, file), selector);
 

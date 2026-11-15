@@ -9,12 +9,14 @@
     "title": "選擇要翻譯的檔案",
     "description": "加入想要翻譯的字幕。資料夾、單一檔案與壓縮檔都可以。",
     "listLabel": "已選來源",
-    "scan": {
-      "scanning": "正在掃描來源…",
-      "count": "共 {{total}} 句字幕",
-      "cues": "{{count}} 句"
+    "ledger": {
+      "summary": "共 {{files}} 個檔案 · {{cues}} 句字幕",
+      "scanning": "掃描中……",
+      "files": "{{files}} 個檔案",
+      "cues": "{{cues}} 句",
+      "unparsable": "無法解析",
+      "counting": "正在計算句數"
     },
-    "filesLabel": "找到的字幕檔",
     "continue": "繼續"
   },
   "options": {

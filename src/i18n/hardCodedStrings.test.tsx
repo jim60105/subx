@@ -46,6 +46,8 @@ import {
   REVIEW_PLAN,
   SYNC_DEFAULTS,
   TRANSLATE_REPORT,
+  TRANSLATE_SCAN,
+  TRANSLATE_SOURCES,
 } from "../test/screenFixtures";
 
 /** The upper-cased language tags the review fixture puts on its ledger rows. */
@@ -377,13 +379,43 @@ const SCREENS = [
       ),
   },
   {
-    name: "TranslateSourcesStep",
+    name: "TranslateSourcesStep (empty)",
     render: () =>
       renderWithI18n(
         <TranslateSourcesStep
           sources={[]}
           scan={null}
           isScanning={false}
+          scanError={undefined}
+          onBrowseFiles={() => {}}
+          onBrowseFolder={() => {}}
+          onRemoveSources={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "TranslateSourcesStep (ledger)",
+    render: () =>
+      renderWithI18n(
+        <TranslateSourcesStep
+          sources={TRANSLATE_SOURCES}
+          scan={TRANSLATE_SCAN}
+          isScanning={false}
+          scanError={undefined}
+          onBrowseFiles={() => {}}
+          onBrowseFolder={() => {}}
+          onRemoveSources={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "TranslateSourcesStep (scanning)",
+    render: () =>
+      renderWithI18n(
+        <TranslateSourcesStep
+          sources={TRANSLATE_SOURCES}
+          scan={null}
+          isScanning={true}
           scanError={undefined}
           onBrowseFiles={() => {}}
           onBrowseFolder={() => {}}

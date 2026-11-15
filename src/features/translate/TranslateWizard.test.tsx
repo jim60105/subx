@@ -17,14 +17,35 @@ vi.mock("../../platform/filePickers");
 import * as pickers from "../../platform/filePickers";
 import * as api from "./translateWizardApi";
 
+/** A directly added file plus a folder source holding a parsable and an unparsable file. */
+const SCAN_SOURCES = ["/m/one.srt", "/m/extra/"];
 const SCAN: TranslateScanResult = {
   files: [
     { name: "one.srt", source: "/m/one.srt", cueCount: 2, unparsable: false },
-    { name: "two.srt", source: "/m/one.srt", cueCount: 3, unparsable: false },
-    { name: "broken.srt", source: "/m/one.srt", cueCount: 0, unparsable: true },
+    { name: "two.srt", source: "/m/extra/", cueCount: 3, unparsable: false },
+    { name: "broken.srt", source: "/m/extra/", cueCount: 0, unparsable: true },
   ],
   defaultTargetLanguage: "zh-TW",
 };
+
+/** What the backend would find for directly added subtitle files: each one itself, 2 cues. */
+function scanFor(paths: string[]): TranslateScanResult {
+  return {
+    files: paths
+      .filter((path) => /\.(srt|ass)$/.test(path))
+      .map((path) => ({ name: path.slice(path.lastIndexOf("/") + 1), source: path, cueCount: 2, unparsable: false })),
+    defaultTargetLanguage: "zh-TW",
+  };
+}
+
+function scanItem(name: string, source: string, cueCount: number, unparsable = false) {
+  return { name, source, cueCount, unparsable };
+}
+
+/** The ledger group whose header names `location`. */
+function ledgerGroup(location: string): HTMLElement {
+  return within(screen.getByRole("group", { name: "Selected sources" })).getByRole("group", { name: location });
+}
 
 const PLAN: TranslatePlanDto = {
   planId: "translate-1",
@@ -151,7 +172,7 @@ beforeEach(async () => {
   vi.mocked(pickers.subscribeToDroppedPaths).mockResolvedValue(() => {});
   vi.mocked(pickers.pickFiles).mockResolvedValue(["/m/one.srt"]);
   vi.mocked(pickers.pickFolder).mockResolvedValue(["/m"]);
-  vi.mocked(api.scanTranslateInputs).mockResolvedValue(SCAN);
+  vi.mocked(api.scanTranslateInputs).mockImplementation(async (paths) => scanFor(paths));
   vi.mocked(api.previewTranslation).mockResolvedValue(PLAN);
   vi.mocked(api.executeTranslation).mockResolvedValue(REPORT);
   vi.mocked(api.cancelTranslation).mockResolvedValue(undefined);
@@ -182,13 +203,15 @@ describe("the translate wizard", () => {
 
   it("lists every subtitle with its cue count in Step 1", async () => {
     const user = userEvent.setup();
+    vi.mocked(pickers.pickFiles).mockResolvedValue(SCAN_SOURCES);
+    vi.mocked(api.scanTranslateInputs).mockResolvedValue(SCAN);
     renderWizard();
 
     await user.click(screen.getByRole("button", { name: "Browse files" }));
 
-    expect(await screen.findByText("2 cues")).toBeInTheDocument();
-    expect(screen.getByText("The subtitle file could not be parsed.")).toBeInTheDocument();
-    expect(screen.getByText("5 cues total")).toBeInTheDocument();
+    expect(await screen.findByText("3 files · 5 cues")).toBeInTheDocument();
+    expect(within(ledgerGroup("/m/")).getByText("2 cues", { selector: ".translate-ledger__row *" })).toBeInTheDocument();
+    expect(within(ledgerGroup("/m/extra/")).getByText("Unparsable")).toBeInTheDocument();
   });
 
   /// The bug this split exists to prevent: Step 1 used to build the plan, and
@@ -208,7 +231,7 @@ describe("the translate wizard", () => {
 
     await user.click(screen.getByRole("button", { name: "Browse files" }));
 
-    expect(await screen.findByText("5 cues total")).toBeInTheDocument();
+    expect(await screen.findByText("3 files · 5 cues")).toBeInTheDocument();
     expect(api.previewTranslation).not.toHaveBeenCalled();
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled(),
@@ -530,6 +553,162 @@ describe("the translate sources step", () => {
     expect(within(list).getByText("3.srt")).toBeInTheDocument();
     await waitFor(() => expect(api.scanTranslateInputs).toHaveBeenCalledTimes(2));
     expect(api.scanTranslateInputs).toHaveBeenLastCalledWith(["/b/3.srt"]);
+  });
+});
+
+describe("the translate sources ledger", () => {
+  async function addSources(paths: string[], scan?: TranslateScanResult) {
+    const user = userEvent.setup();
+    vi.mocked(pickers.pickFiles).mockResolvedValue(paths);
+    if (scan !== undefined) vi.mocked(api.scanTranslateInputs).mockResolvedValue(scan);
+    renderWizard();
+    await user.click(screen.getByRole("button", { name: "Browse files" }));
+    await waitFor(() => expect(api.scanTranslateInputs).toHaveBeenCalled());
+    return user;
+  }
+
+  it("lists each found subtitle exactly once, in one list", async () => {
+    await addSources(["/m/a.srt", "/m/b.srt"]);
+
+    await screen.findByText("2 files · 4 cues");
+    expect(document.querySelectorAll(".translate-ledger")).toHaveLength(1);
+    expect(screen.queryByRole("list", { name: "Subtitle files found" })).not.toBeInTheDocument();
+    expect(screen.getAllByText("a.srt")).toHaveLength(1);
+    expect(screen.getAllByText("b.srt")).toHaveLength(1);
+  });
+
+  it("lists a file added directly and through its folder once, attributed to the direct file", async () => {
+    await addSources(["/m/a.srt", "/m/"], {
+      files: [scanItem("a.srt", "/m/a.srt", 5), scanItem("b.srt", "/m/", 6)],
+      defaultTargetLanguage: null,
+    });
+
+    expect(await screen.findByText("2 files · 11 cues")).toBeInTheDocument();
+    expect(screen.getAllByText("a.srt")).toHaveLength(1);
+    // Attributed to the direct file: it sits in the parent-folder group and
+    // can be removed on its own.
+    const direct = screen.getByRole("button", { name: "Remove a.srt" }).closest(".translate-ledger__group");
+    expect(direct).toHaveAttribute("aria-label", "/m/");
+    expect(screen.queryByRole("button", { name: "Remove b.srt" })).not.toBeInTheDocument();
+  });
+
+  it("removes a directly added file on its own and rescans exactly the other", async () => {
+    const user = await addSources(["/m/a.srt", "/m/b.srt"]);
+    await screen.findByText("2 files · 4 cues");
+
+    await user.click(screen.getByRole("button", { name: "Remove a.srt" }));
+
+    expect(screen.queryByText("a.srt")).not.toBeInTheDocument();
+    expect(screen.getByText("b.srt")).toBeInTheDocument();
+    await waitFor(() => expect(api.scanTranslateInputs).toHaveBeenCalledTimes(2));
+    expect(api.scanTranslateInputs).toHaveBeenLastCalledWith(["/m/b.srt"]);
+  });
+
+  it("offers a group remove action but no row remove action for folder and archive sources", async () => {
+    await addSources(["/show/", "/dl/subs.zip"], {
+      files: [scanItem("e1.srt", "/show/", 10), scanItem("x.ass", "/dl/subs.zip", 20)],
+      defaultTargetLanguage: null,
+    });
+    await screen.findByText("2 files · 30 cues");
+
+    expect(within(ledgerGroup("/show/")).getByRole("button", { name: "Remove all 1 items in /show/" })).toBeInTheDocument();
+    expect(within(ledgerGroup("/dl/subs.zip")).getByRole("button", { name: "Remove all 1 items in /dl/subs.zip" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove e1.srt" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove x.ass" })).not.toBeInTheDocument();
+  });
+
+  it("shows a folder of directly added files as one group with its count and subtotal", async () => {
+    await addSources(["/m/a.srt", "/m/b.srt"], {
+      files: [scanItem("a.srt", "/m/a.srt", 378), scanItem("b.srt", "/m/b.srt", 372)],
+      defaultTargetLanguage: null,
+    });
+    await screen.findByText("2 files · 750 cues");
+
+    const group = ledgerGroup("/m/");
+    const header = group.querySelector("header") as HTMLElement;
+    expect(within(header).getByText("2 files")).toBeInTheDocument();
+    expect(within(header).getByText("750 cues")).toBeInTheDocument();
+    expect(document.querySelectorAll(".translate-ledger__group")).toHaveLength(1);
+  });
+
+  it("shows an archive source as its own group with the archive glyph", async () => {
+    await addSources(["/m/a.srt", "/dl/subs.zip"], {
+      files: [
+        scanItem("a.srt", "/m/a.srt", 1),
+        scanItem("x.ass", "/dl/subs.zip", 2),
+        scanItem("y.ass", "/dl/subs.zip", 3),
+        scanItem("z.ass", "/dl/subs.zip", 4),
+      ],
+      defaultTargetLanguage: null,
+    });
+    await screen.findByText("4 files · 10 cues");
+
+    const archive = ledgerGroup("/dl/subs.zip");
+    expect(archive).toHaveAttribute("data-kind", "archive");
+    expect(within(archive).getAllByRole("listitem")).toHaveLength(3);
+    expect(within(archive.querySelector("header") as HTMLElement).getByText("3 files")).toBeInTheDocument();
+    expect(ledgerGroup("/m/")).toHaveAttribute("data-kind", "folder");
+  });
+
+  it("totals the files and excludes an unparsable file's cues, flagging it in text", async () => {
+    await addSources(["/m/"], {
+      files: [
+        scanItem("a.srt", "/m/", 400),
+        scanItem("b.srt", "/m/", 401),
+        scanItem("c.srt", "/m/", 375),
+        scanItem("d.srt", "/m/", 375),
+        scanItem("bad.srt", "/m/", 0, true),
+      ],
+      defaultTargetLanguage: null,
+    });
+
+    expect(await screen.findByText("5 files · 1,551 cues")).toBeInTheDocument();
+    const row = screen.getByText("bad.srt").closest("li") as HTMLElement;
+    expect(row).toHaveTextContent("Unparsable");
+  });
+
+  it("lists a directly added file with a placeholder count while the scan runs", async () => {
+    vi.mocked(api.scanTranslateInputs).mockReturnValue(new Promise(() => {}));
+    await addSources(["/m/a.srt"]);
+
+    const row = screen.getByText("a.srt").closest("li") as HTMLElement;
+    expect(row.querySelector(".translate-ledger__placeholder")).not.toBeNull();
+    expect(within(row).getByText("Counting cues")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Scanning…");
+    expect(screen.queryByText(/^[\d,]+ (files · [\d,]+ )?cues$/)).not.toBeInTheDocument();
+  });
+
+  it("shows only a scanning header for a folder source while the scan runs", async () => {
+    vi.mocked(api.scanTranslateInputs).mockReturnValue(new Promise(() => {}));
+    await addSources(["/show/"]);
+
+    const group = ledgerGroup("/show/");
+    expect(within(group).getByText("Scanning…")).toBeInTheDocument();
+    expect(within(group).queryAllByRole("listitem")).toHaveLength(0);
+  });
+
+  it("renders no remove action for a group that would remove nothing", async () => {
+    await addSources(["/m/"], {
+      files: [scanItem("a.srt", "/m/", 1), scanItem("stray.srt", "/elsewhere", 2)],
+      defaultTargetLanguage: null,
+    });
+    await screen.findByText("2 files · 3 cues");
+
+    expect(within(ledgerGroup("/elsewhere")).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(ledgerGroup("/m/")).getByRole("button", { name: "Remove all 1 items in /m/" })).toBeInTheDocument();
+  });
+
+  it("keeps the sources listed when the scan fails", async () => {
+    vi.mocked(api.scanTranslateInputs).mockRejectedValue({
+      code: "core.io",
+      message: "boom",
+      hintCode: null,
+    });
+    await addSources(["/m/a.srt", "/show/"]);
+
+    await waitFor(() => expect(document.querySelector(".error-notice")).not.toBeNull());
+    expect(screen.getByText("a.srt")).toBeInTheDocument();
+    expect(within(ledgerGroup("/show/")).getByRole("button", { name: "Remove all 1 items in /show/" })).toBeInTheDocument();
   });
 });
 

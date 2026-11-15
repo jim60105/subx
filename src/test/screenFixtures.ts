@@ -11,6 +11,7 @@ import type {
   MatchPlanDto,
   SyncDefaultsDto,
   TranslatePlanDto,
+  TranslateScanResult,
   TranslationReportDto,
   VersionInfoDto,
 } from "../types/ipc";
@@ -136,6 +137,23 @@ export const TRANSLATE_PLAN: TranslatePlanDto = {
  * empty report renders only its heading — too little for the "did this screen
  * actually render?" floor below to mean anything.
  */
+/**
+ * A translate scan across a directly added file, a folder and an archive, with
+ * one unparsable file, so every kind of ledger group and row reaches the DOM.
+ * Paths sit under `/fixtures/` and names are key-shaped, as above.
+ */
+export const TRANSLATE_SOURCES = ["/fixtures/a/ep01.srt", "/fixtures/b/", "/fixtures/c.zip"];
+
+export const TRANSLATE_SCAN: TranslateScanResult = {
+  files: [
+    { name: "ep01.srt", source: "/fixtures/a/ep01.srt", cueCount: 378, unparsable: false },
+    { name: "ep02.srt", source: "/fixtures/b/", cueCount: 372, unparsable: false },
+    { name: "ep02b.srt", source: "/fixtures/b/", cueCount: 0, unparsable: true },
+    { name: "ep03.ass", source: "/fixtures/c.zip", cueCount: 412, unparsable: false },
+  ],
+  defaultTargetLanguage: "zh-TW",
+};
+
 export const TRANSLATE_REPORT: TranslationReportDto = {
   outcomes: [
     {
