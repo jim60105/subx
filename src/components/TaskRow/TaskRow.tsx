@@ -18,8 +18,9 @@ interface TaskRowProps {
 
 /**
  * One home-list entry: the whole row is the button. The description sits
- * outside it, linked by `aria-describedby`, so the button's accessible name
- * stays the task name alone.
+ * outside it, linked by `aria-describedby`, so the button's accessible name is
+ * the task name (plus the "coming soon" badge when disabled), never the
+ * description or the specimen.
  */
 export function TaskRow({ ordinal, name, description, specimen, disabled = false, onSelect }: TaskRowProps) {
   const { t } = useTranslation("common");

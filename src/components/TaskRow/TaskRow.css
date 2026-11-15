@@ -1,7 +1,8 @@
 /* A full-width row on a hairline; the list draws the rule above the first. */
 .task-row {
   display: grid;
-  grid-template-columns: 2.75rem 9rem 1fr 1.25rem;
+  /* The last track fits the arrow, or the wider "coming soon" badge. */
+  grid-template-columns: 2.75rem 9rem 1fr minmax(1.25rem, auto);
   gap: var(--space-3);
   align-items: center;
   width: 100%;
@@ -21,6 +22,11 @@
 
 .task-row:disabled {
   cursor: not-allowed;
+}
+
+/* Dim the row but not the badge, which is the only explanation of why it is
+   inert and must keep its contrast. */
+.task-row:disabled > :not(.task-row__badge) {
   opacity: 0.55;
 }
 

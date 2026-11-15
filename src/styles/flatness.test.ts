@@ -12,7 +12,13 @@ import type { Declaration } from "../test/cssSources";
 
 /** Properties whose value may legitimately hold a gradient: a mask fades content, it paints nothing. */
 const MASK_PROPERTIES = new Set(["mask", "mask-image", "-webkit-mask", "-webkit-mask-image"]);
-const FORBIDDEN_PROPERTIES = new Set(["backdrop-filter", "-webkit-backdrop-filter", "box-shadow", "text-shadow"]);
+const FORBIDDEN_PROPERTIES = new Set([
+  "backdrop-filter",
+  "-webkit-backdrop-filter",
+  "box-shadow",
+  "-webkit-box-shadow",
+  "text-shadow",
+]);
 const ALLOWED_RADII = new Set(["var(--radius-control)", "0", "50%"]);
 
 export function depthViolations(declarations: Declaration[]): string[] {
@@ -22,7 +28,7 @@ export function depthViolations(declarations: Declaration[]): string[] {
     if (FORBIDDEN_PROPERTIES.has(property)) offenders.push(where);
     // A `transition` list naming one of them still keeps the effect alive.
     else if (/(^|[\s,])(-webkit-)?(backdrop-filter|box-shadow|text-shadow)\b/.test(value)) offenders.push(where);
-    else if (/(^|-)filter$/.test(property) && /blur\(/.test(value)) offenders.push(where);
+    else if (/(^|-)filter$/.test(property) && /(blur|drop-shadow)\(/.test(value)) offenders.push(where);
     else if (/color-mix\(/i.test(value)) offenders.push(where);
     else if (/gradient\(/i.test(value) && !MASK_PROPERTIES.has(property)) offenders.push(where);
   }
@@ -67,6 +73,8 @@ describe("flat surfaces", () => {
       .a { backdrop-filter: blur(4px); }
       .b { transition: color 1s, box-shadow 1s; }
       .c { filter: blur(2px); }
+      .c2 { filter: drop-shadow(0 1px 2px black); }
+      .c3 { -webkit-box-shadow: 0 0 1px black; }
       .d { color: color-mix(in srgb, red 10%, transparent); }
       @media (width > 1px) { .e { background: linear-gradient(red, blue); } }
       .f { mask-image: linear-gradient(black, transparent); filter: none; }
@@ -79,6 +87,8 @@ describe("flat surfaces", () => {
       ".a",
       ".b",
       ".c",
+      ".c2",
+      ".c3",
       ".d",
       ".e",
     ]);

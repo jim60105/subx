@@ -29,7 +29,8 @@ export function HomeScreen({ onOpenTask }: HomeScreenProps) {
     <div className="home">
       <h1 className="home__heading">{t("heading")}</h1>
 
-      <ol className="home__tasks">
+      {/* `role="list"` survives `list-style: none` in WebKit, which drops it. */}
+      <ol className="home__tasks" role="list">
         {TASKS.map((task, index) => (
           <li key={task.id} className="home__task">
             <TaskRow

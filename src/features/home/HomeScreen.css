@@ -34,7 +34,9 @@
   color: var(--ink);
 }
 
-.task-specimen__line {
+/* `:not(.serif)` keeps this from competing with the global serif rule on
+   specificity, whatever order the stylesheets load in. */
+.task-specimen__line:not(.serif) {
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   color: var(--ink);
