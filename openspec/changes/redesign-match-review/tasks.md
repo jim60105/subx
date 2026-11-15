@@ -8,7 +8,7 @@ Read `design.md` first; every "D<n>" below refers to it. Prerequisites: `editori
 
 ## 2. Ledger derivation
 
-- [ ] 2.1 Add `src/features/match/reviewLedger.ts` per D1 and `src/features/match/reviewLedger.test.ts` covering: order equals plan order for confidences 96/52/98; `low` is true at 79 and false at 80; `showVideoName` is true for a video's first pairing and false for its second; `filterLedger(rows, "needsReview")` on a plan whose only low pairing is a video's second pairing returns it with `showVideoName: true`; `filterLedger(rows, "unmatched")` returns only unmatched rows; `ledgerCounts` for a plan with 3 pairings (1 low), 1 unmatched video, 1 unmatched subtitle is `{ all: 3, needsReview: 1, unmatched: 2 }`; `meterSegments` of 0, 52, and 100 is 0, 3, and 5. Verify: `npx vitest run src/features/match/reviewLedger.test.ts` passes.
+- [x] 2.1 Add `src/features/match/reviewLedger.ts` per D1 and `src/features/match/reviewLedger.test.ts` covering: order equals plan order for confidences 96/52/98; `low` is true at 79 and false at 80; `showVideoName` is true for a video's first pairing and false for its second; `filterLedger(rows, "needsReview")` on a plan whose only low pairing is a video's second pairing returns it with `showVideoName: true`; `filterLedger(rows, "unmatched")` returns only unmatched rows; `ledgerCounts` for a plan with 3 pairings (1 low), 1 unmatched video, 1 unmatched subtitle is `{ all: 3, needsReview: 1, unmatched: 2 }`; `meterSegments` of 0, 52, and 100 is 0, 3, and 5. Verify: `npx vitest run src/features/match/reviewLedger.test.ts` passes.
 
 ## 3. WizardShell status note
 
