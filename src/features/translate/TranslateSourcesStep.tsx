@@ -53,10 +53,10 @@ export function TranslateSourcesStep({
         <p className="translate-sources__dropzone-label">{t("sources.dropzone")}</p>
         <p className="translate-sources__dropzone-hint">{t("sources.dropHint")}</p>
         <div className="translate-sources__buttons">
-          <button type="button" className="translate-sources__button" onClick={onBrowseFiles}>
+          <button type="button" className="button translate-sources__button" onClick={onBrowseFiles}>
             {t("sources.browseFiles")}
           </button>
-          <button type="button" className="translate-sources__button" onClick={onBrowseFolder}>
+          <button type="button" className="button translate-sources__button" onClick={onBrowseFolder}>
             {t("sources.browseFolder")}
           </button>
         </div>

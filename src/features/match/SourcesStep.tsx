@@ -57,10 +57,10 @@ export function SourcesStep({
         <p className="sources-step__dropzone-label">{t("sources.dropzone")}</p>
         <p className="sources-step__dropzone-hint">{t("sources.dropHint")}</p>
         <div className="sources-step__buttons">
-          <button type="button" className="sources-step__button" onClick={onBrowseFiles}>
+          <button type="button" className="button sources-step__button" onClick={onBrowseFiles}>
             {t("sources.browseFiles")}
           </button>
-          <button type="button" className="sources-step__button" onClick={onBrowseFolder}>
+          <button type="button" className="button sources-step__button" onClick={onBrowseFolder}>
             {t("sources.browseFolder")}
           </button>
         </div>

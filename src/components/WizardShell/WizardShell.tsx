@@ -90,7 +90,7 @@ export function WizardShell({
         {back && (
           <button
             type="button"
-            className="wizard__button"
+            className="button button--tertiary wizard__button"
             disabled={back.disabled}
             onClick={back.onClick}
           >
@@ -101,7 +101,7 @@ export function WizardShell({
           {secondary && (
             <button
               type="button"
-              className="wizard__button"
+              className="button button--tertiary wizard__button"
               disabled={secondary.disabled}
               onClick={secondary.onClick}
             >
@@ -111,7 +111,7 @@ export function WizardShell({
           {next && (
             <button
               type="button"
-              className="wizard__button wizard__button--primary"
+              className="button button--primary wizard__button wizard__button--primary"
               disabled={next.disabled}
               onClick={next.onClick}
             >

@@ -51,10 +51,10 @@ export function ConvertSourcesStep({
         <p className="convert-sources__dropzone-label">{t("sources.dropzone")}</p>
         <p className="convert-sources__dropzone-hint">{t("sources.dropHint")}</p>
         <div className="convert-sources__buttons">
-          <button type="button" className="convert-sources__button" onClick={onBrowseFiles}>
+          <button type="button" className="button convert-sources__button" onClick={onBrowseFiles}>
             {t("sources.browseFiles")}
           </button>
-          <button type="button" className="convert-sources__button" onClick={onBrowseFolder}>
+          <button type="button" className="button convert-sources__button" onClick={onBrowseFolder}>
             {t("sources.browseFolder")}
           </button>
         </div>

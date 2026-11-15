@@ -39,11 +39,11 @@ function Slot({ kind, path, onBrowse, onClear }: SlotProps) {
         </p>
       )}
       <div className="sync-inputs__slot-actions">
-        <button type="button" className="sync-inputs__button" onClick={onBrowse}>
+        <button type="button" className="button sync-inputs__button" onClick={onBrowse}>
           {t(`inputs.${kind}.browse`)}
         </button>
         {path !== null && (
-          <button type="button" className="sync-inputs__clear" onClick={onClear}>
+          <button type="button" className="button button--tertiary sync-inputs__clear" onClick={onClear}>
             {t(`inputs.${kind}.clear`)}
           </button>
         )}

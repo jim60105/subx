@@ -48,7 +48,7 @@ export function SettingsScreen() {
               {form.isDirty && <span className="settings__dirty">{t("unsavedChanges")}</span>}
               <button
                 type="button"
-                className="settings-button settings-button--primary"
+                className="button button--primary settings-button settings-button--primary"
                 disabled={!form.isDirty || form.isSaving}
                 onClick={() => void form.save()}
               >
