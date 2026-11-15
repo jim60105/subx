@@ -50,7 +50,7 @@ Note: CI runs on `push` only; `npm run verify` is the primary verification gate.
 
 ### Verification & OpenSpec Traceability
 - **85% Coverage Floor**: Required for both frontend (`vite.config.ts`) and backend (`cargo cov` in `src-tauri/`). Close gaps with tests, not exclusion additions.
-- **Spec Traceability**: Each `#### Scenario:` in `openspec/specs/**/spec.md` requires a matching `// @covers <capability>/<requirement-slug>#<scenario-slug>` comment directly above its test. Obtain exact IDs using `npm run spec:trace -- --report`.
+- **Spec Traceability**: Each `#### Scenario:` in `openspec/specs/**/spec.md` requires a matching `// @covers <capability>/<requirement-slug>#<scenario-slug>` comment directly above its test. Obtain exact IDs using `npm run spec:trace -- --report`. A delta requirement has no ID until it syncs into `openspec/specs/`, so tests for a change's ADDED/MODIFIED/RENAMED scenarios stay unannotated during implementation, and archiving adds their annotations; never attach a stand-in ID.
 - **IPC Bindings**: `src/types/bindings.ts` is auto-generated from Rust `specta::Type` definitions. Never hand-edit; run `npm run bindings:generate`.
 - **Frontend Verification**: Always use the `agent-browser` skill to verify frontend behavior and UI interactions.
 
@@ -58,4 +58,4 @@ Note: CI runs on `push` only; `npm run verify` is the primary verification gate.
 
 - **Model Judgment & Style**: Write code matching surrounding idiom, comment density, and naming. Rely on context and model judgment rather than rigid micro-formatting rules.
 - **Language Policy**: Write all code comments, docstrings, documentation, and commit messages in English using Conventional Commits. Comments should explain *why*, referencing relevant requirements or specs.
-- **OpenSpec Archive Workflow**: Active spec changes live in `openspec/changes/<change-id>/`. Sync delta specs into `openspec/specs/` during implementation, then archive using `openspec archive --skip-specs`.
+- **OpenSpec Archive Workflow**: Active spec changes live in `openspec/changes/<change-id>/`. Delta specs sync into `openspec/specs/` when the change is archived (`openspec archive <change-id> --yes`), not during implementation; `--skip-specs` is not used. Post-sync traceability repairs belong to the archive step, not to implementation.

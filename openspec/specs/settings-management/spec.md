@@ -98,7 +98,7 @@ The Settings screen SHALL include language (English / Traditional Chinese) and t
 
 ### Requirement: A failed configuration load does not block the settings form
 
-When the initial configuration read fails, the Settings screen SHALL still render the editable AI settings form, pre-filled with the values from the crate's tolerant configuration read (the on-disk values, or the crate's built-in default values when no configuration file exists), and SHALL present the read failure as a non-blocking error notice rather than replacing the form. When every per-field write succeeds, the screen SHALL NOT report a save failure if the post-save configuration re-read fails, and SHALL clear any previously shown save error.
+When the initial configuration read fails, the Settings screen SHALL still render the editable AI form, pre-filled from the crate's tolerant read (on-disk values, or built-in defaults when no file exists), and SHALL present the failure as a non-blocking notice rather than replacing the form. When every per-field write succeeds, a failing post-save re-read SHALL NOT be reported as a save failure, and any previously shown save error SHALL be cleared.
 
 #### Scenario: Form stays editable when the initial read fails
 

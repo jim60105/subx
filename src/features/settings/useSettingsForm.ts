@@ -249,7 +249,8 @@ export function useSettingsForm(): SettingsForm {
       if (allWritesSucceeded) {
         // The strict re-read failed, but every write landed on disk: refresh
         // the screen from the tolerant read so the saved fields stop showing
-        // as dirty and the key field resets to its masked placeholder.
+        // as dirty and the key field resets to empty, since a stored key is
+        // never readable back into the draft.
         getConfigTolerant().then(
           (tolerant) => {
             if (seq !== loadSeqRef.current) return;

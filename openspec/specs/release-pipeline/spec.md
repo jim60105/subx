@@ -27,7 +27,7 @@ The repository SHALL define a release workflow that runs when a tag matching `v*
 
 ### Requirement: The released version is declared once
 
-The version being released SHALL have exactly one authoritative declaration, in `package.json`. The Tauri bundle configuration SHALL read that declaration rather than restating it. Every other place the version necessarily appears — the Rust crate manifest, which supplies the `app_version` the application reports over IPC, and the lock file — SHALL be held to the same value by an automated check that runs in the ordinary test suite. The release workflow SHALL verify that the tag being released names that same version, and SHALL fail before building anything if it does not.
+The released version SHALL have exactly one authoritative declaration, in `package.json`, which the Tauri bundle configuration SHALL read rather than restate. Every other necessary occurrence — the Rust crate manifest supplying the `app_version` reported over IPC, and the lock file — SHALL be held to that value by an automated check in the ordinary test suite. The release workflow SHALL verify that the tag names that same version, and SHALL fail before building anything if it does not.
 
 #### Scenario: Disagreeing version declarations fail the test suite
 
@@ -70,7 +70,7 @@ The workflow SHALL build SubX for macOS on arm64 and x86_64, Linux on x86_64 and
 
 ### Requirement: A release is assembled privately and published by a person
 
-The workflow SHALL create the release as a draft in a single preparation job that runs before any platform build, and every build job SHALL upload its bundles into that already-created release rather than creating one of its own. The release SHALL remain a draft when the workflow finishes: making it public SHALL be a deliberate human act, taken after the verification pipeline has reported on the same commit. Re-running the workflow for a tag that already has a release SHALL reuse that release rather than create a second one.
+The workflow SHALL create the release as a draft in a single preparation job that runs before any platform build, and every build job SHALL upload its bundles into that release rather than create one of its own. The release SHALL remain a draft when the workflow finishes: making it public SHALL be a deliberate human act taken after the verification pipeline has reported on the same commit. A re-run for a tag that already has a release SHALL reuse it.
 
 #### Scenario: The draft is created once, before any build
 
@@ -127,7 +127,7 @@ Each build job SHALL attach a build-provenance attestation to every bundle it pu
 
 ### Requirement: Distribution is unsigned, and every release says so
 
-SubX SHALL be distributed without Apple or Windows code-signing identities, and the release workflow SHALL therefore require no secret beyond the automatically provided GitHub token. Because that choice is visible to users as operating-system warnings, every release body SHALL carry the resulting installation caveats: the Linux system-library floor, the macOS quarantine removal step, the Windows SmartScreen path, and the provenance verification command that stands in for a signature. No update endpoint SHALL be published, so that adopting in-app updates remains an explicit future decision rather than an accident of the release format.
+SubX SHALL be distributed without Apple or Windows code-signing identities, so the workflow SHALL require no secret beyond the automatic GitHub token. Because that choice is visible to users as operating-system warnings, every release body SHALL carry the installation caveats: the Linux system-library floor, the macOS quarantine removal step, the Windows SmartScreen path, and the provenance verification command standing in for a signature. No update endpoint SHALL be published.
 
 #### Scenario: The workflow needs no signing secrets
 
@@ -160,7 +160,7 @@ The bundle configuration SHALL declare the identifying metadata that the Linux a
 
 ### Requirement: Releases include a Linux Flatpak bundle
 
-The release workflow SHALL additionally build a Linux Flatpak bundle and attach it to the draft release as a download file. The bundle SHALL be built inside a Flatpak sandbox on the `org.gnome.Platform//50` runtime (which ships the WebKitGTK 4.1 that Tauri 2 requires — no separate WebKit extension is needed), and the generated bundle SHALL name the Flathub repository as the source for that runtime, so end users can install it with `flatpak install ./subx.flatpak` plus the Flathub remote. A pinned Rust toolchain is installed into the build sandbox for the compile step. The bundle SHALL be published to the GitHub release rather than to Flathub. The bundle SHALL carry a build-provenance attestation like every other published file.
+The workflow SHALL build a Linux Flatpak bundle in a Flatpak sandbox on the `org.gnome.Platform//50` runtime, which ships the WebKitGTK 4.1 Tauri 2 requires, with a pinned Rust toolchain installed for the compile, and SHALL attach the resulting `subx.flatpak` to the draft release as a download file, carrying a build-provenance attestation like every other published file. The bundle SHALL name Flathub as that runtime's source and SHALL be published to the GitHub release rather than to Flathub.
 
 #### Scenario: A Flatpak bundle is published with every release
 

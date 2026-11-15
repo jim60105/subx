@@ -8,9 +8,7 @@ The desktop application frame: the Tauri 2 window, the home task-entry hub, clie
 
 ### Requirement: Navigation between home and feature screens
 
-The shell SHALL provide client-side navigation from the home hub into a feature screen and back, without reloading the WebView.
-
-**The header SHALL show a breadcrumb: the application name followed, on every screen other than the home hub, by the current screen's localized title as plain text. The application name SHALL be the shell's home affordance. On every screen other than the home hub it SHALL be a single interactive control that returns to the home hub — from any wizard step, whatever its progress, and from Settings — and SHALL carry a localized accessible name, taken from the `common` namespace, that **extends** its visible brand text rather than replacing it. On the home hub itself the brand SHALL render as non-interactive text with no button role.**
+The shell SHALL navigate client-side from the home hub into a feature screen and back without reloading the WebView. The header SHALL show a breadcrumb: the application name, then the current screen's localized title as plain text outside the hub. The name SHALL be the home affordance: on any other screen a single control returning to the hub, carrying a localized `common`-namespace accessible name that extends its visible text; on the hub, non-interactive text with no button role.
 
 #### Scenario: Enter and leave a feature
 
@@ -39,13 +37,7 @@ The shell SHALL provide client-side navigation from the home hub into a feature 
 
 ### Requirement: Reusable WizardShell layout
 
-The frontend SHALL provide a reusable `WizardShell` component that renders a numbered step indicator, a content slot for the active step, and **a persistent action bar** whose controls' labels and enabled state the consuming feature owns.
-
-**The action bar SHALL be rendered on every step — including steps that declare no action at all — so that its presence and height never change from step to step. It SHALL live outside the scrollable step-content panel, so scrolling the step body never moves it.**
-
-**The bar SHALL expose exactly three fixed-position slots: `back` at the inline start, and `secondary` followed by `next` in the inline-end cluster, with `next` rendered last — the inline-end-most, bottom-right control — and styled as the primary action. A slot left undeclared SHALL render nothing while leaving the remaining slots' positions unchanged.**
-
-**Consuming features SHALL route every forward action through `next` — advancing a step, starting a batch, applying a result, retrying a failure, and finishing a run — and SHALL NOT render a forward action inside the content slot. Actions that are not forward motion (cancelling a running batch, escaping to Settings) belong in `secondary`.**
+`WizardShell` SHALL be a reusable frontend component rendering a numbered step indicator, a content slot, and a persistent action bar with feature-owned labels and states. It SHALL render on every step outside the scrollable content panel, with three fixed slots: `back` at the inline start, then `secondary` and `next` in the inline-end cluster, `next` last and primary; an undeclared slot SHALL leave the others' positions unchanged. Forward actions SHALL use `next`, non-forward `secondary`.
 
 #### Scenario: Step indicator reflects progress
 
@@ -74,7 +66,7 @@ The frontend SHALL provide a reusable `WizardShell` component that renders a num
 
 ### Requirement: Thin Tauri command-layer structure
 
-The Rust backend SHALL be organized so Tauri commands contain no business logic: `commands/` modules translate DTOs, call `subx-core` crate APIs, and emit events; DTOs live in `dto.rs`; shared state in `state.rs`; error mapping in `error.rs`. All commands SHALL return `Result<T, ErrorDto>` where `ErrorDto` carries a stable machine-readable `code`, an English `message`, and an optional `hint_code`. The engine crate the backend depends on SHALL be `subx-core`, consumed from the published registry version; the `subx-cli` crate SHALL NOT appear in the backend's resolved dependency graph.
+The Rust backend SHALL keep business logic out of Tauri commands: `commands/` modules translate DTOs, call `subx-core` crate APIs, and emit events; DTOs live in `dto.rs`, shared state in `state.rs`, error mapping in `error.rs`. Every command SHALL return `Result<T, ErrorDto>`, whose `ErrorDto` carries a stable `code`, an English `message`, and an optional `hint_code`. The engine crate SHALL be `subx-core` from the published registry, with `subx-cli` absent from the resolved graph.
 
 #### Scenario: Command failure yields a structured error
 
@@ -97,7 +89,7 @@ The desktop application SHALL start and render its window when running under a W
 
 ### Requirement: AppHeader floating chrome and control layout
 
-The application header (`AppHeader`) SHALL render header controls (**the breadcrumb whose application name returns to the home hub**, language picker, theme picker, settings control, **and window control buttons**) with a unified control height of 36px. **The header SHALL NOT render a separate back button; the breadcrumb's application name is the only home affordance.** The header SHALL establish a primary stacking context (`z-index: 100`) and popover menus SHALL use `z-index: 1000` to ensure floating dropdown menus render above page main content and step indicators without clipping. The header SHALL NOT declare `backdrop-filter`, on itself or on any control inside it. **The header SHALL carry the `data-tauri-drag-region` attribute to enable window dragging on its empty space.**
+`AppHeader` SHALL render its controls — the breadcrumb whose name returns to the home hub, language picker, theme picker, settings control, and window buttons — at a uniform 36px height, and SHALL NOT render a separate back button. It SHALL NOT declare `backdrop-filter` on itself or any control inside it, or let the brand start a window drag. It SHALL establish a primary stacking context (`z-index: 100`) with popovers at `z-index: 1000`, and carry `data-tauri-drag-region` on empty space.
 
 #### Scenario: Preference dropdown popover floats above page content
 

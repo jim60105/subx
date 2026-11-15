@@ -37,7 +37,7 @@ Step 1 SHALL accept folders, video/subtitle files, and archives (expanded by the
 
 ### Requirement: Cancellable AI analysis with staged progress
 
-Step 2 SHALL run the AI analysis without blocking the UI, presenting staged progress (scanning → analyzing → finalizing) driven by backend progress messages. The analysis MAY resolve from the crate's persistent match cache without a live AI request; the staged display SHALL remain accurate in that case (no claim of an AI request is made). The user SHALL be able to cancel; cancellation discards the pending analysis and returns to Step 1 without any filesystem changes. Only one analysis SHALL run at a time.
+Step 2 SHALL run the AI analysis without blocking the UI, presenting staged progress (scanning → analyzing → finalizing) driven by backend progress messages. When the crate's persistent match cache resolves the analysis without a live AI request, the staged display SHALL still describe the stages without claiming one. Cancellation SHALL discard the pending analysis and return to Step 1 without filesystem changes, and only one analysis SHALL run at a time.
 
 #### Scenario: Stages are reflected
 
@@ -114,7 +114,7 @@ All proposed operations SHALL start selected. The user SHALL be able to deselect
 
 ### Requirement: Language quick-select on review
 
-The match review step SHALL show a quick-select bar above the operation list whenever the plan has at least one operation, including when all its operations fall into a single group. The bar has one control per subtitle language present in the plan, derived from a per-operation language code the backend attaches by detecting the language from the subtitle file's path (at most one code per operation); operations whose language cannot be detected form a single `Other` group. Each control shows its group's localized display name and the number of operations in the group, indicates a checked state while every operation of its group is selected and an indeterminate state while only some are, and is labelled for assistive technology by an explicit accessible name rather than by concatenating visible fragments. Activating a control selects every operation of its group when any of them is currently unselected (including the fully-cleared case, which reads as unchecked), and clears every operation of its group when all of them are currently selected. The controls SHALL stay in sync with the per-operation checkboxes in both directions, SHALL only change checkbox selection (never hide, reorder, or filter the listed operations), and SHALL leave the rule that the execute action is disabled while zero operations are selected unchanged.
+The review step SHALL show a quick-select bar above the operation list whenever the plan is non-empty: one control per subtitle language present, plus one `Other` group for undetected languages. Each control SHALL show the localized group name and its count, checked when all its operations are selected, indeterminate when some are, and an explicit accessible name. Activating it SHALL select its operations when any is unselected, clear them otherwise, and stay in sync with the row checkboxes.
 
 #### Scenario: Quick-select bar reflects the languages actually present
 

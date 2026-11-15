@@ -22,7 +22,7 @@ The Convert wizard SHALL accept multiple sources — folders, individual subtitl
 
 ### Requirement: Conversion options with exact output-path preview
 
-The wizard SHALL let the user choose the target format (srt, ass, vtt, sub), defaulting to the shared configuration's `formats.default_output`, and whether to keep the original files, defaulting to keep. Before execution it SHALL preview the exact resolved output path for every file: next to the input by default, and next to the originating archive for archive-extracted inputs. The preview SHALL flag files whose output already exists as overwrites, and SHALL exclude all but the first of any items resolving to the same output path. No output-encoding option SHALL be offered; input encoding is auto-detected and output is always UTF-8.
+The wizard SHALL let the user choose the target format (`srt`, `ass`, `vtt`, `sub`), defaulting to the shared config's `formats.default_output`, and whether to keep the originals, defaulting to keep. Before execution it SHALL preview each exact resolved output path — beside the input, or beside the originating archive for archive-extracted inputs — flag existing outputs as overwrites, and exclude all but the first item resolving to the same path. No output-encoding option SHALL be offered.
 
 #### Scenario: Target format defaults from configuration
 
@@ -65,7 +65,7 @@ Every previewed conversion SHALL start selected (except auto-excluded same-forma
 
 ### Requirement: Batch execution with progress, cancellation, and per-item report
 
-Execution SHALL convert the selected items one by one, reporting per-file progress (current index, total, current file name) over an IPC channel. A per-item failure SHALL NOT abort the batch; it is collected and reported. Cancellation SHALL stop before the next file begins, leaving already-written outputs in place, and the final report SHALL list every item's outcome. When keep-original is off, the input file SHALL be removed only after its conversion succeeded. An output file SHALL only ever contain a complete, validated conversion result: a failed conversion never replaces existing content at its output path.
+Execution SHALL convert the selected items one by one, reporting per-file progress (current index, total, current file name). A per-item failure SHALL NOT abort the batch; it is collected and reported. Cancellation SHALL stop before the next file begins, leaving written outputs in place. The final report SHALL list every item's outcome. With keep-original off, an input SHALL be removed only after its conversion succeeded, and a failed conversion SHALL never replace content at its output path.
 
 #### Scenario: Per-file progress is reported
 

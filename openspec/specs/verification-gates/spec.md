@@ -93,7 +93,7 @@ The checker SHALL be able to emit a human-readable matrix listing every requirem
 
 ### Requirement: Continuous integration runs every gate
 
-The repository SHALL define a CI pipeline that runs the frontend tests with coverage, the backend tests with coverage, the traceability check, and the IPC bindings drift check on every push to the repository. The pipeline SHALL configure Node.js steps using the Current LTS release line (`lts/*`) so that verification gates execute on active supported LTS runtimes. No gate SHALL be advisory: a failing gate SHALL fail the pipeline. Furthermore, continuous integration SHALL publish coverage reports and test results from both the frontend and backend jobs to Codecov using distinct component flags (`frontend` and `backend`).
+The repository SHALL define a CI pipeline that runs the frontend coverage tests, the backend coverage tests, the traceability check, and the IPC bindings drift check on every push, with Node.js steps pinned to the Current LTS line (`lts/*`). No gate SHALL be advisory: a failing gate SHALL fail the pipeline. Continuous integration SHALL publish coverage reports and test results from both the frontend and backend jobs to Codecov under distinct component flags (`frontend` and `backend`).
 
 #### Scenario: All gates run on every push
 
@@ -122,7 +122,7 @@ The repository SHALL define a CI pipeline that runs the frontend tests with cove
 
 ### Requirement: Path inputs to the checker are resolved and validated
 
-The spec coverage checker SHALL verify that the `--config` file is an existing regular file before reading it, and SHALL reject a `--config` argument with no value. For each configured test root and the configured spec directory, the checker SHALL resolve and canonicalize the path against the repository root (the directory containing the config file's parent), and SHALL reject with an explicit error naming the offending path any input — including symlinks — that resolves outside the repository root. Containment SHALL be enforced lexically for every resolved path, whether or not it exists, and a second, symlink-safe check SHALL apply to canonicalized existing paths.
+The checker SHALL verify that the `--config` file is an existing regular file before reading it, and SHALL reject a `--config` argument with no value. Each configured test root and the spec directory SHALL be resolved and canonicalized against the repository root, and any input — including a symlink — resolving outside it SHALL be rejected with an error naming it. Containment SHALL be enforced lexically for every resolved path, existing or not, plus a symlink-safe check for canonicalized ones.
 
 #### Scenario: A non-file or missing config path is rejected
 

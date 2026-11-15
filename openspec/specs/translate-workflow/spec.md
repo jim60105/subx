@@ -51,7 +51,7 @@ The options step SHALL require a target language, prefilled from the shared conf
 
 ### Requirement: Output resolution with conflict handling
 
-The plan SHALL resolve each file's output before execution: by default `<stem>.<target-language>.<ext>` beside the input — beside the originating archive for archive-extracted files — or, in replace mode, the input path itself. Replace mode SHALL be refused for archive-extracted subtitles and SHALL create a backup copy before overwriting when the shared configuration's `general.backup_enabled` is on. In suffix mode, an item whose output already exists SHALL be flagged and excluded from execution unless the user enables overwriting. When two planned items resolve to the same output path, all but the first SHALL be flagged as colliding and excluded from execution.
+The plan SHALL resolve each output before execution: by default `<stem>.<target-language>.<ext>` beside the input — beside the originating archive for archive-extracted files — and, in replace mode, the input path itself. Replace mode SHALL be refused for archive-extracted subtitles and SHALL back up the input first when `general.backup_enabled` is on. In suffix mode an existing output SHALL be excluded unless overwriting is enabled, and colliding items SHALL all but the first be excluded.
 
 #### Scenario: Default suffix naming
 

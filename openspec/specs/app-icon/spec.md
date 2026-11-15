@@ -8,13 +8,11 @@ The application's brand mark: an SVG source of truth under `assets/brand/`, the 
 
 ### Requirement: The application icon is generated from a committed vector source
 
-The repository SHALL hold the application's brand mark as hand-authored SVG under
-`assets/brand/`, and every file under `src-tauri/icons/` SHALL be output generated
-from it. The source SHALL be square and fully self-contained: no embedded or
-referenced raster, no external font, no external URL, no `<text>` element, and no
-filter, blur, or drop-shadow primitive — because the mark is rasterised through
-`resvg` and downscaled by three different platform toolchains, and anything that
-reaches outside the file or depends on filter fidelity does not survive that trip.
+The repository SHALL hold the brand mark as hand-authored SVG under
+`assets/brand/`, and every file under `src-tauri/icons/` SHALL be generated from
+it. The source SHALL be square and self-contained: no raster, external font,
+external URL, `<text>`, filter, blur, or drop shadow, since the mark is rasterised
+through `resvg` and downscaled by three platform toolchains.
 
 #### Scenario: The source is a square, self-contained SVG
 
@@ -31,15 +29,12 @@ reaches outside the file or depends on filter fidelity does not survive that tri
 
 ### Requirement: The mark's construction is held to its specification
 
-The generated `icon.ico` carries a 16×16 frame, which Windows renders in the
-taskbar and the Alt-Tab switcher, so 16px is a shipping surface rather than an
-edge case. The mark's stroke weight SHALL therefore be at least 12.5% of the
-canvas, so that no shipped frame renders the mark thinner than 2 device pixels.
-
-The mark's defining feature is that one band passes over the other through a mask
-knockout. That weave SHALL be wired to exactly one of the two bands — applied to
-both, or to neither, the mark silently becomes a plain overlapping X while every
-other check still passes.
+The mark's stroke weight SHALL be at least 12.5% of the canvas, since the
+generated `icon.ico` carries a 16×16 frame shipped to the Windows taskbar and the
+Alt-Tab switcher, and no shipped frame may render the mark thinner than 2 device
+pixels. The weave SHALL be a mask knockout wired to exactly one of the two bands:
+wired to both or to neither, the mark silently degrades to a plain overlapping X
+while every other check still passes.
 
 #### Scenario: Stroke weight cannot silently drop below the floor
 
@@ -85,14 +80,10 @@ master.
 ### Requirement: Every declared icon slot is filled and no framework artwork remains
 
 Every path listed in `bundle.icon` in `src-tauri/tauri.conf.json` SHALL exist, and
-every generated PNG SHALL carry the pixel dimensions expected of it. Note that
-those dimensions are not always a literal reading of the filename: `128x128@2x.png`
-is 256×256, because `@2x` is a scale factor rather than a size, and `icon.png`
-(512×512) and `StoreLogo.png` (50×50) encode no size in their names at all. The
-expected size of every generated raster SHALL therefore be declared explicitly
-rather than parsed out of its filename. No committed icon file SHALL still be the
-stock Tauri artwork the project was scaffolded with. Output for platforms the
-project does not ship — Android and iOS — SHALL NOT be committed.
+every generated PNG SHALL carry its declared pixel dimensions, declared explicitly
+rather than parsed from the filename: `128x128@2x.png` is 256×256, while
+`icon.png` and `StoreLogo.png` encode no size at all. No committed icon SHALL be
+the stock Tauri artwork, and no Android or iOS output SHALL be committed.
 
 #### Scenario: The bundle icon list resolves
 
