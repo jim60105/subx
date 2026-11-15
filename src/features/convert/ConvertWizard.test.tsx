@@ -1,11 +1,13 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { i18n, setupI18n } from "../../test/renderWithI18n";
 import type { ConversionReportDto, ConvertPlanDto } from "../../types/ipc";
+import { ConvertRunStep } from "./ConvertRunStep";
 import { ConvertWizard } from "./ConvertWizard";
+import { useConvertWizard } from "./useConvertWizard";
 
 vi.mock("./convertWizardApi");
 vi.mock("../../platform/filePickers");
@@ -105,6 +107,16 @@ async function reachOptions(user: ReturnType<typeof userEvent.setup>) {
   const next = await screen.findByRole("button", { name: "Continue" });
   await waitFor(() => expect(next).toBeEnabled());
   await user.click(next);
+}
+
+/** The diff line kinds and texts of the plan row whose checkbox is named for `name`. */
+function rowLines(name: string): Array<[string | null, string]> {
+  const row = screen.getByRole("checkbox", { name: `Include ${name}` }).closest("li");
+  if (row === null) throw new Error(`no plan row for ${name}`);
+  return [...row.querySelectorAll(".diff-line")].map((line) => [
+    line.getAttribute("data-kind"),
+    line.querySelector(".diff-line__text")?.textContent ?? "",
+  ]);
 }
 
 /** Steps 1 and 2, landing on the run step with everything runnable selected. */
@@ -370,5 +382,154 @@ describe("the convert wizard", () => {
     // already have replaced.
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await waitFor(() => expect(api.previewConversion).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe("the convert sources step", () => {
+  it("shows the kinds it accepts as glyphs and keeps the sentence for assistive technology", () => {
+    renderWizard();
+
+    const kinds = [...document.querySelectorAll(".drop-zone [data-kind]")].map((item) =>
+      item.getAttribute("data-kind"),
+    );
+    expect(kinds).toEqual(["folder", "subtitle", "archive"]);
+    expect(document.querySelector('.drop-zone [data-kind="video"]')).toBeNull();
+    const sentence = screen.getByText(
+      "Add the subtitles you want in another format. Folders, individual files, and archives all work.",
+    );
+    expect(sentence.closest(".visually-hidden")).not.toBeNull();
+  });
+
+  it("removes a whole folder group and rescans with what is left", async () => {
+    const user = userEvent.setup();
+    vi.mocked(pickers.pickFiles).mockResolvedValue(["/a/1.srt", "/a/2.srt", "/b/3.srt"]);
+    renderWizard();
+    await user.click(screen.getByRole("button", { name: "Browse files" }));
+    await waitFor(() => expect(api.scanConvertInputs).toHaveBeenCalledTimes(1));
+
+    await user.click(screen.getByRole("button", { name: "Remove all 2 items in /a/" }));
+
+    const list = screen.getByRole("group", { name: "Selected sources" });
+    expect(within(list).queryByText("1.srt")).not.toBeInTheDocument();
+    expect(within(list).queryByText("2.srt")).not.toBeInTheDocument();
+    expect(within(list).getByText("3.srt")).toBeInTheDocument();
+    await waitFor(() => expect(api.scanConvertInputs).toHaveBeenCalledTimes(2));
+    expect(api.scanConvertInputs).toHaveBeenLastCalledWith(["/b/3.srt"]);
+  });
+});
+
+describe("useConvertWizard source removal", () => {
+  it("does not rescan when none of the given sources is listed", async () => {
+    const { result } = renderHook(() => useConvertWizard());
+    await act(async () => result.current.addSources(["/a/1.srt"]));
+
+    await act(async () => result.current.removeSources(["/elsewhere.srt"]));
+
+    expect(result.current.sources).toEqual(["/a/1.srt"]);
+    expect(api.scanConvertInputs).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("planned conversions as file consequences", () => {
+  it("keeps the source line and creates the output while keep-original is on", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachOptions(user);
+    await screen.findByRole("list", { name: "Planned conversions" });
+
+    expect(rowLines("one.srt")).toEqual([
+      ["kept", "one.srt"],
+      ["created", "/m/one.vtt"],
+    ]);
+  });
+
+  it("marks every runnable source removed once keep-original is off", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachOptions(user);
+    await screen.findByRole("list", { name: "Planned conversions" });
+    vi.mocked(api.previewConversion).mockResolvedValue({ ...PLAN, keepOriginal: false });
+
+    await user.click(screen.getByRole("checkbox", { name: /Keep the original files/ }));
+
+    await waitFor(() =>
+      expect(rowLines("one.srt")).toEqual([
+        ["removed", "one.srt"],
+        ["created", "/m/one.vtt"],
+      ]),
+    );
+    expect(rowLines("two.srt")).toEqual([
+      ["removed", "two.srt"],
+      ["created", "/m/two.vtt"],
+    ]);
+  });
+
+  it("shows an excluded item as its kept source and its reason, with nothing created", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachOptions(user);
+    await screen.findByRole("list", { name: "Planned conversions" });
+
+    expect(rowLines("already.vtt")).toEqual([["kept", "already.vtt"]]);
+    const row = screen.getByRole("checkbox", { name: "Include already.vtt" }).closest("li");
+    expect(row).toHaveTextContent("Already in the target format.");
+    expect(row?.querySelector('[data-kind="created"]')).toBeNull();
+  });
+
+  it("lists exactly the selected conversions on the run step before it starts", () => {
+    const plan: ConvertPlanDto = {
+      ...PLAN,
+      keepOriginal: false,
+      items: PLAN.items.map((item) => ({ ...item, skipReason: null })),
+    };
+    render(
+      <I18nextProvider i18n={i18n}>
+        <ConvertRunStep
+          targetFormat="vtt"
+          selectedCount={2}
+          keepOriginal={false}
+          plan={plan}
+          selectedIds={new Set([0, 2])}
+          isConverting={false}
+          progress={null}
+          report={null}
+          convertError={undefined}
+        />
+      </I18nextProvider>,
+    );
+
+    const list = screen.getByRole("list", { name: "Planned conversions" });
+    const rows = [...list.querySelectorAll(":scope > li")];
+    expect(rows).toHaveLength(2);
+    const lines = rows.map((row) =>
+      [...row.querySelectorAll(".diff-line")].map((line) => [
+        line.getAttribute("data-kind"),
+        line.querySelector(".diff-line__text")?.textContent,
+      ]),
+    );
+    expect(lines).toEqual([
+      [
+        ["removed", "one.srt"],
+        ["created", "/m/one.vtt"],
+      ],
+      [
+        ["removed", "already.vtt"],
+        ["created", "/m/already.vtt"],
+      ],
+    ]);
+  });
+
+  it("drops the planned list once the batch is running", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.executeConversion).mockReturnValue(new Promise(() => {}));
+    renderWizard();
+    await reachRun(user);
+    expect(screen.getByRole("list", { name: "Planned conversions" })).toBeInTheDocument();
+
+    await user.click(within(actionBar()).getByRole("button", { name: "Convert now" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("list", { name: "Planned conversions" })).not.toBeInTheDocument(),
+    );
   });
 });
