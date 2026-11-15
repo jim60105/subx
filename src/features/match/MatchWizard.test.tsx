@@ -187,7 +187,7 @@ describe("the match wizard", () => {
     await reachAnalysis(user);
 
     act(() => emit?.({ stage: "analyzing" }));
-    const analyzing = screen.getByText("Matching with AI");
+    const analyzing = screen.getByText("Analyze");
     expect(analyzing.closest("li")).toHaveAttribute("data-state", "active");
 
     act(() => pending.resolve(PLAN));

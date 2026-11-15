@@ -217,6 +217,7 @@ const SCREENS = [
         <AnalysisStep
           stage="analyzing"
           error={undefined}
+          scan={{ videoCount: 1, subtitleCount: 1 }}
         />,
       ),
   },

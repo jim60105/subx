@@ -30,11 +30,10 @@
   },
   "analysis": {
     "title": "正在分析你的檔案",
-    "description": "AI 檢視字幕時可能需要一點時間。",
     "stages": {
-      "scanning": "掃描來源",
-      "analyzing": "以 AI 配對",
-      "finalizing": "整理結果"
+      "scanning": "掃描",
+      "analyzing": "分析",
+      "finalizing": "整理"
     },
     "cancel": "取消",
     "running": "分析中……",

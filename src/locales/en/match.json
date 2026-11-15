@@ -30,11 +30,10 @@
   },
   "analysis": {
     "title": "Analyzing your files",
-    "description": "This can take a moment while the AI reviews your subtitles.",
     "stages": {
-      "scanning": "Scanning sources",
-      "analyzing": "Matching with AI",
-      "finalizing": "Preparing results"
+      "scanning": "Scan",
+      "analyzing": "Analyze",
+      "finalizing": "Arrange"
     },
     "cancel": "Cancel",
     "running": "Analyzing…",

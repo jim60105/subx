@@ -190,7 +190,7 @@ export const VIEWS: Record<string, () => JSX.Element> = {
   "match-sources-empty": () => <MatchSourcesView initial={[]} />,
   "match-sources-long": () => <MatchSourcesView initial={LONG_SOURCES} />,
   "match-review": () => <MatchReviewView />,
-  AnalysisStep: () => <AnalysisStep stage="analyzing" error={undefined} />,
+  AnalysisStep: () => <AnalysisStep stage="analyzing" error={undefined} scan={{ videoCount: 1, subtitleCount: 1 }} />,
   ReviewStep: () => (
     <ReviewStep plan={REVIEW_PLAN} selectedIds={new Set([0, 1, 2])} onToggle={noop} onToggleLanguage={noop} />
   ),

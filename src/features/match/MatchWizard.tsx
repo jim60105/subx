@@ -133,7 +133,7 @@ export function MatchWizard({ onOpenSettings }: MatchWizardProps) {
         />
       )}
       {wizard.step === "analysis" && (
-        <AnalysisStep stage={wizard.stage} error={wizard.analysisError} />
+        <AnalysisStep stage={wizard.stage} error={wizard.analysisError} scan={wizard.scan} />
       )}
       {wizard.step === "review" && wizard.plan !== null && (
         <ReviewStep
