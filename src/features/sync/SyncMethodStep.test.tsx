@@ -12,6 +12,7 @@ describe("the sync method step", () => {
     await setupI18n("en");
   });
 
+  // @covers sync-workflow/sensitivity-slider-labels-both-ends#both-ends-are-labelled
   it("labels both ends of the sensitivity slider and keeps the sentence as its description", () => {
     renderWithI18n(
       <SyncMethodStep

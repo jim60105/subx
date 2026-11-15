@@ -31,6 +31,7 @@ describe("the offset field", () => {
     await setupI18n("en");
   });
 
+  // @covers sync-workflow/offset-is-shown-as-a-nudgeable-figure-with-a-schematic-preview#nudge-controls-step-the-offset
   it("steps the offset with the nudge controls and keeps the figure and field in agreement", async () => {
     const user = userEvent.setup();
     const { container } = renderWithI18n(<StatefulOffsetField />);
@@ -61,6 +62,7 @@ describe("the offset field", () => {
     expect(figure(container)).toHaveTextContent("+1.25");
   });
 
+  // @covers sync-workflow/offset-is-shown-as-a-nudgeable-figure-with-a-schematic-preview#preview-follows-the-sign-of-the-offset
   it("marks the direction of the offset while the original row stays put", () => {
     const directions: string[] = [];
     const originalStyles: string[][] = [];
@@ -87,6 +89,7 @@ describe("the offset field", () => {
     expect(cues(container, "shifted")[0].style.left).toBe(`${first[0] - 2.5}%`);
   });
 
+  // @covers sync-workflow/offset-is-shown-as-a-nudgeable-figure-with-a-schematic-preview#preview-is-schematic-and-hidden-from-assistive-technology
   it("keeps the preview schematic and out of the accessibility tree", () => {
     for (const offsetMs of [0, 250]) {
       const { container, unmount } = renderField(offsetMs);

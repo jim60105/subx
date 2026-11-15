@@ -167,6 +167,7 @@ describe("settings screen", () => {
     ).toHaveClass("visually-hidden");
   });
 
+  // @covers settings-management/api-key-is-masked-and-write-only#replace-reveals-an-empty-input
   it("reveals an empty, focused input when Replace is activated", async () => {
     mockBackend();
     renderSettings();
@@ -179,6 +180,7 @@ describe("settings screen", () => {
     expect(apiKey()).not.toHaveValue(SAVED_KEY_MASK);
   });
 
+  // @covers settings-management/api-key-is-masked-and-write-only#keeping-the-current-key-discards-the-draft
   it("discards the draft and restores the mask when the current key is kept", async () => {
     const backend = mockBackend();
     renderSettings();
@@ -199,6 +201,7 @@ describe("settings screen", () => {
     expect(backend.writes).toEqual([]);
   });
 
+  // @covers settings-management/api-key-is-masked-and-write-only#no-configured-key-shows-the-input-directly
   it("shows the empty key input directly when no key is configured", async () => {
     mockBackend({ apiKeyMasked: "", apiKeySet: false });
     renderSettings();
@@ -323,6 +326,7 @@ describe("settings screen", () => {
     expect(await screen.findByText("Connection succeeded in 128 ms.")).toBeInTheDocument();
   });
 
+  // @covers settings-management/ai-connection-test#success-is-reported-beside-the-action
   it("reports a success beside the test action, described rather than explained", async () => {
     mockBackend();
     const { container } = renderSettings();
@@ -468,6 +472,8 @@ describe("settings screen", () => {
     expect(model()).toHaveValue("saved-model");
   });
 
+  // @covers settings-management/section-headings-state-where-values-are-stored#ai-section-names-the-shared-configuration-file
+  // @covers settings-management/section-headings-state-where-values-are-stored#preferences-section-is-labelled-app-only
   it("labels where each section's values are stored at its heading", async () => {
     mockBackend();
     renderSettings();
@@ -482,6 +488,7 @@ describe("settings screen", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toHaveClass("visually-hidden");
   });
 
+  // @covers settings-management/gui-local-preferences-on-the-same-screen#options-are-laid-out-inline
   it("lays the language and theme options out inline", async () => {
     mockBackend();
     renderSettings();
@@ -520,6 +527,7 @@ describe("settings screen", () => {
     expect(backend.writes).toEqual([]);
   });
 
+  // @covers settings-management/gui-local-preferences-on-the-same-screen#inline-choice-and-title-bar-dropdown-stay-in-sync
   it("keeps the inline theme choice and the title-bar dropdown in step", async () => {
     const commands: string[] = [];
     mockIPC((command) => {

@@ -28,6 +28,7 @@ describe("the sync apply step", () => {
     await setupI18n("en");
   });
 
+  // @covers sync-workflow/apply-step-shows-source-and-output-as-a-diff#source-is-unmarked-and-output-is-created
   it("shows the source as a kept line and the output as a created line", async () => {
     const user = userEvent.setup();
     const { container } = renderWithI18n(<StatefulApplyStep subtitlePath="/media/movie.srt" />);
