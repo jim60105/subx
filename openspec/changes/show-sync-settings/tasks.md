@@ -26,7 +26,7 @@ Read `design.md` first; every "D<n>" below refers to it. Prerequisites: `editori
 
 ## 5. Integration
 
-- [ ] 5.1 Run `npm run verify`. Verify: it exits 0, `npm run spec:trace` reports 0 unverified scenarios and 0 dangling annotations against the unsynced main specs (the delta scenarios are annotated and checked by archive post-sync), and frontend coverage stays at or above 85 % on every metric (close any gap with tests, not exclusions).
+- [x] 5.1 Run `npm run verify`. Verify: it exits 0, `npm run spec:trace` reports 0 unverified scenarios and 0 dangling annotations against the unsynced main specs (the delta scenarios are annotated and checked by archive post-sync), and frontend coverage stays at or above 85 % on every metric (close any gap with tests, not exclusions).
 
 ## Workflow follow-up
 
