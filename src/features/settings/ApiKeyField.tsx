@@ -23,7 +23,9 @@ interface ApiKeyFieldProps {
  * input appears when there is no key, after Replace, or whenever a draft is
  * pending — a typed draft is never hidden, because hidden it would still be
  * saved. Replace closes again once a key write lands, detected by the masked
- * form or the configured flag changing. It is deliberately not tied to the
+ * form or the configured flag changing; a new key whose mask is identical
+ * leaves the emptied input open, which is safe because an empty draft writes
+ * nothing. The reset is deliberately not tied to the
  * saved object's identity: every window-focus refetch replaces that object,
  * and the user may well have switched windows to copy the new key.
  */

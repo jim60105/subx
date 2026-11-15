@@ -123,5 +123,8 @@ describe("formatSeconds", () => {
     expect(formatSeconds(750)).toBe("+0.75");
     expect(formatSeconds(-1500)).toBe("−1.50");
     expect(formatSeconds(0)).toBe("0.00");
+    expect(formatSeconds(4)).toBe("0.00");
+    expect(formatSeconds(-4)).toBe("0.00");
+    expect(formatSeconds(-5)).toBe("\u22120.01");
   });
 });

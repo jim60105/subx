@@ -192,7 +192,10 @@ describe("settings screen", () => {
     expect(screen.getByText(SAVED_KEY_MASK)).toBeVisible();
     expect(replaceButton()).toHaveFocus();
     expect(saveButton()).toBeDisabled();
-    expect(document.body).not.toHaveTextContent("sk-draft-to-discard");
+    // No input on the page, and no text, carries a key the user did not type.
+    const inputValues = Array.from(document.querySelectorAll("input"), (input) => input.value);
+    expect(inputValues.filter((value) => value.startsWith("sk-"))).toEqual([]);
+    expect(document.body.textContent).not.toMatch(/sk-/);
     expect(backend.writes).toEqual([]);
   });
 
@@ -204,6 +207,20 @@ describe("settings screen", () => {
     expect(apiKey()).toHaveValue("");
     expect(screen.queryByRole("button", { name: "Replace API key" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Keep current key" })).not.toBeInTheDocument();
+  });
+
+  it("closes the input on the mask once the first key is saved", async () => {
+    const backend = mockBackend({ apiKeyMasked: "", apiKeySet: false });
+    renderSettings();
+    await waitFor(() => expect(apiKey()).toHaveAttribute("placeholder", "No key configured"));
+
+    await userEvent.type(apiKey(), "sk-first-key-4321");
+    await userEvent.click(saveButton());
+
+    expect(await screen.findByText("****4321")).toBeVisible();
+    expect(queryApiKey()).not.toBeInTheDocument();
+    expect(replaceButton()).toBeInTheDocument();
+    expect(backend.writes).toEqual([{ key: "ai.api_key", value: "sk-first-key-4321" }]);
   });
 
   it("keeps an open Replace input, and its draft, across a window-focus refetch", async () => {

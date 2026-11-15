@@ -9,8 +9,10 @@ export const NUDGE_STEP_MS = 50;
 
 /** The headline figure: signed seconds to two places, with a typographic minus. */
 export function formatSeconds(ms: number): string {
-  const sign = ms > 0 ? "+" : ms < 0 ? "\u2212" : "";
-  return `${sign}${Math.abs(ms / 1000).toFixed(2)}`;
+  const digits = Math.abs(ms / 1000).toFixed(2);
+  // A value that rounds to zero is shown unsigned, like zero itself.
+  if (Number(digits) === 0) return digits;
+  return `${ms > 0 ? "+" : "\u2212"}${digits}`;
 }
 
 interface OffsetFieldProps {
