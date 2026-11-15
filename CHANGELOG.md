@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-16
+
+First stable release. The app gets a new editorial look (paper-and-ink colours, a bundled serif typeface, numbered tasks on the home screen and a breadcrumb in the title bar), and every task wizard now shows exactly what will happen to your files before anything runs.
+
+### Added
+- Match: the review step is a filterable ledger of proposed matches, and the execute step lists each operation with its own status so you can resolve problems one by one.
+- Match: the analysis step shows its stage in plain words, and animation respects the system "reduce motion" setting.
+- Convert and translate: planned work is shown as the file it will create or replace, with the same drop zone and grouped file list as the other tasks.
+- Translate: found subtitles appear once in a single sources list grouped by folder, folder source or archive, with file counts, cue subtotals and a remove action per group (and per file for files you added directly).
+- Translate: the run step shows one row per file and a progress bar split into the real AI batches, with a status line for the current file and batch, elapsed and estimated time, a notice when a batch is resent, and the final outcome of each file (done, failed or cancelled).
+- Sync: the offset is shown as a large signed figure with nudge buttons and a cue preview, the apply step shows which file is kept and which is created, and both ends of the sensitivity slider are labelled.
+- Settings: each section says where its values are stored (shared `config.toml` or this app only), a configured API key is shown masked with a Replace action, and a successful connection test shows its latency. Language and theme are single-choice buttons.
+
+### Changed
+- All task screens use the same three button ranks, and the primary action stays in a fixed position.
+
+### Fixed
+- Match: hidden text in the review list no longer spills outside its scroll area.
+- Sync: an offset that rounds to zero seconds is shown without a sign.
+- Settings: saving the first API key closes the input and shows the masked key.
+- Convert and translate: the source list no longer collapses.
+- Translate: the run status line names how each finished file ended instead of showing "Done" for all of them.
+
 ## [0.4.0] - 2026-11-15
 
 ### Added
@@ -69,7 +92,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pinned primary action controls to fixed positions with dedicated home navigation.
 - Single-sourced application version in `package.json` with strict synchronization tests across Rust crate manifest and lockfile.
 
-[Unreleased]: https://github.com/jim60105/subx/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/jim60105/subx/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/jim60105/subx/compare/v0.4.0...v1.0.0
 [0.4.0]: https://github.com/jim60105/subx/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jim60105/subx/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/jim60105/subx/compare/v0.1.0...v0.2.0
