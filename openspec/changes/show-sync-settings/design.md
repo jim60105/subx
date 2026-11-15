@@ -48,7 +48,7 @@ State this change starts from (after `redesign-match-sources`):
   <OffsetPreview offsetMs={offsetMs} />
   {/* existing <label> with the millisecond number input: unchanged */}
   <p className="offset-field__seconds visually-hidden">{t("offset.seconds", { seconds: (offsetMs / 1000).toFixed(3) })}</p>
-  <p className="offset-field__hint visually-hidden">{t("offset.hint")}</p>
+  <p id={hintId} className="offset-field__hint visually-hidden">{t("offset.hint")}</p>   {/* the number input and both nudge buttons carry aria-describedby={hintId} */}
   {/* existing exceedsMax error: unchanged */}
 </div>
 ```
@@ -98,9 +98,9 @@ interface ApiKeyFieldProps {
 }
 ```
 
-Local state `replacing: boolean`, initially `false`; an effect resets it to `false` whenever `saved.apiKeyMasked` or `saved.apiKeySet` changes (a successful save). Inside `SettingsField id="ai-api-key"`:
+Local state `replacing: boolean`, initially `false`; an effect resets it to `false` whenever the `saved` object's identity changes (`useSettingsForm` replaces `config` after every successful save and re-read; comparing the masked text would miss a new key that ends in the same characters). If the post-save re-read fails `saved` does not change and the empty input stays, which is safe: an empty draft writes nothing. Inside `SettingsField id="ai-api-key"`:
 
-- `saved.apiKeySet && !replacing`: `<span className="settings-key__mask">{saved.apiKeyMasked}</span>` and `<button type="button" className="button button--tertiary" onClick={() => setReplacing(true)}>{t("ai.apiKey.replace")}</button>`. No input is rendered.
+- `saved.apiKeySet && !replacing`: `<span id="ai-api-key" className="settings-key__mask">{saved.apiKeyMasked}</span>` (it takes the field's `id` so `SettingsField`'s `<label htmlFor>` never points at nothing) and `<button type="button" className="button button--tertiary" onClick={() => setReplacing(true)}>{t("ai.apiKey.replace")}</button>`. No input is rendered.
 - otherwise: the existing password input (empty, `autoComplete="off"`, placeholder `t("ai.apiKey.unsetPlaceholder")` only when no key is set, `autoFocus` when it appeared through `replacing`), plus, only when `saved.apiKeySet`, `<button type="button" className="button button--tertiary" onClick={() => { onChange(""); setReplacing(false); }}>{t("ai.apiKey.keep")}</button>`.
 
 `SettingsField` gains `hintHidden?: boolean`, which adds `visually-hidden` to the hint paragraph; the API key field passes `hint={t("ai.apiKey.hint")} hintHidden`. `AiSettingsSection.tsx` renders `<ApiKeyField … />` in place of its inline key field. `useSettingsForm` is not changed: an empty draft still means "leave as is".

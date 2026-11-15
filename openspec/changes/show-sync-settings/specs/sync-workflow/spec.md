@@ -18,7 +18,7 @@ Wherever the offset is edited, it SHALL be shown in seconds as a prominent figur
 
 #### Scenario: Preview is schematic and hidden from assistive technology
 
-- **WHEN** the offset control renders, with or without a media file selected
+- **WHEN** the offset control renders for any offset value
 - **THEN** the preview is excluded from the accessibility tree and contains the same fixed number of cue bars, and the sentence explaining the sign is present as visually hidden text
 
 ### Requirement: Apply step shows source and output as a diff
