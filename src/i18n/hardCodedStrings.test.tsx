@@ -39,7 +39,7 @@ import { i18n, renderWithI18n, setupI18n } from "../test/renderWithI18n";
 import {
   BUILD_INFO,
   CONFIG,
-  EMPTY_CONVERT_PLAN,
+  CONVERT_PLAN,
   EMPTY_TRANSLATE_PLAN,
   EXECUTION_PLAN,
   EXECUTION_REPORT,
@@ -282,12 +282,12 @@ const SCREENS = [
     render: () =>
       renderWithI18n(
         <ConvertOptionsStep
-          targetFormat="srt"
+          targetFormat="vtt"
           keepOriginal
-          plan={EMPTY_CONVERT_PLAN}
+          plan={CONVERT_PLAN}
           isPreviewing={false}
           previewError={undefined}
-          selectedIds={new Set()}
+          selectedIds={new Set([0])}
           onFormatChange={() => {}}
           onKeepOriginalChange={() => {}}
           onToggle={() => {}}
@@ -299,9 +299,11 @@ const SCREENS = [
     render: () =>
       renderWithI18n(
         <ConvertRunStep
-          targetFormat="srt"
-          selectedCount={0}
-          keepOriginal
+          targetFormat="vtt"
+          selectedCount={1}
+          keepOriginal={false}
+          plan={CONVERT_PLAN}
+          selectedIds={new Set([0])}
           isConverting={false}
           progress={null}
           report={null}

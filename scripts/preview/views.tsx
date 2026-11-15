@@ -26,7 +26,7 @@ import { TranslateReportStep } from "../../src/features/translate/TranslateRepor
 import { TranslateRunStep } from "../../src/features/translate/TranslateRunStep";
 import { TranslateSourcesStep } from "../../src/features/translate/TranslateSourcesStep";
 import {
-  EMPTY_CONVERT_PLAN,
+  CONVERT_PLAN,
   EMPTY_TRANSLATE_PLAN,
   EXECUTION_PLAN,
   EXECUTION_REPORT,
@@ -356,7 +356,7 @@ export const VIEWS: Record<string, () => JSX.Element> = {
     <ConvertOptionsStep
       targetFormat="srt"
       keepOriginal
-      plan={EMPTY_CONVERT_PLAN}
+      plan={CONVERT_PLAN}
       isPreviewing={false}
       previewError={undefined}
       selectedIds={new Set()}
@@ -370,6 +370,8 @@ export const VIEWS: Record<string, () => JSX.Element> = {
       targetFormat="srt"
       selectedCount={0}
       keepOriginal
+      plan={CONVERT_PLAN}
+      selectedIds={new Set()}
       isConverting={false}
       progress={null}
       report={null}

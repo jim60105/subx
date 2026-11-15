@@ -1,17 +1,22 @@
 import { useTranslation } from "react-i18next";
 
+import { DiffPreview } from "../../components/DiffPreview/DiffPreview";
 import { ErrorNotice } from "../../components/ErrorNotice/ErrorNotice";
 import type {
   ConversionReportDto,
   ConvertFormatDto,
+  ConvertPlanDto,
   ConvertProgress,
 } from "../../types/ipc";
+import { convertItemLines } from "./planLines";
 import "./ConvertRunStep.css";
 
 interface ConvertRunStepProps {
   targetFormat: ConvertFormatDto | null;
   selectedCount: number;
   keepOriginal: boolean;
+  plan: ConvertPlanDto | null;
+  selectedIds: Set<number>;
   isConverting: boolean;
   progress: ConvertProgress | null;
   report: ConversionReportDto | null;
@@ -20,6 +25,10 @@ interface ConvertRunStepProps {
 
 /**
  * Step 3: what is about to run, how far it has got, and what came of it.
+ *
+ * Before the batch starts, the selected conversions are listed as the same
+ * diffs as the options step, so whether the originals survive is shown on each
+ * file rather than stated once in a sentence.
  *
  * Progress is per file because that is the only granularity the crate reports;
  * cancelling stops before the next file rather than interrupting the current
@@ -31,6 +40,8 @@ export function ConvertRunStep({
   targetFormat,
   selectedCount,
   keepOriginal,
+  plan,
+  selectedIds,
   isConverting,
   progress,
   report,
@@ -48,10 +59,19 @@ export function ConvertRunStep({
             format: targetFormat === null ? "" : t(`options.formats.${targetFormat}`),
           })}
         </p>
-        <p className="convert-run__originals">
-          {keepOriginal ? t("run.keepingOriginals") : t("run.removingOriginals")}
-        </p>
       </header>
+
+      {!isConverting && report === null && plan !== null && (
+        <ul className="convert-run__planned" aria-label={t("options.listLabel")}>
+          {plan.items
+            .filter((item) => selectedIds.has(item.id))
+            .map((item) => (
+              <li key={item.id} className="convert-run__planned-item" title={item.outputPath}>
+                <DiffPreview lines={convertItemLines(item, keepOriginal)} label={item.inputName} />
+              </li>
+            ))}
+        </ul>
+      )}
 
       {isConverting && (
         <div className="convert-run__progress">

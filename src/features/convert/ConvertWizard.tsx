@@ -116,6 +116,8 @@ export function ConvertWizard() {
           targetFormat={wizard.targetFormat}
           selectedCount={wizard.selectedCount}
           keepOriginal={wizard.keepOriginal}
+          plan={wizard.plan}
+          selectedIds={wizard.selectedIds}
           isConverting={wizard.isConverting}
           progress={wizard.progress}
           report={wizard.report}

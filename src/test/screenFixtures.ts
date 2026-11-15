@@ -84,12 +84,25 @@ export const REVIEW_PLAN: MatchPlanDto = {
   unmatchedSubtitles: ["6"],
 };
 
-/** The convert equivalent: chrome only, no file names to read as prose. */
-export const EMPTY_CONVERT_PLAN: ConvertPlanDto = {
+/**
+ * The convert equivalent: one runnable item, so its diff lines reach the DOM.
+ * The name is key-shaped and the paths sit under `/fixtures/`, so neither
+ * reads as prose.
+ */
+export const CONVERT_PLAN: ConvertPlanDto = {
   planId: "convert-1",
-  targetFormat: "srt",
+  targetFormat: "vtt",
   keepOriginal: true,
-  items: [],
+  items: [
+    {
+      id: 0,
+      inputName: "ep01.srt",
+      inputPath: "/fixtures/a/ep01.srt",
+      outputPath: "/fixtures/a/ep01.vtt",
+      outputExists: false,
+      skipReason: null,
+    },
+  ],
 };
 
 /** The sync steps' seed values; all three are numbers, never prose. */

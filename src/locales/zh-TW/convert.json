@@ -7,13 +7,7 @@
   "sources": {
     "title": "選擇要轉換的檔案",
     "description": "加入想轉成其他格式的字幕。資料夾、單一檔案與壓縮檔都可以。",
-    "dropzone": "將檔案或資料夾拖曳到這裡",
-    "dropHint": "或使用下方按鈕",
-    "browseFiles": "瀏覽檔案",
-    "browseFolder": "瀏覽資料夾",
     "listLabel": "已選來源",
-    "empty": "尚未加入任何來源。",
-    "remove": "移除 {{name}}",
     "scan": {
       "scanning": "正在掃描來源…",
       "count": "找到 {{count}} 個字幕檔",
@@ -23,7 +17,6 @@
   },
   "options": {
     "title": "選擇格式",
-    "description": "以下每個檔案都會顯示轉換後的檔案實際寫入的位置。",
     "formatLabel": "轉換為",
     "formats": {
       "srt": "SRT（SubRip）",
@@ -32,11 +25,9 @@
       "sub": "SUB（MicroDVD）"
     },
     "keepOriginal": "保留原始檔案",
-    "keepOriginalHint": "關閉後，每個輸入檔會在轉換成功後被刪除。",
     "encodingNote": "輸入編碼會自動偵測，所有輸出一律以 UTF-8 寫入。",
     "listLabel": "預定的轉換",
     "selection": "包含 {{name}}",
-    "outputLabel": "將寫入到",
     "overwrite": "會覆蓋既有檔案",
     "previewing": "正在準備預覽…",
     "back": "上一步",
@@ -45,8 +36,6 @@
   "run": {
     "title": "開始轉換",
     "summary": "{{count}} 個檔案 · {{format}}",
-    "keepingOriginals": "原始檔案會保留。",
-    "removingOriginals": "每個原始檔案會在轉換成功後刪除。",
     "start": "立即轉換",
     "starting": "正在開始…",
     "converting": "轉換中……",
