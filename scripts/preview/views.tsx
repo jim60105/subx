@@ -18,6 +18,11 @@ import { ExecuteStep } from "../../src/features/match/ExecuteStep";
 import { ReviewStep } from "../../src/features/match/ReviewStep";
 import { SourcesStep } from "../../src/features/match/SourcesStep";
 import { WIZARD_STEPS } from "../../src/features/match/useMatchWizard";
+import { AiSettingsSection } from "../../src/features/settings/AiSettingsSection";
+import { ConnectionTestPanel } from "../../src/features/settings/ConnectionTestPanel";
+import { PreferencesSection } from "../../src/features/settings/PreferencesSection";
+import "../../src/features/settings/SettingsScreen.css";
+import { OffsetField } from "../../src/features/sync/OffsetField";
 import { SyncApplyStep } from "../../src/features/sync/SyncApplyStep";
 import { SyncDetectStep } from "../../src/features/sync/SyncDetectStep";
 import { SyncInputsStep } from "../../src/features/sync/SyncInputsStep";
@@ -28,6 +33,7 @@ import { TranslateRunStep } from "../../src/features/translate/TranslateRunStep"
 import { TranslateSourcesStep } from "../../src/features/translate/TranslateSourcesStep";
 import { TRANSLATE_STEPS } from "../../src/features/translate/useTranslateWizard";
 import {
+  CONFIG,
   CONVERT_PLAN,
   TRANSLATE_PLAN,
   EXECUTION_PLAN,
@@ -518,6 +524,92 @@ function TranslateOptionsView() {
   );
 }
 
+/** `?ms=` seeds the offset so a screenshot can pin a positive, zero or negative value. */
+function SyncOffsetView() {
+  const initial = Number(params.get("ms") ?? "750");
+  const [offsetMs, setOffsetMs] = useState(Number.isFinite(initial) ? initial : 0);
+  return (
+    <OffsetField
+      offsetMs={offsetMs}
+      maxOffsetMs={SYNC_DEFAULTS.maxOffsetMs}
+      exceedsMax={Math.abs(offsetMs) > SYNC_DEFAULTS.maxOffsetMs}
+      onChange={setOffsetMs}
+    />
+  );
+}
+
+function SyncApplyView() {
+  const [outputPath, setOutputPath] = useState("/media/Show/ep03_synced.srt");
+  return (
+    <SyncApplyStep
+      offsetMs={750}
+      subtitlePath="/media/Show/ep03.srt"
+      outputPath={outputPath}
+      applyResult={null}
+      applyError={undefined}
+      onOutputPathChange={setOutputPath}
+    />
+  );
+}
+
+function SyncMethodView() {
+  const [sensitivity, setSensitivity] = useState(50);
+  return (
+    <SyncMethodStep
+      method="auto"
+      hasMedia
+      defaults={SYNC_DEFAULTS}
+      defaultsError={undefined}
+      sensitivity={sensitivity}
+      offsetMs={0}
+      offsetExceedsMax={false}
+      onMethodChange={noop}
+      onSensitivityChange={setSensitivity}
+      onOffsetChange={noop}
+    />
+  );
+}
+
+/**
+ * The Settings sections with fixture props: the real screen loads through IPC.
+ * Mirrors `SettingsScreen`'s markup — a configured key, a successful test.
+ */
+function SettingsView() {
+  const { t } = useTranslation("settings");
+  const [apiKey, setApiKey] = useState("");
+  const { provider, model, baseUrl } = CONFIG.ai;
+  return (
+    <section className="settings">
+      <section className="settings-section">
+        <header className="settings-section__header">
+          <h2 className="settings-section__title">{t("ai.title")}</h2>
+          <span className="settings-section__where">{t("ai.storedIn")}</span>
+        </header>
+        <AiSettingsSection
+          draft={{ provider, model, baseUrl, apiKey }}
+          saved={CONFIG.ai}
+          fieldErrors={{}}
+          disabled={false}
+          onChange={(field, value) => field === "apiKey" && setApiKey(value)}
+        />
+        <ConnectionTestPanel
+          status="done"
+          result={{ ok: true, latencyMs: 132, error: null }}
+          busy={false}
+          onTest={noop}
+        />
+      </section>
+      <section className="settings-section">
+        <header className="settings-section__header">
+          <h2 className="settings-section__title">{t("preferences.title")}</h2>
+          <span className="settings-section__where">{t("preferences.storedIn")}</span>
+        </header>
+        <PreferencesSection />
+      </section>
+    </section>
+  );
+}
+
 export const VIEWS: Record<string, () => JSX.Element> = {
   app: () => <App />,
   SourcesStep: () => (
@@ -542,6 +634,10 @@ export const VIEWS: Record<string, () => JSX.Element> = {
   "convert-options": () => <ConvertOptionsView />,
   "convert-run": () => <ConvertRunView />,
   "translate-options": () => <TranslateOptionsView />,
+  "sync-offset": () => <SyncOffsetView />,
+  "sync-apply": () => <SyncApplyView />,
+  "sync-method": () => <SyncMethodView />,
+  settings: () => <SettingsView />,
   AnalysisStep: () => <AnalysisStep stage="analyzing" error={undefined} scan={{ videoCount: 1, subtitleCount: 1 }} />,
   ReviewStep: () => (
     <ReviewStep plan={REVIEW_PLAN} selectedIds={new Set([0, 1, 2])} onToggle={noop} onToggleLanguage={noop} />
