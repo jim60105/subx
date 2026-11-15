@@ -519,6 +519,19 @@ describe("planned conversions as file consequences", () => {
     ]);
   });
 
+  it("passes the wizard's selection to the run step's list", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachOptions(user);
+    await user.click(await screen.findByRole("checkbox", { name: "Include two.srt" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+
+    const list = await screen.findByRole("list", { name: "Planned conversions" });
+    expect(within(list).getAllByRole("list").map((preview) => preview.getAttribute("aria-label"))).toEqual([
+      "one.srt",
+    ]);
+  });
+
   it("drops the planned list once the batch is running", async () => {
     const user = userEvent.setup();
     vi.mocked(api.executeConversion).mockReturnValue(new Promise(() => {}));
