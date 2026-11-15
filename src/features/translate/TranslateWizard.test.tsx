@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,6 +10,7 @@ import type {
   TranslationReportDto,
 } from "../../types/ipc";
 import { TranslateWizard } from "./TranslateWizard";
+import { useTranslateWizard } from "./useTranslateWizard";
 
 vi.mock("./translateWizardApi");
 vi.mock("../../platform/filePickers");
@@ -126,6 +127,16 @@ async function reachOptions(user: ReturnType<typeof userEvent.setup>) {
   const next = await screen.findByRole("button", { name: "Continue" });
   await waitFor(() => expect(next).toBeEnabled());
   await user.click(next);
+}
+
+/** The diff line kinds and texts of the plan row whose checkbox is named for `name`. */
+function rowLines(name: string): Array<[string | null, string]> {
+  const row = screen.getByRole("checkbox", { name: `Include ${name}` }).closest("li");
+  if (row === null) throw new Error(`no plan row for ${name}`);
+  return [...row.querySelectorAll(".diff-line")].map((line) => [
+    line.getAttribute("data-kind"),
+    line.querySelector(".diff-line__text")?.textContent ?? "",
+  ]);
 }
 
 /** Steps 1 and 2, landing on the translate step with the runnable items selected. */
@@ -470,5 +481,97 @@ describe("the translate wizard", () => {
     // id here — otherwise a slow in-flight preview could commit after a newer
     // one and bounce execution with a spurious stale-plan error.
     expect(api.cancelTranslation).toHaveBeenCalled();
+  });
+});
+
+describe("the translate sources step", () => {
+  it("shows the kinds it accepts as glyphs and keeps the sentence for assistive technology", () => {
+    renderWizard();
+
+    const kinds = [...document.querySelectorAll(".drop-zone [data-kind]")].map((item) =>
+      item.getAttribute("data-kind"),
+    );
+    expect(kinds).toEqual(["folder", "subtitle", "archive"]);
+    expect(document.querySelector('.drop-zone [data-kind="video"]')).toBeNull();
+    const sentence = screen.getByText(
+      "Add the subtitles you want translated. Folders, individual files, and archives all work.",
+    );
+    expect(sentence.closest(".visually-hidden")).not.toBeNull();
+  });
+
+  it("removes a whole folder group and rescans with what is left", async () => {
+    const user = userEvent.setup();
+    vi.mocked(pickers.pickFiles).mockResolvedValue(["/a/1.srt", "/a/2.srt", "/b/3.srt"]);
+    renderWizard();
+    await user.click(screen.getByRole("button", { name: "Browse files" }));
+    await waitFor(() => expect(api.scanTranslateInputs).toHaveBeenCalledTimes(1));
+
+    await user.click(screen.getByRole("button", { name: "Remove all 2 items in /a/" }));
+
+    const list = screen.getByRole("group", { name: "Selected sources" });
+    expect(within(list).queryByText("1.srt")).not.toBeInTheDocument();
+    expect(within(list).queryByText("2.srt")).not.toBeInTheDocument();
+    expect(within(list).getByText("3.srt")).toBeInTheDocument();
+    await waitFor(() => expect(api.scanTranslateInputs).toHaveBeenCalledTimes(2));
+    expect(api.scanTranslateInputs).toHaveBeenLastCalledWith(["/b/3.srt"]);
+  });
+});
+
+describe("useTranslateWizard source removal", () => {
+  it("does not rescan when none of the given sources is listed", async () => {
+    const { result } = renderHook(() => useTranslateWizard());
+    await act(async () => result.current.addSources(["/a/1.srt"]));
+
+    await act(async () => result.current.removeSources(["/elsewhere.srt"]));
+
+    expect(result.current.sources).toEqual(["/a/1.srt"]);
+    expect(api.scanTranslateInputs).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("planned translations as file consequences", () => {
+  it("keeps the input and creates the suffixed output in suffix mode", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachOptions(user);
+    await screen.findByRole("list", { name: "Planned translations" });
+
+    expect(rowLines("one.srt")).toEqual([
+      ["kept", "one.srt"],
+      ["created", "/m/one.zh-TW.srt"],
+    ]);
+  });
+
+  it("removes the input and creates the same path again in replace mode", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachOptions(user);
+    await screen.findByRole("list", { name: "Planned translations" });
+    vi.mocked(api.previewTranslation).mockResolvedValue({
+      ...PLAN,
+      outputMode: "replace",
+      items: PLAN.items.map((item) => ({ ...item, outputPath: item.inputPath })),
+    });
+
+    await user.click(screen.getByRole("radio", { name: "Replace the original file" }));
+
+    await waitFor(() =>
+      expect(rowLines("one.srt")).toEqual([
+        ["removed", "one.srt"],
+        ["created", "/m/one.srt"],
+      ]),
+    );
+  });
+
+  it("shows an excluded item as its kept input and its reason, with nothing created", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachOptions(user);
+    await screen.findByRole("list", { name: "Planned translations" });
+
+    expect(rowLines("broken.srt")).toEqual([["kept", "broken.srt"]]);
+    const row = screen.getByRole("checkbox", { name: "Include broken.srt" }).closest("li");
+    expect(row).toHaveTextContent("The subtitle file could not be parsed.");
+    expect(row?.querySelector('[data-kind="created"]')).toBeNull();
   });
 });
