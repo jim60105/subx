@@ -29,7 +29,13 @@ none (`fontCoverage.test.ts` passes with the D8 values)
 - As the design already notes, the label names the file rather than the full configuration path the design document asks for.
 - The `settings` preview view renders the sections with fixture props and has no save row, because the real screen needs IPC.
 
+## Owner acceptance
+
+Owner, 2026-11-15: accepted in the running desktop app (`npm run dev:app`, frontend served live by vite from build `e8f4f7f`) rather than in headless Chromium, which clears rows 1–10 above.
+
+The session that recorded this acceptance also repaired the launcher: `npm run dev:app` had been compiling a production binary that served a stale embedded `dist/` bundle, so earlier in-app attempts showed the pre-merge UI (fixed in `e8f4f7f`).
+
 ## Sign-off
 
 - Implementer: Claude (os-apply, 2026-11-15); screenshots taken at 900×700 in headless Chromium via the preview harness
-- Owner:
+- Owner: Jim Chen, 2026-11-15 — accepted in the running app (see Owner acceptance)

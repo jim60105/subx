@@ -33,7 +33,13 @@ none
 
 none
 
+## Owner acceptance
+
+Owner, 2026-11-15: accepted in the running desktop app (`npm run dev:app`, frontend served live by vite from build `e8f4f7f`) rather than in headless Chromium, which clears rows 1–10 above — including row 10, the deferral of the other wizards' later steps and Match steps 2–4 to a live check.
+
+The session that recorded this acceptance also repaired the launcher: `npm run dev:app` had been compiling a production binary that served a stale embedded `dist/` bundle, so earlier in-app attempts showed the pre-merge UI (fixed in `e8f4f7f`).
+
 ## Sign-off
 
 - Implementer: Claude Code (os-apply), 2026-11-15; screenshots under the session scratch directory listed above
-- Owner:
+- Owner: Jim Chen, 2026-11-15 — accepted in the running app (see Owner acceptance)

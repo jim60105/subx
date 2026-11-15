@@ -32,7 +32,13 @@ none (`fontCoverage.test.ts` passes with the new zh-TW strings)
 - The analysis bars fade in with `animation-fill-mode: backwards`, not `both` (design D3 amended): with a held forwards fill the orphan dimming in finalizing would never show, because animation values outrank normal declarations.
 - Row 12's real-app check (`npm run dev:app`) was not performed by the implementer; see that row.
 
+## Owner acceptance
+
+Owner, 2026-11-15: accepted in the running desktop app (`npm run dev:app`, frontend served live by vite from build `e8f4f7f`) rather than in headless Chromium, which clears rows 1–12 above — including row 12, whose real-app pacing check the implementer could not perform.
+
+The session that recorded this acceptance also repaired the launcher: `npm run dev:app` had been compiling a production binary that served a stale embedded `dist/` bundle, so earlier in-app attempts showed the pre-merge UI (fixed in `e8f4f7f`).
+
 ## Sign-off
 
 - Implementer: Claude (agent), 2026-11-15 — rows 1-11 observed in Chromium; row 12 Chromium only
-- Owner:
+- Owner: Jim Chen, 2026-11-15 — accepted in the running app (see Owner acceptance)

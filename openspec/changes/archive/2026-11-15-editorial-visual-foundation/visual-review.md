@@ -37,7 +37,13 @@ Each row is checked in light and dark, in `en` and `zh-TW`.
 - Screenshots live in the session scratch directory listed above and are not committed.
 - Fixed during review (commit `fix(style): drop leftover native boxes found in visual review`): fieldsets kept the browser's groove border, the language chips kept the native button fill, and form controls did not inherit the sans stack.
 
+## Owner acceptance
+
+Owner, 2026-11-15: accepted in the running desktop app (`npm run dev:app`, frontend served live by vite from build `e8f4f7f`) rather than in headless Chromium, which clears rows 1–10 above.
+
+The session that recorded this acceptance also repaired the launcher: `npm run dev:app` had been compiling a production binary that served a stale embedded `dist/` bundle, so earlier in-app attempts showed the pre-merge UI (fixed in `e8f4f7f`).
+
 ## Sign-off
 
 - Implementer: os-apply agent, 2026-11-15
-- Owner:
+- Owner: Jim Chen, 2026-11-15 — accepted in the running app (see Owner acceptance)

@@ -34,7 +34,13 @@ none
 - The ledger `<ul>` is not rendered when the active filter shows nothing (D2 always renders it), so a screen reader does not meet an empty named list beside the "nothing to show" message.
 - `hardCodedStrings.test.tsx` allows exactly the upper-cased language tags of the review fixture instead of D6's `/^[A-Z]{2,3}$/`, so an unrelated two- or three-letter key left untranslated elsewhere still fails the gate.
 
+## Owner acceptance
+
+Owner, 2026-11-15: accepted in the running desktop app (`npm run dev:app`, frontend served live by vite from build `e8f4f7f`) rather than in headless Chromium, which clears rows 1–8 above, including rows 6 and 8, the two the limits section asked to re-check in the WebKitGTK shell.
+
+The session that recorded this acceptance also repaired the launcher: `npm run dev:app` had been compiling a production binary that served a stale embedded `dist/` bundle, so earlier in-app attempts showed the pre-merge UI (fixed in `e8f4f7f`).
+
 ## Sign-off
 
 - Implementer: Claude Code (os-apply), 2026-11-15; screenshots under the session scratch directory listed above
-- Owner:
+- Owner: Jim Chen, 2026-11-15 — accepted in the running app (see Owner acceptance)

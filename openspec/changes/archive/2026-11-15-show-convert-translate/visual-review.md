@@ -18,7 +18,13 @@ Reference: `docs/superpowers/specs/2026-11-15-editorial-redesign-design.md` ("Ot
 
 - D1's file-list override needed `flex: none` in addition to `mask-image: none; padding-bottom: 0`; without it the list collapsed to zero height. Design D1 now records it.
 
+## Owner acceptance
+
+Owner, 2026-11-15: accepted in the running desktop app (`npm run dev:app`, frontend served live by vite from build `e8f4f7f`) rather than in headless Chromium, which clears rows 1–7 above — including row 6, whose readability judgement the design's risk note left to the owner.
+
+The session that recorded this acceptance also repaired the launcher: `npm run dev:app` had been compiling a production binary that served a stale embedded `dist/` bundle, so earlier in-app attempts showed the pre-merge UI (fixed in `e8f4f7f`).
+
 ## Sign-off
 
 - Implementer: filled in by the apply agent (headless Chromium, both themes, en and zh-TW).
-- Owner:
+- Owner: Jim Chen, 2026-11-15 — accepted in the running app (see Owner acceptance)
