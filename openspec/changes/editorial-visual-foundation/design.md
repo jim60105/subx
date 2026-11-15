@@ -34,7 +34,7 @@ Observed current state:
 
 ### D1: Token file (verbatim contract)
 
-`src/styles/tokens.css` is replaced with exactly this set. Spacing, text-size, control-height, motion, and titlebar tokens keep their current names and values.
+`src/styles/tokens.css` is replaced with exactly this file content (plus a header comment). Spacing, text-size, control-height, motion, and titlebar tokens keep their current names and values and are written out in full below.
 
 ```css
 :root {
@@ -51,13 +51,26 @@ Observed current state:
   --text-3xl: 2.75rem;
   --text-4xl: 3.625rem;
 
-  /* Spacing scale: --space-1 … --space-7 unchanged */
-  /* Control heights: --control-height, --control-height-lg unchanged */
+  /* Spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  /* Control heights: the authority for control min-heights. */
+  --control-height: 36px;
+  --control-height-lg: 44px;
 
   /* Shape: controls only. Containers declare no radius. */
   --radius-control: 2px;
 
-  /* Motion: --motion-fast, --motion-base, --ease-out unchanged */
+  /* Motion — respected unless the user asks for reduced motion. */
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Titlebar window controls */
   --titlebar-btn-size: var(--control-height);
@@ -136,6 +149,8 @@ Text inputs, selects, and textareas: `color: var(--ink); background: var(--paper
 
 `.gradient-text` is deleted from `global.css` and from `AppHeader.tsx`.
 
+A `transition:` list that names `box-shadow` also matches the flatness test: remove that entry from the list (keep the others).
+
 ### D3: Stylesheet mechanism tests
 
 All four read stylesheet text with `fs`, the way `tokens.colorLiteral.test.ts` and `layout.test.ts` already do. Comments are stripped before matching.
@@ -185,8 +200,8 @@ All four read stylesheet text with `fs`, the way `tokens.colorLiteral.test.ts` a
     font-synthesis: none;
   }
   ```
-  Non-heading serif text (brand, breadcrumb title, ordinals, large numerals) gets `className="serif"`. Any `font-weight` on a rule that targets a heading or a `.serif` element is deleted during the sweep.
-- `src/styles/fontCoverage.test.ts` (new) uses the new devDependency `fontkit` (`fontkit.create(fs.readFileSync(woff2Path)).characterSet`). It gathers every string value from `resources` in `src/i18n/index.ts` for every entry of `SUPPORTED_LANGUAGES`, splits into code points, ignores `\n` and `\t`, and expects the list of uncovered characters to be empty (reported as `U+XXXX 'c' in <lang>/<namespace>`). Self-check: a string containing `U+10FFFF` is reported as uncovered. If `tsc --noEmit` reports missing declarations for `fontkit`, add `@types/fontkit` as a devDependency. If `fontkit` cannot read the WOFF2, stop and report; do not weaken the test.
+  Non-heading serif text (brand, breadcrumb title, ordinals, large numerals) gets `className="serif"`. During the sweep, delete `font-weight` and `font-style` from every rule whose class is applied to an `h1`–`h3` element in the TSX (find them with `grep -rn "<h[123] className" src`; today that includes `.home__heading`, `.settings__heading`, `.settings-section__title`, and each step's `__title` class) and from every rule whose class is used together with `serif`.
+- `src/styles/fontCoverage.test.ts` (new) uses the new devDependency `fontkit` (`fontkit.create(fs.readFileSync(woff2Path)).characterSet`). The file starts with `// @vitest-environment node` (it only reads files, and jsdom's typed-array realm can break WOFF2 decoding) and passes an explicit 30 s timeout to the coverage test. It gathers every string value from `resources` in `src/i18n/index.ts` for every entry of `SUPPORTED_LANGUAGES`, plus the fixed literals components render in serif outside the locale files (`0123456789+−/.,:` — digits, plus, U+2212 minus, slash, full stop, comma, colon), splits into code points, ignores `\n` and `\t`, and expects the list of uncovered characters to be empty (reported as `U+XXXX 'c' in <lang>/<namespace>`). Self-check: a string containing `U+10FFFF` is reported as uncovered. If `tsc --noEmit` reports missing declarations for `fontkit`, add `@types/fontkit` as a devDependency. If `fontkit` cannot read the WOFF2, stop and report; do not weaken the test.
 - The same file holds the two stylesheet assertions for the serif scenarios: (a) the `@font-face` `src` URL resolves to an existing file under `src/`, no `url(` or `@import` in any stylesheet under `src/` contains `http:` or `https:`, and `index.html` contains no `<link` and no `http` URL; (b) `var(--font-serif)` occurs in exactly one rule outside `tokens.css`, the `global.css` rule above, and that rule declares `font-weight: 400`, `font-style: normal`, and `font-synthesis: none`.
 
 *Alternative considered:* a committed code-point manifest instead of parsing the font. Rejected: the manifest could drift from the binary, which is the failure the test exists to catch.
