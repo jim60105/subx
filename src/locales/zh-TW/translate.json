@@ -10,10 +10,12 @@
     "description": "加入想要翻譯的字幕。資料夾、單一檔案與壓縮檔都可以。",
     "listLabel": "已選來源",
     "ledger": {
-      "summary": "共 {{files}} 個檔案 · {{cues}} 句字幕",
+      "summary": "共 {{files}} · {{cues}}字幕",
       "scanning": "掃描中……",
-      "files": "{{files}} 個檔案",
-      "cues": "{{cues}} 句",
+      "files_one": "{{files}} 個檔案",
+      "files_other": "{{files}} 個檔案",
+      "cues_one": "{{cues}} 句",
+      "cues_other": "{{cues}} 句",
       "unparsable": "無法解析",
       "counting": "正在計算句數"
     },
@@ -54,6 +56,7 @@
     "starting": "正在開始…",
     "translating": "翻譯中……",
     "status": "正在翻譯第 {{index}} / {{total}} 個檔案 · {{name}} · {{phase}}",
+    "finished": "所有檔案皆已處理完畢。",
     "phase": {
       "terminology": "擷取專有名詞",
       "translating": "翻譯第 {{batch}} / {{batches}} 批",

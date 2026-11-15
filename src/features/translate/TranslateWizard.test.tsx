@@ -812,9 +812,12 @@ describe("the translate run step", () => {
     await send(0, { stage: "terminology" });
     await send(0, { stage: "fileDone", outcome: "cancelled" });
     await send(1, { stage: "fileDone", outcome: "cancelled" });
+    await send(1, { stage: "finished", itemId: 0, fileName: "" });
 
     expect(rowOf(0)).toHaveTextContent("Cancelled · 80 cues");
     expect(rowOf(1)).toHaveTextContent("Cancelled · 120 cues");
+    expect(screen.getByRole("status")).toHaveTextContent("Every file has been handled.");
+    expect(screen.queryByText(/remaining|Estimating/)).not.toBeInTheDocument();
   });
 
   it("fills returned batches and marks the one in flight", async () => {

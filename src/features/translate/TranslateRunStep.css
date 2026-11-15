@@ -28,14 +28,12 @@
   gap: var(--space-2);
 }
 
+/* Wraps rather than truncates: the batch position sits at its end. */
 .translate-run__status {
-  min-width: 0;
   margin: 0;
-  overflow: hidden;
   font-size: var(--text-base);
   color: var(--ink);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .translate-run__meta {

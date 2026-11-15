@@ -34,8 +34,8 @@ export function TranslateSourceLedger({ sources, scan, isScanning, onRemoveSourc
           ? t("sources.ledger.scanning")
           : ledger.counted
             ? t("sources.ledger.summary", {
-                files: number.format(ledger.fileCount),
-                cues: number.format(ledger.cueTotal),
+                files: t("sources.ledger.files", { count: ledger.fileCount, files: number.format(ledger.fileCount) }),
+                cues: t("sources.ledger.cues", { count: ledger.cueTotal, cues: number.format(ledger.cueTotal) }),
               })
             : null}
       </p>
@@ -77,13 +77,13 @@ function LedgerGroupView({ group, counted, isScanning, format, onRemoveSources }
         </span>
         <span className="translate-ledger__files">
           {knowsFiles
-            ? t("sources.ledger.files", { files: format(group.rows.length) })
+            ? t("sources.ledger.files", { count: group.rows.length, files: format(group.rows.length) })
             : isScanning
               ? t("sources.ledger.scanning")
               : null}
         </span>
         <span className="translate-ledger__count translate-ledger__subtotal">
-          {counted ? t("sources.ledger.cues", { cues: format(group.cueSubtotal) }) : null}
+          {counted ? t("sources.ledger.cues", { count: group.cueSubtotal, cues: format(group.cueSubtotal) }) : null}
         </span>
         <span className="translate-ledger__action">
           {group.removePaths.length > 0 && (
@@ -136,7 +136,7 @@ function LedgerRowView({ row, format, onRemoveSources }: LedgerRowViewProps) {
       </>
     );
   } else {
-    count = t("sources.ledger.cues", { cues: format(row.cueCount) });
+    count = t("sources.ledger.cues", { count: row.cueCount, cues: format(row.cueCount) });
   }
 
   return (

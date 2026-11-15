@@ -113,7 +113,9 @@ export function TranslateRunStep({
       : progress.order.map((id) => progress.rows[id]).find((row) => row.status === "active");
 
   let status = t("run.starting");
-  if (progress?.current && currentRow !== undefined) {
+  if (progress?.finished) {
+    status = t("run.finished");
+  } else if (progress?.current && currentRow !== undefined) {
     status = t("run.status", {
       index: progress.current.index,
       total: progress.current.total,

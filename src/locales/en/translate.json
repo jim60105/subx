@@ -10,10 +10,12 @@
     "description": "Add the subtitles you want translated. Folders, individual files, and archives all work.",
     "listLabel": "Selected sources",
     "ledger": {
-      "summary": "{{files}} files · {{cues}} cues",
+      "summary": "{{files}} · {{cues}}",
       "scanning": "Scanning…",
-      "files": "{{files}} files",
-      "cues": "{{cues}} cues",
+      "files_one": "{{files}} file",
+      "files_other": "{{files}} files",
+      "cues_one": "{{cues}} cue",
+      "cues_other": "{{cues}} cues",
       "unparsable": "Unparsable",
       "counting": "Counting cues"
     },
@@ -54,6 +56,7 @@
     "starting": "Starting…",
     "translating": "Translating…",
     "status": "Translating {{index}} of {{total}} · {{name}} · {{phase}}",
+    "finished": "Every file has been handled.",
     "phase": {
       "terminology": "Extracting terminology",
       "translating": "Batch {{batch}} of {{batches}}",
