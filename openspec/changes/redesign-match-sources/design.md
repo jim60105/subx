@@ -46,7 +46,7 @@ export function parentFolder(path: string): string;
 export function fileKind(path: string): FileKind;
 ```
 
-A path without an extension is shown as a folder. The frontend cannot stat the path and no IPC is added; an extensionless file gets the folder glyph, which is cosmetic and accepted.
+A path without an extension is shown as a folder. The frontend cannot stat the path and no IPC is added; an extensionless file gets the folder glyph, and a folder whose name contains a dot (`Show.S01.1080p`) gets the generic `other` glyph. Both are cosmetic and accepted.
 
 `src/platform/fileKind.test.ts` covers each kind, upper-case extensions, `.tar.gz`, Windows separators, a trailing separator, and a dot-file.
 
@@ -158,7 +158,7 @@ export interface GroupedFileListProps {
 }
 ```
 
-Markup: `<div className="file-groups" role="group" aria-label={label}>`; per group `<section className="file-groups__group" aria-label={group.folder}>` containing `<header className="file-groups__header">` (`<span className="file-groups__folder" title={folder}>`, `<span className="file-groups__count">{paths.length}</span>`, `<button type="button" className="button button--tertiary file-groups__remove-group" aria-label={t("common:fileList.removeGroup", { count, folder })} onClick={() => onRemove(group.paths)}>{t("common:fileList.removeGroupShort")}</button>`) and `<ul className="file-groups__entries">` with one `<li className="file-groups__entry" data-kind={fileKind(path)}>` per path: `FileKindIcon`, `<span className="file-groups__name" title={path}>{baseName(path)}</span>`, `<button type="button" className="file-groups__remove" aria-label={t("common:fileList.remove", { name: baseName(path) })} onClick={() => onRemove([path])}>✕</button>`.
+Markup: `<div className="file-groups" role="group" aria-label={label}>`; per group `<div className="file-groups__group" role="group" aria-label={group.folder}>` (not a `<section>`: a labelled section is a landmark, and there may be hundreds of groups) containing `<header className="file-groups__header">` (`<span className="file-groups__folder" title={folder}>`, `<span className="file-groups__count">{paths.length}</span>`, `<button type="button" className="button button--tertiary file-groups__remove-group" aria-label={t("common:fileList.removeGroup", { count, folder })} onClick={() => onRemove(group.paths)}>{t("common:fileList.removeGroupShort")}</button>`) and `<ul className="file-groups__entries">` with one `<li className="file-groups__entry" data-kind={fileKind(path)}>` per path: `FileKindIcon`, `<span className="file-groups__name" title={path}>{baseName(path)}</span>`, `<button type="button" className="file-groups__remove" aria-label={t("common:fileList.remove", { name: baseName(path) })} onClick={() => onRemove([path])}>✕</button>`.
 
 `GroupedFileList.css` (the declarations the layout test asserts are marked †):
 
@@ -215,7 +215,7 @@ Render order inside `<div className="sources-step">`:
 `SourcesStep.css` (the declarations the layout test asserts are marked †):
 
 ```css
-.sources-step { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--space-4); min-height: 0; overflow: hidden; }   /* † overflow, min-height */
+.sources-step { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--space-4); min-height: 0; }   /* † min-height; deliberately no overflow: hidden — see Risks */
 .sources-step > :not(.file-groups) { flex-shrink: 0; }   /* † */
 .sources-step__figure { font-size: var(--text-2xl); line-height: 1; }
 .sources-step__modes { min-width: 0; margin: 0; padding: 0; border: 0; }
@@ -286,7 +286,8 @@ Add to `scripts/preview/views.tsx`: `match-sources-empty` (no sources) and `matc
 
 ## Risks / Trade-offs
 
-- [Percentage/flex height chain breaks in WebKitGTK and the step scrolls after all] → the chain is `.app__main` (flex: 1) → `.wizard` (height: 100%) → `.wizard__content` (flex: 1; min-height: 0; flex column) → `.sources-step` (flex: 1 1 0; min-height: 0; overflow: hidden) → `.file-groups` (flex: 1 1 0; min-height: 0; overflow-y: auto); the stylesheet assertions pin each link and the `match-sources-long` preview view plus `npm run dev:app` confirm it in a real engine during review.
+- [Percentage/flex height chain breaks in WebKitGTK and the step scrolls after all] → the chain is `.app__main` (flex: 1) → `.wizard` (height: 100%) → `.wizard__content` (flex: 1; min-height: 0; flex column) → `.sources-step` (flex: 1 1 0; min-height: 0) → `.file-groups` (flex: 1 1 0; min-height: 0; overflow-y: auto); the stylesheet assertions pin each link and the `match-sources-long` preview view plus `npm run dev:app` confirm it in a real engine during review.
+- [At the 600 px minimum height the pinned parts alone may exceed the panel] → the step root has no `overflow: hidden`, so in that case the content overflows into `.wizard__content`, which scrolls, instead of clipping the relocation options or focus outlines; the 860 × 600 screenshots in the review are the real check.
 - [The bottom fade also dims the last rows when scrolled to the end] → bottom padding equal to the fade height lets the final row scroll clear.
 - [Removed sentences were the only explanation for screen-reader users] → the description and the three hints stay as visually hidden text wired with `aria-describedby`.
 - [An extensionless file shows a folder glyph] → accepted; noted in D1.

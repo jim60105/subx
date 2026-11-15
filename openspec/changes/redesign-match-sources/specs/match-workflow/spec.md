@@ -24,7 +24,7 @@ Step 1 of the match wizard SHALL accept multiple sources via drag-and-drop or fi
 #### Scenario: Relocation choice stays outside the scrolling list
 
 - **WHEN** Step 1 lists far more sources than fit the window
-- **THEN** the relocation choice is rendered outside the step's only scrolling region, which contains the source list and nothing else, and the step itself does not scroll
+- **THEN** the relocation choice is rendered outside the step's only scrolling region, which contains the source list and nothing else
 
 #### Scenario: Each relocation option demonstrates its effect
 
