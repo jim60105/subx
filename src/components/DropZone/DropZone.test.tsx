@@ -25,7 +25,7 @@ beforeEach(async () => {
 });
 
 describe("DropZone", () => {
-  // source-intake: "Drop zone demonstrates the accepted inputs" / "Empty drop zone shows every accepted kind"
+  // @covers source-intake/drop-zone-demonstrates-the-accepted-inputs#empty-drop-zone-shows-every-accepted-kind
   it("renders the large form with one captioned glyph per kind, in order", () => {
     renderZone(false);
 
@@ -41,7 +41,7 @@ describe("DropZone", () => {
     for (const item of items) expect(item.querySelector("svg")).not.toBeNull();
   });
 
-  // source-intake: "Drop zone demonstrates the accepted inputs" / "Drop zone collapses after the first source"
+  // @covers source-intake/drop-zone-demonstrates-the-accepted-inputs#drop-zone-collapses-after-the-first-source
   it("collapses to a strip that keeps every glyph and both browse actions", async () => {
     const user = userEvent.setup();
     const { handlers } = renderZone(true);
@@ -57,7 +57,7 @@ describe("DropZone", () => {
     expect(handlers.onBrowseFolder).toHaveBeenCalledOnce();
   });
 
-  // source-intake: "Drop zone demonstrates the accepted inputs" / "Description is kept for assistive technology"
+  // @covers source-intake/drop-zone-demonstrates-the-accepted-inputs#description-is-kept-for-assistive-technology
   it.each([false, true])("keeps the description for assistive technology (compact: %s)", (compact) => {
     renderZone(compact);
 

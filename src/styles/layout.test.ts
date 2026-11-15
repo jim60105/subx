@@ -80,7 +80,7 @@ describe("the wizard action bar", () => {
   });
 });
 
-// match-workflow: "Multi-source selection with scan preview and relocation mode" / "Relocation choice stays outside the scrolling list"
+// @covers match-workflow/multi-source-selection-with-scan-preview-and-relocation-mode#relocation-choice-stays-outside-the-scrolling-list
 describe("the match sources step", () => {
   const step = read("features", "match", "SourcesStep.css");
   const list = read("components", "GroupedFileList", "GroupedFileList.css");

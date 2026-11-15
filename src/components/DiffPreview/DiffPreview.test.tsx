@@ -28,7 +28,7 @@ beforeEach(async () => {
 });
 
 describe("DiffPreview", () => {
-  // diff-preview: "File consequences render as marked lines" / "Each kind has its own mark"
+  // @covers diff-preview/file-consequences-render-as-marked-lines#each-kind-has-its-own-mark
   it("gives removed and created lines distinct marks and leaves a kept line unmarked", () => {
     const { container } = renderWithI18n(<DiffPreview lines={LINES} label="Outcome" />);
 
@@ -41,7 +41,7 @@ describe("DiffPreview", () => {
     expect(container.querySelectorAll(".diff-line[data-kind]")).toHaveLength(3);
   });
 
-  // diff-preview: "File consequences render as marked lines" / "Kinds are announced as text"
+  // @covers diff-preview/file-consequences-render-as-marked-lines#kinds-are-announced-as-text
   it("names each line's kind in localized text and hides the mark", async () => {
     const { container } = renderWithI18n(<DiffPreview lines={LINES} label="Outcome" />);
 
@@ -63,7 +63,7 @@ describe("DiffPreview", () => {
     await setupI18n("en");
   });
 
-  // diff-preview: "File consequences render as marked lines" / "A decorative preview is hidden from assistive technology"
+  // @covers diff-preview/file-consequences-render-as-marked-lines#a-decorative-preview-is-hidden-from-assistive-technology
   it("hides a decorative preview from the accessibility tree", () => {
     const { container } = renderWithI18n(<DiffPreview lines={LINES} decorative />);
 

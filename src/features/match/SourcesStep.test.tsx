@@ -44,7 +44,7 @@ beforeEach(async () => {
 });
 
 describe("the match sources step", () => {
-  // match-workflow: "Multi-source selection with scan preview and relocation mode" / "Relocation choice stays outside the scrolling list"
+  // @covers match-workflow/multi-source-selection-with-scan-preview-and-relocation-mode#relocation-choice-stays-outside-the-scrolling-list
   it("renders the relocation choice outside the list, which holds only sources", () => {
     const { container } = renderStep(MANY);
 
@@ -57,7 +57,7 @@ describe("the match sources step", () => {
     expect(container.querySelectorAll(".file-groups")).toHaveLength(1);
   });
 
-  // match-workflow: "Multi-source selection with scan preview and relocation mode" / "Each relocation option demonstrates its effect"
+  // @covers match-workflow/multi-source-selection-with-scan-preview-and-relocation-mode#each-relocation-option-demonstrates-its-effect
   it("shows each option's effect as a diff and keeps its sentence as the description", () => {
     const { container } = renderStep(["/media/ep01.mkv"]);
 

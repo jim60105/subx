@@ -21,7 +21,7 @@ beforeEach(async () => {
 });
 
 describe("GroupedFileList", () => {
-  // source-intake: "Sources are listed in folder groups" / "Entries are grouped by parent folder"
+  // @covers source-intake/sources-are-listed-in-folder-groups#entries-are-grouped-by-parent-folder
   it("shows two folder groups in first-seen order, each with its own entries", () => {
     renderList(INTERLEAVED);
 
@@ -42,7 +42,7 @@ describe("GroupedFileList", () => {
     expect(within(second).queryByText("1.mkv")).not.toBeInTheDocument();
   });
 
-  // source-intake: "Sources are listed in folder groups" / "Removing a group removes all of its entries"
+  // @covers source-intake/sources-are-listed-in-folder-groups#removing-a-group-removes-all-of-its-entries
   it("asks once for every path of a group when the group is removed", async () => {
     const user = userEvent.setup();
     const { onRemove } = renderList(INTERLEAVED);
@@ -53,7 +53,7 @@ describe("GroupedFileList", () => {
     expect(onRemove).toHaveBeenCalledWith(["/b/1.ass", "/b/2.ass"]);
   });
 
-  // source-intake: "Sources are listed in folder groups" / "Kind glyph follows the extension"
+  // @covers source-intake/sources-are-listed-in-folder-groups#kind-glyph-follows-the-extension
   it("marks each entry with the kind its extension implies", () => {
     renderList(["/m/a.mkv", "/m/a.ass", "/m/a.zip", "/m/season1", "/m/a.txt"]);
 
@@ -66,7 +66,7 @@ describe("GroupedFileList", () => {
     }
   });
 
-  // source-intake: "Sources are listed in folder groups" / "Remove action is reachable by keyboard"
+  // @covers source-intake/sources-are-listed-in-folder-groups#remove-action-is-reachable-by-keyboard
   it("reaches an entry's remove button by keyboard and removes exactly that source", async () => {
     const user = userEvent.setup();
     const { onRemove } = renderList(["/m/a.mkv", "/m/b.mkv"]);
