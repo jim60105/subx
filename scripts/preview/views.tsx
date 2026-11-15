@@ -4,7 +4,11 @@
  * views here.
  */
 
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+
 import App from "../../src/App";
+import { WizardShell } from "../../src/components/WizardShell/WizardShell";
 import { ConvertOptionsStep } from "../../src/features/convert/ConvertOptionsStep";
 import { ConvertRunStep } from "../../src/features/convert/ConvertRunStep";
 import { ConvertSourcesStep } from "../../src/features/convert/ConvertSourcesStep";
@@ -12,6 +16,7 @@ import { AnalysisStep } from "../../src/features/match/AnalysisStep";
 import { ExecuteStep } from "../../src/features/match/ExecuteStep";
 import { ReviewStep } from "../../src/features/match/ReviewStep";
 import { SourcesStep } from "../../src/features/match/SourcesStep";
+import { WIZARD_STEPS } from "../../src/features/match/useMatchWizard";
 import { SyncApplyStep } from "../../src/features/sync/SyncApplyStep";
 import { SyncDetectStep } from "../../src/features/sync/SyncDetectStep";
 import { SyncInputsStep } from "../../src/features/sync/SyncInputsStep";
@@ -28,8 +33,47 @@ import {
   SYNC_DEFAULTS,
   TRANSLATE_REPORT,
 } from "../../src/test/screenFixtures";
+import type { RelocationModeDto } from "../../src/types/ipc";
 
 const noop = () => {};
+
+/** 60 sources across three folders, enough to overflow any window. */
+const LONG_SOURCES = ["/media/Show/Season 1/", "/media/Show/Season 2/", "/downloads/subs/"].flatMap(
+  (folder, group) =>
+    Array.from({ length: 20 }, (_, index) => {
+      const episode = String(index + 1).padStart(2, "0");
+      return group === 2 ? `${folder}Show.S01E${episode}.tc.ass` : `${folder}Show.S0${group + 1}E${episode}.1080p.mkv`;
+    }),
+);
+
+/**
+ * Match step 1 inside the real wizard frame, so the pinned layout is visible.
+ * Mode and removal are live so selection and keyboard behaviour can be judged.
+ */
+function MatchSourcesView({ initial }: { initial: string[] }) {
+  const { t } = useTranslation("match");
+  const [sources, setSources] = useState(initial);
+  const [mode, setMode] = useState<RelocationModeDto>("rename");
+  return (
+    <WizardShell
+      steps={WIZARD_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }))}
+      activeStep={0}
+      next={{ label: t("sources.analyze"), disabled: sources.length === 0, onClick: noop }}
+    >
+      <SourcesStep
+        sources={sources}
+        scan={sources.length === 0 ? null : { videoCount: 40, subtitleCount: 20 }}
+        isScanning={false}
+        scanError={undefined}
+        mode={mode}
+        onBrowseFiles={noop}
+        onBrowseFolder={noop}
+        onRemoveSources={(paths) => setSources((current) => current.filter((path) => !paths.includes(path)))}
+        onModeChange={setMode}
+      />
+    </WizardShell>
+  );
+}
 
 export const VIEWS: Record<string, () => JSX.Element> = {
   app: () => <App />,
@@ -46,6 +90,8 @@ export const VIEWS: Record<string, () => JSX.Element> = {
       onModeChange={noop}
     />
   ),
+  "match-sources-empty": () => <MatchSourcesView initial={[]} />,
+  "match-sources-long": () => <MatchSourcesView initial={LONG_SOURCES} />,
   AnalysisStep: () => <AnalysisStep stage="analyzing" error={undefined} />,
   ReviewStep: () => (
     <ReviewStep plan={REVIEW_PLAN} selectedIds={new Set([0, 1, 2])} onToggle={noop} onToggleLanguage={noop} />

@@ -23,7 +23,7 @@ Read `design.md` first; every "D<n>" below refers to it. Prerequisite: `editoria
 
 ## 4. Preview and human review
 
-- [ ] 4.1 Add the `match-sources-empty` and `match-sources-long` views per D9. Verify: `npx tsc --noEmit` passes.
+- [x] 4.1 Add the `match-sources-empty` and `match-sources-long` views per D9. Verify: `npx tsc --noEmit` passes.
 - [ ] 4.2 With `npm run dev` running, use the `agent-browser` skill (throwaway headless Chromium only; never attach to an existing browser; `agent-browser close` when done) to open both views at 1100 × 720 and 860 × 600 (`agent-browser set viewport`), in both themes (`agent-browser set media light` / `dark`) and both languages (`?lang=`). In `match-sources-long`, scroll the list with `agent-browser eval "document.querySelector('.file-groups').scrollTop = 99999"` and confirm by screenshot that the relocation options and the action bar have not moved, and by `agent-browser eval "document.querySelector('.wizard__content').scrollHeight <= document.querySelector('.wizard__content').clientHeight"` printing `true` at 1100 × 720 (at 860 × 600 record the printed value in `visual-review.md`; `false` there means the panel scrolls as the designed fallback and must be shown to the owner). Save screenshots under the scratch directory and fill in `visual-review.md`. Verify: every row of `visual-review.md` has an observation and a screenshot path.
 
 ## 5. Integration
