@@ -33,7 +33,7 @@ import {
   SYNC_DEFAULTS,
   TRANSLATE_REPORT,
 } from "../../src/test/screenFixtures";
-import type { RelocationModeDto } from "../../src/types/ipc";
+import type { MatchOperationDto, MatchPlanDto, RelocationModeDto } from "../../src/types/ipc";
 
 const noop = () => {};
 
@@ -79,6 +79,99 @@ function MatchSourcesView({ initial }: { initial: string[] }) {
   );
 }
 
+/**
+ * 14 operations across 12 videos: two videos carry a second EN pairing, one
+ * pairing sits at 52 with two reasoning lines, one at 94 with reasoning, and
+ * the first video's subtitle name is long enough to show the ellipsis. Two
+ * unmatched videos and one unmatched subtitle close the ledger.
+ */
+const REVIEW_SAMPLE_PLAN: MatchPlanDto = (() => {
+  let id = 0;
+  const pairing = (episode: string, language: string, extra: Partial<MatchOperationDto> = {}): MatchOperationDto => ({
+    id: id++,
+    subtitleName: `[Sub] Frieren ${episode}.${language}.ass`,
+    targetPath: `/media/Frieren/Frieren.S01E${episode}.1080p.${language}.ass`,
+    confidence: 96,
+    language,
+    reasoning: [],
+    ...extra,
+  });
+  const videos = Array.from({ length: 12 }, (_, index) => {
+    const episode = String(index + 1).padStart(2, "0");
+    const matches = [pairing(episode, "tc")];
+    if (index === 0) {
+      matches[0].subtitleName = "[Sub] Frieren Beyond Journey's End 01 [WEB 1080p HEVC AAC][Traditional Chinese].tc.ass";
+    }
+    if (index === 3) {
+      matches[0] = {
+        ...matches[0],
+        subtitleName: "Frieren episode final(2).tc.ass",
+        confidence: 52,
+        reasoning: [
+          "The file name carries no episode number.",
+          "The dialogue mentions the resting place of souls, which happens in episode 4.",
+        ],
+      };
+    }
+    if (index === 5) matches[0] = { ...matches[0], confidence: 94, reasoning: ["Episode number matches."] };
+    if (index < 2) matches.push(pairing(episode, "en", { subtitleName: `Frieren - ${episode}.en.srt` }));
+    return { videoName: `Frieren.S01E${episode}.1080p.mkv`, matches };
+  });
+  return {
+    planId: "preview-review",
+    relocationMode: "rename",
+    videos,
+    unmatchedVideos: ["Frieren.S01E13.1080p.mkv", "Frieren.S01E14.1080p.mkv"],
+    unmatchedSubtitles: ["readme-credits.ass"],
+  };
+})();
+
+/**
+ * Match step 3 inside the real wizard frame, with live selection so the
+ * checkboxes, the language chips, and the count beside Continue respond.
+ */
+function MatchReviewView() {
+  const { t } = useTranslation("match");
+  const ids = REVIEW_SAMPLE_PLAN.videos.flatMap((video) => video.matches.map((match) => match.id));
+  const [selected, setSelected] = useState(() => new Set(ids));
+  const toggle = (id: number) =>
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  // The same rule as `useMatchWizard`: clear a fully selected group, else fill it.
+  const toggleLanguage = (group: number[]) =>
+    setSelected((current) => {
+      const allSelected = group.every((id) => current.has(id));
+      const next = new Set(current);
+      for (const id of group) {
+        if (allSelected) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  return (
+    <WizardShell
+      steps={WIZARD_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }))}
+      activeStep={2}
+      back={{ label: t("review.back"), onClick: noop }}
+      next={{
+        label: t("review.execute"),
+        disabled: selected.size === 0,
+        onClick: noop,
+        note: {
+          text: `${selected.size} / ${ids.length}`,
+          label: t("review.selectedCount", { count: selected.size, total: ids.length }),
+        },
+      }}
+    >
+      <ReviewStep plan={REVIEW_SAMPLE_PLAN} selectedIds={selected} onToggle={toggle} onToggleLanguage={toggleLanguage} />
+    </WizardShell>
+  );
+}
+
 export const VIEWS: Record<string, () => JSX.Element> = {
   app: () => <App />,
   SourcesStep: () => (
@@ -96,6 +189,7 @@ export const VIEWS: Record<string, () => JSX.Element> = {
   ),
   "match-sources-empty": () => <MatchSourcesView initial={[]} />,
   "match-sources-long": () => <MatchSourcesView initial={LONG_SOURCES} />,
+  "match-review": () => <MatchReviewView />,
   AnalysisStep: () => <AnalysisStep stage="analyzing" error={undefined} />,
   ReviewStep: () => (
     <ReviewStep plan={REVIEW_PLAN} selectedIds={new Set([0, 1, 2])} onToggle={noop} onToggleLanguage={noop} />

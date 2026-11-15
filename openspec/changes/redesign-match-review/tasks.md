@@ -24,7 +24,7 @@ Read `design.md` first; every "D<n>" below refers to it. Prerequisites: `editori
 
 ## 5. Preview and human review
 
-- [ ] 5.1 Add the `match-review` view per D7. Verify: `npx tsc --noEmit` passes.
+- [x] 5.1 Add the `match-review` view per D7. Verify: `npx tsc --noEmit` passes.
 - [ ] 5.2 With `npm run dev` running, use the `agent-browser` skill (throwaway headless Chromium only; never attach to an existing browser; `agent-browser close` when done) to open `?view=match-review` in both themes (`agent-browser set media light` / `dark`) and both languages, at 1100 × 720 and 860 × 600; take screenshots of each filter, of a deselected language chip, and of an opened reasoning disclosure; fill in `visual-review.md`. Verify: every row of `visual-review.md` has an observation and a screenshot path.
 
 ## 6. Integration
