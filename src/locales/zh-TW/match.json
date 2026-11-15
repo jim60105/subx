@@ -8,13 +8,7 @@
   "sources": {
     "title": "選擇你的來源",
     "description": "加入你想配對的影片與字幕。資料夾、個別檔案與壓縮檔都可以。",
-    "dropzone": "把檔案或資料夾拖曳到這裡",
-    "dropHint": "或使用下方的按鈕",
-    "browseFiles": "瀏覽檔案",
-    "browseFolder": "瀏覽資料夾",
     "listLabel": "已選來源",
-    "empty": "尚未加入任何來源。",
-    "remove": "移除 {{name}}",
     "relocation": {
       "label": "找到配對時",
       "rename": "原地重新命名",
@@ -26,8 +20,11 @@
     },
     "scan": {
       "scanning": "正在掃描來源…",
-      "counts": "{{videos}} 個影片 · {{subtitles}} 個字幕",
-      "insufficient": "請至少加入一個影片與一個字幕才能繼續。"
+      "insufficient": "請至少加入一個影片與一個字幕才能繼續。",
+      "videoLabel_one": "影片",
+      "videoLabel_other": "影片",
+      "subtitleLabel_one": "字幕",
+      "subtitleLabel_other": "字幕"
     },
     "analyze": "開始分析"
   },

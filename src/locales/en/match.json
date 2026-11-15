@@ -8,13 +8,7 @@
   "sources": {
     "title": "Choose your sources",
     "description": "Add the videos and subtitles you want to match. Folders, individual files, and archives all work.",
-    "dropzone": "Drag files or folders here",
-    "dropHint": "or use the buttons below",
-    "browseFiles": "Browse files",
-    "browseFolder": "Browse folder",
     "listLabel": "Selected sources",
-    "empty": "No sources added yet.",
-    "remove": "Remove {{name}}",
     "relocation": {
       "label": "When a match is found",
       "rename": "Rename in place",
@@ -26,8 +20,11 @@
     },
     "scan": {
       "scanning": "Scanning sources…",
-      "counts": "{{videos}} videos · {{subtitles}} subtitles",
-      "insufficient": "Add at least one video and one subtitle to continue."
+      "insufficient": "Add at least one video and one subtitle to continue.",
+      "videoLabel_one": "video",
+      "videoLabel_other": "videos",
+      "subtitleLabel_one": "subtitle",
+      "subtitleLabel_other": "subtitles"
     },
     "analyze": "Analyze"
   },

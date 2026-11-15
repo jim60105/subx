@@ -119,7 +119,7 @@ export function MatchWizard({ onOpenSettings }: MatchWizardProps) {
           mode={wizard.mode}
           onBrowseFiles={() => void pickFiles().then(addSources)}
           onBrowseFolder={() => void pickFolder().then(addSources)}
-          onRemoveSource={wizard.removeSource}
+          onRemoveSources={wizard.removeSources}
           onModeChange={wizard.setMode}
         />
       )}

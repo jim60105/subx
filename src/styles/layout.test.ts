@@ -80,6 +80,32 @@ describe("the wizard action bar", () => {
   });
 });
 
+// match-workflow: "Multi-source selection with scan preview and relocation mode" / "Relocation choice stays outside the scrolling list"
+describe("the match sources step", () => {
+  const step = read("features", "match", "SourcesStep.css");
+  const list = read("components", "GroupedFileList", "GroupedFileList.css");
+  const shell = read("components", "WizardShell", "WizardShell.css");
+
+  /// Each link of the height chain must let its child shrink, or the list
+  /// grows to its content and the panel scrolls the relocation choice away.
+  it("lets the step and its list shrink to the panel's height", () => {
+    expect(declarationsOf(shell, ".wizard__content")).toMatch(/display:\s*flex/);
+    expect(declarationsOf(shell, ".wizard__content")).toMatch(/flex-direction:\s*column/);
+    expect(declarationsOf(step, ".sources-step")).toMatch(/min-height:\s*0/);
+    expect(declarationsOf(list, ".file-groups")).toMatch(/min-height:\s*0/);
+  });
+
+  it("scrolls only the list and keeps every other part at its natural height", () => {
+    expect(declarationsOf(list, ".file-groups")).toMatch(/overflow-y:\s*auto/);
+    expect(declarationsOf(step, ".sources-step > :not(.file-groups)")).toMatch(/flex-shrink:\s*0/);
+    expect(declarationsOf(step, ".sources-step")).not.toMatch(/overflow/);
+  });
+
+  it("reveals an entry's remove button on keyboard focus", () => {
+    expect(declarationsOf(list, ".file-groups__remove:focus-visible")).toMatch(/opacity:\s*1/);
+  });
+});
+
 describe("the app header build identity", () => {
   const css = read("components", "AppHeader", "AppHeader.css");
 

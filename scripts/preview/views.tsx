@@ -42,7 +42,7 @@ export const VIEWS: Record<string, () => JSX.Element> = {
       mode="rename"
       onBrowseFiles={noop}
       onBrowseFolder={noop}
-      onRemoveSource={noop}
+      onRemoveSources={noop}
       onModeChange={noop}
     />
   ),

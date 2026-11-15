@@ -1,10 +1,16 @@
 import { useTranslation } from "react-i18next";
 
+import { DiffPreview } from "../../components/DiffPreview/DiffPreview";
+import { DropZone } from "../../components/DropZone/DropZone";
+import type { IntakeKind } from "../../components/DropZone/DropZone";
 import { ErrorNotice } from "../../components/ErrorNotice/ErrorNotice";
+import { GroupedFileList } from "../../components/GroupedFileList/GroupedFileList";
 import type { RelocationModeDto, SourceScanResult } from "../../types/ipc";
+import { RELOCATION_SAMPLES } from "./relocationSamples";
 import "./SourcesStep.css";
 
 const MODES: readonly RelocationModeDto[] = ["rename", "copy", "move"];
+const INTAKE_KINDS: readonly IntakeKind[] = ["folder", "video", "subtitle", "archive"];
 
 interface SourcesStepProps {
   sources: string[];
@@ -14,22 +20,17 @@ interface SourcesStepProps {
   mode: RelocationModeDto;
   onBrowseFiles: () => void;
   onBrowseFolder: () => void;
-  onRemoveSource: (path: string) => void;
+  onRemoveSources: (paths: string[]) => void;
   onModeChange: (mode: RelocationModeDto) => void;
-}
-
-/** The last path segment, for a readable label of a long absolute path. */
-function basename(path: string): string {
-  const segments = path.split(/[\\/]/).filter(Boolean);
-  return segments[segments.length - 1] ?? path;
 }
 
 /**
  * Step 1: gather sources, pick a relocation mode, preview the scan.
  *
- * Files are added by the native picker or by dropping them on the window
- * (handled by the wizard); this step renders the resulting list, the mode
- * choice, and the counts that gate progress.
+ * A fixed-height column whose only scroller is the source list, so the
+ * relocation choice — which cannot change after analysis — stays in view
+ * however many sources are listed. Files are added by the native picker or by
+ * dropping them anywhere on the window (handled by the wizard).
  */
 export function SourcesStep({
   sources,
@@ -39,7 +40,7 @@ export function SourcesStep({
   mode,
   onBrowseFiles,
   onBrowseFolder,
-  onRemoveSource,
+  onRemoveSources,
   onModeChange,
 }: SourcesStepProps) {
   const { t } = useTranslation("match");
@@ -48,75 +49,29 @@ export function SourcesStep({
 
   return (
     <div className="sources-step">
-      <header className="sources-step__intro">
-        <h2 className="sources-step__title">{t("sources.title")}</h2>
-        <p className="sources-step__description">{t("sources.description")}</p>
-      </header>
+      <h2 className="visually-hidden">{t("sources.title")}</h2>
 
-      <div className="sources-step__dropzone">
-        <p className="sources-step__dropzone-label">{t("sources.dropzone")}</p>
-        <p className="sources-step__dropzone-hint">{t("sources.dropHint")}</p>
-        <div className="sources-step__buttons">
-          <button type="button" className="button sources-step__button" onClick={onBrowseFiles}>
-            {t("sources.browseFiles")}
-          </button>
-          <button type="button" className="button sources-step__button" onClick={onBrowseFolder}>
-            {t("sources.browseFolder")}
-          </button>
-        </div>
-      </div>
-
-      <ul className="sources-step__list" aria-label={t("sources.listLabel")}>
-        {sources.length === 0 && <li className="sources-step__empty">{t("sources.empty")}</li>}
-        {sources.map((path) => (
-          <li key={path} className="sources-step__item">
-            <span className="sources-step__path" title={path}>
-              {basename(path)}
-            </span>
-            <button
-              type="button"
-              className="sources-step__remove"
-              aria-label={t("sources.remove", { name: basename(path) })}
-              onClick={() => onRemoveSource(path)}
-            >
-              ✕
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      <fieldset className="sources-step__modes">
-        <legend className="sources-step__modes-legend">{t("sources.relocation.label")}</legend>
-        {MODES.map((option) => (
-          <label key={option} className="sources-step__mode">
-            <input
-              type="radio"
-              name="relocation-mode"
-              value={option}
-              checked={mode === option}
-              onChange={() => onModeChange(option)}
-            />
-            <span className="sources-step__mode-body">
-              <span className="sources-step__mode-name">
-                {t(`sources.relocation.${option}`)}
-              </span>
-              <span className="sources-step__mode-hint">
-                {t(`sources.relocation.${option}Hint`)}
-              </span>
-            </span>
-          </label>
-        ))}
-      </fieldset>
+      <DropZone
+        kinds={INTAKE_KINDS}
+        compact={sources.length > 0}
+        description={t("sources.description")}
+        onBrowseFiles={onBrowseFiles}
+        onBrowseFolder={onBrowseFolder}
+      />
 
       <div className="sources-step__scan" role="status">
         {isScanning && <span className="sources-step__scanning">{t("sources.scan.scanning")}</span>}
         {!isScanning && scan !== null && !insufficient && (
-          <span className="sources-step__counts">
-            {t("sources.scan.counts", {
-              videos: scan.videoCount,
-              subtitles: scan.subtitleCount,
-            })}
-          </span>
+          <>
+            <span className="sources-step__tally">
+              <span className="sources-step__figure serif">{scan.videoCount}</span>{" "}
+              {t("sources.scan.videoLabel", { count: scan.videoCount })}
+            </span>
+            <span className="sources-step__tally">
+              <span className="sources-step__figure serif">{scan.subtitleCount}</span>{" "}
+              {t("sources.scan.subtitleLabel", { count: scan.subtitleCount })}
+            </span>
+          </>
         )}
         {!isScanning && insufficient && (
           <span className="sources-step__insufficient">{t("sources.scan.insufficient")}</span>
@@ -124,6 +79,41 @@ export function SourcesStep({
       </div>
 
       {scanError !== undefined && <ErrorNotice error={scanError} role="status" />}
+
+      {sources.length > 0 && (
+        <GroupedFileList paths={sources} label={t("sources.listLabel")} onRemove={onRemoveSources} />
+      )}
+
+      <fieldset className="sources-step__modes">
+        <legend className="visually-hidden">{t("sources.relocation.label")}</legend>
+        {/* A fieldset is an unreliable grid container in WebKit; the grid is this div. */}
+        <div className="sources-step__mode-grid">
+          {MODES.map((option) => (
+            <label key={option} className="sources-step__mode" data-checked={mode === option}>
+              <input
+                type="radio"
+                className="visually-hidden"
+                name="relocation-mode"
+                value={option}
+                checked={mode === option}
+                aria-describedby={`relocation-hint-${option}`}
+                onChange={() => onModeChange(option)}
+              />
+              <span className="sources-step__mode-name">
+                <span className="sources-step__mode-dot" aria-hidden="true" />
+                {t(`sources.relocation.${option}`)}
+              </span>
+              <DiffPreview decorative lines={RELOCATION_SAMPLES[option]} />
+            </label>
+          ))}
+        </div>
+        {/* Outside the labels, so each radio's accessible name stays the mode name. */}
+        {MODES.map((option) => (
+          <span key={option} id={`relocation-hint-${option}`} className="visually-hidden">
+            {t(`sources.relocation.${option}Hint`)}
+          </span>
+        ))}
+      </fieldset>
     </div>
   );
 }
