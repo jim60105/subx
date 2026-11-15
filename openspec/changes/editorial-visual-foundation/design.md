@@ -352,6 +352,15 @@ When the delta is synced, `openspec/specs/theme-system/spec.md`'s `## Purpose` p
 
 `openspec/changes/editorial-visual-foundation/visual-review.md` is the named review document for everything a test cannot judge (fidelity to the mockup, typographic polish, both themes). The worker fills in its evidence table; the owner signs it off. It is not a gate that a test enforces.
 
+### D12: App icon palette (added during apply)
+
+`openspec/specs/app-icon/spec.md` required the icon's backplate to equal `--accent-gradient-strong` and the icon to introduce no colour the token file does not declare. D1 deletes that token, and the flatness requirement forbids gradients in `tokens.css`, so the requirement cannot survive this change. It is removed and re-added (a MODIFIED block cannot drop its token scenario) as "The mark's colours are brand constants declared in its source":
+
+- The artwork in `assets/brand/` is not edited, so `src-tauri/icons/` is not regenerated and `icons:check` stays green. Its plate gradient (`#c64916` → `#b7410e`) becomes a brand constant: the master SVG declares it, and every other source that draws a plate must declare the same stops (today: `subx-icon-macos.svg`).
+- `scripts/app-icon.test.ts`: the token-resolution helper is replaced by a drift check between the master and macOS plate stops. The "tile is distinguishable" test reads both themes' `--paper` from `tokens.css` instead of the deleted glass-era bases. The edge against the new paper is 3.37–5.07:1, above the 3:1 bar. The foreground and dark-chrome tests are unchanged.
+- The SVG comments still say the gradient comes from `--accent-gradient-strong`. Editing them changes the source digest and would force an icon regeneration, so they are left for the next change that regenerates the icons.
+- *Alternative considered:* keeping `--accent-gradient-strong` in `tokens.css` for the icon alone. Rejected: it contradicts D1 ("deleted, not aliased") and the flatness requirement.
+
 ## Risks / Trade-offs
 
 - [The sweep touches every stylesheet at once] → D2 is a closed mapping; `tokens.reference.test.ts` and `flatness.test.ts` fail on any leftover, and the grep in D2 is the sweep's exit check.

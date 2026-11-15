@@ -136,29 +136,22 @@ function plateGradientSamples(svg: string, steps = 20): Rgb[] {
   });
 }
 
-// --- tokens.css: resolve --accent-gradient-strong ---------------------------
+// --- tokens.css: the window background of each theme ------------------------
 
 /**
- * Resolve the two colour stops of `--accent-gradient-strong`. The declaration
- * is `linear-gradient(135deg, #c64916, var(--accent-to))` — one literal hex
- * and one `var()` reference that must be followed to `--accent-to`'s own
- * declaration (design.md D6). A single regex over that one line would find
- * only half the pair.
+ * `--paper` from each theme block of tokens.css — the surface the icon sits
+ * on inside the app (about box, title bar). Read rather than copied, so a
+ * palette change that leaves the tile illegible fails here.
  */
-function resolveAccentGradientStrong(): [string, string] {
+function windowBackgrounds(): Record<"light" | "dark", string> {
   const css = fs.readFileSync(TOKENS_CSS_PATH, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
-  const declMatch = /--accent-gradient-strong:\s*([^;]+);/.exec(css);
-  if (!declMatch) throw new Error("--accent-gradient-strong not declared in tokens.css");
-
-  const partsMatch = /linear-gradient\([^,]+,\s*(#[0-9a-fA-F]{6})\s*,\s*var\((--[\w-]+)\)\s*\)/.exec(declMatch[1]);
-  if (!partsMatch) throw new Error(`cannot parse --accent-gradient-strong: "${declMatch[1]}"`);
-
-  const literalStop = partsMatch[1].toLowerCase();
-  const varName = partsMatch[2];
-  const varMatch = new RegExp(`${varName}:\\s*(#[0-9a-fA-F]{6})\\s*;`).exec(css);
-  if (!varMatch) throw new Error(`${varName} not declared in tokens.css`);
-
-  return [literalStop, varMatch[1].toLowerCase()];
+  const paper = (theme: string) => {
+    const block = new RegExp(`:root\\[data-theme="${theme}"\\]\\s*\\{([^}]*)\\}`).exec(css);
+    const value = block && /--paper:\s*(#[0-9a-fA-F]{6})\s*;/.exec(block[1]);
+    if (!value) throw new Error(`--paper not declared for the ${theme} theme in tokens.css`);
+    return value[1].toLowerCase();
+  };
+  return { light: paper("light"), dark: paper("dark") };
 }
 
 // --- PNG IHDR reader ---------------------------------------------------------
@@ -213,10 +206,17 @@ describe("the application icon is generated from a committed vector source", () 
 
 describe("the mark stays inside the product's declared brand palette", () => {
   // @covers app-icon/the-mark-stays-inside-the-product-s-declared-brand-palette#the-backplate-gradient-is-the-token-gradient
-  it("the backplate gradient is exactly --accent-gradient-strong", () => {
-    const tokenStops = resolveAccentGradientStrong();
-    const iconStops = plateGradientStops(MASTER);
-    expect(iconStops).toEqual(tokenStops);
+  it("every source with a plate declares the master's brand gradient", () => {
+    // The mark keeps its own brand gradient; the UI tokens no longer carry it.
+    const master = plateGradientStops(MASTER);
+    expect(master).toHaveLength(2);
+    for (const stop of master) expect(stop).toMatch(/^#[0-9a-f]{6}$/);
+
+    const withPlate = SOURCES.filter(({ svg }) => /<linearGradient\b[^>]*\bid="plate"/.test(svg));
+    expect(withPlate.map(({ name }) => name)).toEqual(["master", "macos"]);
+    for (const { name, svg } of withPlate) {
+      expect(plateGradientStops(svg), `${name} plate gradient`).toEqual(master);
+    }
   });
 
   // @covers app-icon/the-mark-stays-inside-the-product-s-declared-brand-palette#the-foreground-clears-wcag-aa-against-every-point-of-the-plate
@@ -227,11 +227,11 @@ describe("the mark stays inside the product's declared brand palette", () => {
   });
 
   // @covers app-icon/the-mark-stays-inside-the-product-s-declared-brand-palette#the-tile-is-distinguishable-from-the-surfaces-it-sits-on
-  it("the tile's outer edge clears 3:1 against both application bases", () => {
+  it("the tile's outer edge clears 3:1 against both themes' window background", () => {
     // The outermost pixels are plate colour only — the rim sits 3px inset
     // (design.md §1.4) — so the worst-case point along the gradient is what
     // must clear 3:1, not just its two authored stops.
-    const appBases: Rgb[] = [{ r: 0x14, g: 0x15, b: 0x18 }, { r: 0xf9, g: 0xf8, b: 0xf6 }];
+    const appBases: Rgb[] = Object.values(windowBackgrounds()).map(parseHex);
     for (const base of appBases) {
       const worst = Math.min(...plateGradientSamples(MASTER).map((colour) => contrastRatio(colour, base)));
       expect(worst).toBeGreaterThanOrEqual(3);
