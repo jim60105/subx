@@ -3,7 +3,7 @@
  *
  * The frontend cannot stat a path and no IPC exists for it, so the kind is a
  * cosmetic guess from the extension. The extension sets mirror the ones the
- * matching engine accepts (`subx-core`).
+ * matching engine accepts.
  */
 
 export type FileKind = "folder" | "video" | "subtitle" | "archive" | "other";
