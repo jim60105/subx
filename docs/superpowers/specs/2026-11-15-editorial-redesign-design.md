@@ -1,7 +1,7 @@
 # Editorial Redesign — Design
 
 Date: 2026-11-15
-Status: approved in brainstorming, pending written-spec review
+Status: approved; proposed as six OpenSpec changes (see "Delivery")
 
 ## Goal
 
@@ -29,7 +29,7 @@ Reference mockups (not shipped) live in
 | Accent | Vermilion, used only as a marker: active step, numerals, selection, low confidence. Never as a button fill |
 | Primary button | Solid ink with paper-coloured text |
 | Review ordering | Video (episode) order is preserved. Never re-sorted by confidence |
-| Delivery | Three OpenSpec changes, in order (see "Delivery") |
+| Delivery | Six OpenSpec changes, in order (see "Delivery") |
 
 Rejected: Hina Mincho (lacks 16 characters the zh-TW locale uses, including 步,
 檔, 你, which appear in headings); a card-based layout (explicitly unwanted).
@@ -216,15 +216,27 @@ visually hidden text or an accessible name.
 
 ## Delivery
 
-Three OpenSpec changes, each independently verifiable with `npm run verify`:
+The design was planned as three deliveries. During proposal writing the match
+wizard and the remaining screens each proved larger than a workday, so they were
+split. The result is six OpenSpec changes under `openspec/changes/`, each
+independently verifiable with `npm run verify`. Apply them strictly in this
+order:
 
-1. **Visual foundation** — tokens, bundled font and coverage test, title-bar
-   breadcrumb, stepper, buttons, home list. Every screen adopts the new look
-   through tokens; no wizard content is restructured.
-2. **Match wizard redesign** — the four steps above, the shared diff preview,
-   drop zone, and grouped file list.
-3. **Show, don't tell for the remaining screens** — convert, translate, sync,
-   and settings, reusing the components from change 2.
+| # | Change | Scope | Depends on |
+|---|---|---|---|
+| 1 | `editorial-visual-foundation` | Tokens (replaced, not aliased), bundled font and coverage test, contrast test rewrite, title-bar breadcrumb, stepper, buttons, numbered home list with specimens, dev-only preview harness. Every screen adopts the new look through tokens; no wizard content is restructured | — |
+| 2 | `redesign-match-sources` | Shared diff preview, drop zone, and grouped file list; match sources step with pinned relocation options | 1 |
+| 3 | `redesign-match-review` | Review ledger in video order, confidence only below 80, in-ledger unmatched slots, filters, `12 / 14` count | 1, 2 |
+| 4 | `redesign-match-analysis-execute` | Analysis illustration; execute list, running, and resolved states; reduced-motion equivalents | 1, 2, 3 |
+| 5 | `show-convert-translate` | Convert and translate reuse the drop zone and grouped list; planned outputs rendered as diffs | 1, 2 |
+| 6 | `show-sync-settings` | Sync offset numeral, nudge buttons, schematic cue bars, apply diff, slider end labels; settings storage labels, masked key with Replace, inline test status, inline language and theme | 1, 2 |
+
+Changes 5 and 6 do not depend on 3 or 4, or on each other, but all six touch
+`hardCodedStrings.test.tsx` and the preview harness views, so they are applied
+one at a time.
+
+Each change's `design.md` records where it interprets this document; where the
+two differ, the change is the more specific and more recent source.
 
 ## Testing
 
