@@ -1,0 +1,67 @@
+/* A full-width row on a hairline; the list draws the rule above the first. */
+.task-row {
+  display: grid;
+  grid-template-columns: 2.75rem 9rem 1fr 1.25rem;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  padding: var(--space-4) var(--space-1);
+  color: var(--ink);
+  text-align: start;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hair);
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.task-row:not(:disabled):hover {
+  background: var(--paper-2);
+}
+
+.task-row:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.task-row__ordinal {
+  font-size: var(--text-2xl);
+  line-height: 1;
+  color: var(--accent-ink);
+}
+
+.task-row__title {
+  font-size: var(--text-xl);
+  line-height: 1.2;
+}
+
+.task-row__specimen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+}
+
+.task-row__go {
+  color: var(--ink-3);
+  transition:
+    color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+
+.task-row:not(:disabled):hover .task-row__go {
+  color: var(--accent-ink);
+  transform: translateX(4px);
+}
+
+.task-row__badge {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--accent-ink);
+  white-space: nowrap;
+}

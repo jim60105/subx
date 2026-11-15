@@ -2,11 +2,11 @@
  * Layout guarantees that live entirely in CSS.
  *
  * jsdom parses stylesheets but applies none of them, so `getComputedStyle` on a
- * rendered card reports nothing about the grid it sits in. The same approach
+ * rendered element reports nothing about the layout it sits in. The same approach
  * `tokens.colorLiteral.test.ts` takes is used here: read the stylesheet as text
  * and assert the declarations, which is what the requirement is actually about.
- * The rendered-DOM side — four cards, the right order, the right save button —
- * stays covered by the component tests.
+ * The rendered-DOM side — the right order, the right save button — stays
+ * covered by the component tests.
  */
 
 import fs from "node:fs";
@@ -47,40 +47,6 @@ function blockOf(css: string, atRule: string): string {
 function escape(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
-
-describe("the home hub grid", () => {
-  const css = read("features", "home", "HomeScreen.css");
-
-  /*
-   * Four tasks in a `repeat(auto-fit, …)` grid reflowed into 3 + 1 at ordinary
-   * window widths, which is what the fixed column count is here to prevent.
-   */
-  // @covers app-shell/desktop-application-launches-with-the-home-task-entry-hub#task-cards-form-a-two-by-two-grid
-  it("declares exactly two equal columns", () => {
-    const declarations = declarationsOf(css, ".home__grid");
-
-    expect(declarations).toMatch(/grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
-    expect(declarations).not.toMatch(/auto-fit|auto-fill/);
-  });
-
-  // @covers app-shell/desktop-application-launches-with-the-home-task-entry-hub#narrow-window-collapses-to-one-column
-  it("collapses to a single column below 40rem", () => {
-    const declarations = declarationsOf(css, ".home__grid", "@media (width <= 40rem)");
-
-    expect(declarations).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)/);
-  });
-
-  /// Grid items stretch, but a `<button>`'s own box does not follow suit in
-  /// every engine, so cards in a row would end up at different heights.
-  it("lets a card fill its row", () => {
-    const declarations = declarationsOf(
-      read("components", "TaskCard", "TaskCard.css"),
-      ".task-card",
-    );
-
-    expect(declarations).toMatch(/height:\s*100%/);
-  });
-});
 
 describe("the settings commit row", () => {
   // @covers app-shell/uniform-primary-action-placement-across-feature-screens#settings-commits-from-the-same-side

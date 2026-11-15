@@ -4,37 +4,42 @@
   gap: var(--space-6);
 }
 
-.home__intro {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
 .home__heading {
-  font-size: var(--text-2xl);
-  letter-spacing: -0.02em;
+  font-size: var(--text-3xl);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
-.home__subheading {
-  max-width: 56ch;
-  color: var(--ink-2);
+/* One numbered list; rows draw their own rule below, the list the one above. */
+.home__tasks {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  border-top: 1px solid var(--hair);
 }
 
-/*
- * Fixed two columns rather than `auto-fit`: there are exactly four tasks, and
- * auto-fit reflowed them into an unbalanced 3 + 1 at common window widths.
- * `minmax(0, 1fr)` keeps a long description from pushing its column past its
- * share. Below 40rem two 280px cards plus the gap and the main padding no
- * longer fit, so the grid stacks.
- */
-.home__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
+.task-specimen__chip {
+  padding: var(--space-1) var(--space-2);
+  white-space: nowrap;
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-control);
 }
 
-@media (width <= 40rem) {
-  .home__grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.task-specimen__arrow {
+  color: var(--accent-ink);
+}
+
+.task-specimen__after {
+  color: var(--ink);
+}
+
+.task-specimen__line {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.task-specimen__line.serif {
+  font-size: var(--text-base);
 }

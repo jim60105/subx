@@ -1,6 +1,5 @@
 {
   "heading": "你想做什麼？",
-  "subheading": "選擇一項任務開始。SubX 全程在本機透過 subx 引擎執行。",
   "tasks": {
     "match": {
       "name": "配對字幕",
@@ -17,6 +16,12 @@
     "translate": {
       "name": "翻譯",
       "description": "用 AI 將字幕翻譯成其他語言。"
+    }
+  },
+  "specimens": {
+    "translate": {
+      "source": "Long time no see.",
+      "target": "好久不見。"
     }
   }
 }

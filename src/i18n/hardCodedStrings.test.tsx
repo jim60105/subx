@@ -18,6 +18,7 @@ import { ConvertOptionsStep } from "../features/convert/ConvertOptionsStep";
 import { ConvertRunStep } from "../features/convert/ConvertRunStep";
 import { ConvertSourcesStep } from "../features/convert/ConvertSourcesStep";
 import { HomeScreen } from "../features/home/HomeScreen";
+import { SPECIMEN_TEXTS } from "../features/home/specimens";
 import { AnalysisStep } from "../features/match/AnalysisStep";
 import { ExecuteStep } from "../features/match/ExecuteStep";
 import { ReviewStep } from "../features/match/ReviewStep";
@@ -79,6 +80,9 @@ const ALLOWED = [
   /^\*{4}1234$/,
   // The build identity is backend data, not localized prose.
   /^\d+\.\d+\.\d+( · [0-9a-f]{7,40})?$/,
+  // The home specimens' sample file names, extensions, and timecodes. They
+  // demonstrate what a task does to files; they are not prose. Matched exactly.
+  ...SPECIMEN_TEXTS.map((text) => new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`)),
 ];
 
 /**
