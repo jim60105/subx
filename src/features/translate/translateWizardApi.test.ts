@@ -15,7 +15,7 @@ afterEach(() => {
 describe("the translate wizard command wrappers", () => {
   it("scans the sources with paths alone and resolves with the scan result", async () => {
     const scan = {
-      files: [{ name: "one.srt", cueCount: 2, unparsable: false }],
+      files: [{ name: "one.srt", source: "/media", cueCount: 2, unparsable: false }],
       defaultTargetLanguage: "zh-TW",
     };
     mockIPC((command, args) => {

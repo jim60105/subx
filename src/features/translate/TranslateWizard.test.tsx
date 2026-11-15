@@ -19,9 +19,9 @@ import * as api from "./translateWizardApi";
 
 const SCAN: TranslateScanResult = {
   files: [
-    { name: "one.srt", cueCount: 2, unparsable: false },
-    { name: "two.srt", cueCount: 3, unparsable: false },
-    { name: "broken.srt", cueCount: 0, unparsable: true },
+    { name: "one.srt", source: "/m/one.srt", cueCount: 2, unparsable: false },
+    { name: "two.srt", source: "/m/one.srt", cueCount: 3, unparsable: false },
+    { name: "broken.srt", source: "/m/one.srt", cueCount: 0, unparsable: true },
   ],
   defaultTargetLanguage: "zh-TW",
 };
@@ -375,7 +375,21 @@ describe("the translate wizard", () => {
     const user = userEvent.setup();
     const pending = deferred<TranslationReportDto>();
     vi.mocked(api.executeTranslation).mockImplementation((_planId, _ids, onProgress) => {
-      onProgress({ stage: "translating", index: 2, total: 3, fileName: "two.srt" });
+      onProgress({
+        stage: "translating",
+        index: 2,
+        total: 3,
+        fileName: "two.srt",
+        itemId: 1,
+        processedCues: 0,
+        totalCues: 3,
+        batchSize: 40,
+        batchTotal: 1,
+        batchesDone: 0,
+        batchInFlight: 1,
+        resend: false,
+        outcome: null,
+      });
       return pending.promise;
     });
     renderWizard();

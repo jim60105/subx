@@ -8,8 +8,10 @@
 //! translation itself all lives in the crate.
 //!
 //! `TranslationEngine::translate_subtitle` is pure in-memory (no filesystem
-//! I/O, no progress callback) and takes a target language, glossary and
-//! context bundled into one `TranslationRequest`. The CLI's output-resolution
+//! I/O) and takes a target language, glossary and context bundled into one
+//! `TranslationRequest`. Its batch-level progress arrives through the
+//! engine's `Reporter` seam as structured `ProgressEvent::Translation` events,
+//! which [`ProgressTracker`] turns into full [`TranslateProgress`] snapshots. The CLI's output-resolution
 //! and backup-naming logic (`resolve_output_path`, `backup_path` in
 //! `translate_command.rs`) is private, so it is mirrored here: suffix naming
 //! `{stem}.{lang}.{ext}` beside the input (beside the archive for
@@ -25,12 +27,13 @@
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, PoisonError};
 
 use subx_core::core::input::{CollectedFiles, InputPathHandler};
 use subx_core::config::ConfigService;
 use subx_core::core::formats::manager::FormatManager;
 use subx_core::core::matcher::{FileDiscovery, MediaFileType};
+use subx_core::core::report::{ProgressEvent, Reporter, TranslationPass, TranslationProgress};
 use subx_core::core::translation::{parse_glossary_text, TranslationEngine, TranslationRequest};
 use subx_core::core::ComponentFactory;
 use subx_core::error::SubXError;
@@ -216,6 +219,7 @@ fn scan_translate_inputs(
         return Err(no_subtitles());
     }
 
+    let sources = SourceKeys::new(paths);
     let format_manager = FormatManager::new();
     let files = inputs
         .iter()
@@ -229,6 +233,7 @@ fn scan_translate_inputs(
                 .map(|subtitle| subtitle.entries.len() as u32);
             TranslateScanItemDto {
                 name: display_name(input),
+                source: attribute_source(input, &sources, &collected),
                 cue_count: cue_count.unwrap_or(0),
                 unparsable: cue_count.is_none(),
             }
@@ -334,6 +339,7 @@ async fn preview_translation_impl(
             }
 
             items.push(TranslatePlanItem {
+                id: items.len() as u32,
                 input,
                 output,
                 cue_count: cue_count.unwrap_or(0),
@@ -438,12 +444,13 @@ async fn run_batch(
         glossary_entries,
     };
 
-    let selected: HashSet<usize> = item_ids.iter().map(|&id| id as usize).collect();
+    // The item travels whole, ID included: progress names files by plan ID,
+    // which a queue position would renumber once an earlier item is
+    // deselected (design D5).
+    let selected: HashSet<u32> = item_ids.iter().copied().collect();
     let queue: Vec<TranslatePlanItem> = items
         .into_iter()
-        .enumerate()
-        .filter(|(index, _)| selected.contains(index))
-        .map(|(_, item)| item)
+        .filter(|item| selected.contains(&item.id))
         .collect();
 
     let BatchResult { outcomes, cancelled } = translate_batch_off_thread(
@@ -496,14 +503,24 @@ async fn translate_batch_off_thread(
             .build()
             .map_err(|err| ErrorDto::new("core.other", format!("the translation worker failed: {err}")))?;
         runtime.block_on(async move {
-            let engine =
-                TranslationEngine::new(provider, batch_size).map_err(ErrorDto::from)?;
+            let tracker = Arc::new(ProgressTracker::new(reporter, cancel_rx.clone()));
+            let engine = TranslationEngine::new(provider, batch_size)
+                .map_err(ErrorDto::from)?
+                .with_reporter(Arc::new(EngineProgressReporter(Arc::clone(&tracker))));
             let total = queue.len() as u32;
+            let batch_size = u32::try_from(batch_size).unwrap_or(u32::MAX);
             let mut outcomes = Vec::with_capacity(queue.len());
             let mut cancelled = false;
 
             for (position, item) in queue.iter().enumerate() {
                 let name = display_name(&item.input);
+                let base = FileStart {
+                    index: position as u32 + 1,
+                    total,
+                    name: name.clone(),
+                    item,
+                    batch_size,
+                };
 
                 // Checked before each item, and again below mid-item: unlike
                 // convert's between-files-only cancel, translation is
@@ -511,6 +528,7 @@ async fn translate_batch_off_thread(
                 if cancelled || *cancel_rx.borrow() {
                     cancelled = true;
                     outcomes.push(cancelled_outcome(item, &name));
+                    tracker.never_started(&base, TranslationStatusDto::Cancelled);
                     continue;
                 }
 
@@ -521,15 +539,12 @@ async fn translate_batch_off_thread(
                     skipped.error =
                         Some(ErrorDto::new(reason.clone(), "the item is excluded from the plan"));
                     outcomes.push(skipped);
+                    tracker.never_started(&base, TranslationStatusDto::Skipped);
                     continue;
                 }
 
-                reporter.report(TranslateProgress {
-                    stage: TranslateStage::Translating,
-                    index: position as u32 + 1,
-                    total,
-                    file_name: name.clone(),
-                });
+                tracker.start_file(&base);
+                let before_write = || tracker.writing();
 
                 // Races the whole per-file translation (load, AI round-trips,
                 // write) against the cancel signal. Dropping the losing
@@ -539,24 +554,23 @@ async fn translate_batch_off_thread(
                 let raced = tokio::select! {
                     biased;
                     _ = cancel_rx.changed() => None,
-                    outcome = translate_one(&engine, &request, item, replace_mode, backup_enabled) => Some(outcome),
+                    outcome = translate_one(&engine, &request, item, replace_mode, backup_enabled, &before_write) => Some(outcome),
                 };
 
                 match raced {
                     None => {
                         cancelled = true;
                         outcomes.push(cancelled_outcome(item, &name));
+                        tracker.finish_file(TranslationStatusDto::Cancelled);
                     }
-                    Some(outcome) => outcomes.push(outcome),
+                    Some(outcome) => {
+                        tracker.finish_file(outcome.status.clone());
+                        outcomes.push(outcome);
+                    }
                 }
             }
 
-            reporter.report(TranslateProgress {
-                stage: TranslateStage::Finished,
-                index: total,
-                total,
-                file_name: String::new(),
-            });
+            tracker.finished(total);
 
             Ok(BatchResult { outcomes, cancelled })
         })
@@ -577,6 +591,7 @@ async fn translate_one(
     item: &TranslatePlanItem,
     replace_mode: bool,
     backup_enabled: bool,
+    before_write: &dyn Fn(),
 ) -> TranslationOutcomeDto {
     let name = display_name(&item.input);
     let mut record = blank_outcome(item, &name, TranslationStatusDto::Translated);
@@ -611,6 +626,10 @@ async fn translate_one(
             return record;
         }
     };
+
+    // Everything from here on is synchronous, so the cancel race cannot
+    // interrupt a write half-way: once `writing` is reported the file lands.
+    before_write();
 
     if replace_mode && backup_enabled {
         let backup = backup_path(&item.input);
@@ -648,6 +667,215 @@ async fn translate_one(
     record
 }
 
+// ─── Progress ───────────────────────────────────────────────────────────────
+
+/// What the batch loop knows about a file when it picks it.
+struct FileStart<'a> {
+    index: u32,
+    total: u32,
+    name: String,
+    item: &'a TranslatePlanItem,
+    batch_size: u32,
+}
+
+impl FileStart<'_> {
+    /// The snapshot a file starts from: counters zero, and the bar's batch
+    /// count derived from the plan's cue count so it can be drawn during the
+    /// terminology phase (design D6).
+    fn snapshot(&self, stage: TranslateStage) -> TranslateProgress {
+        let batch_total = if self.batch_size == 0 {
+            0
+        } else {
+            self.item.cue_count.div_ceil(self.batch_size)
+        };
+        TranslateProgress {
+            stage,
+            index: self.index,
+            total: self.total,
+            file_name: self.name.clone(),
+            item_id: self.item.id,
+            processed_cues: 0,
+            total_cues: self.item.cue_count,
+            batch_size: self.batch_size,
+            batch_total,
+            batches_done: 0,
+            batch_in_flight: 0,
+            resend: false,
+            outcome: None,
+        }
+    }
+}
+
+/// Narrows an engine count for the IPC boundary, which carries no `u64`.
+fn narrow(value: u64) -> u32 {
+    u32::try_from(value).unwrap_or(u32::MAX)
+}
+
+/// The per-file progress state the engine reporter and the batch loop share.
+///
+/// One engine serves the whole run, so the loop resets the state before each
+/// file (design D5). Every update forwards a full snapshot to the
+/// [`TranslateReporter`]. The mutex is uncontended — the engine and the loop
+/// run on the same single-threaded runtime — and is released before the sink
+/// is called.
+struct ProgressTracker {
+    /// The file in flight, `None` between files.
+    current: Mutex<Option<TranslateProgress>>,
+    sink: Arc<dyn TranslateReporter>,
+    cancel: watch::Receiver<bool>,
+}
+
+impl ProgressTracker {
+    fn new(sink: Arc<dyn TranslateReporter>, cancel: watch::Receiver<bool>) -> Self {
+        Self {
+            current: Mutex::new(None),
+            sink,
+            cancel,
+        }
+    }
+
+    fn lock(&self) -> std::sync::MutexGuard<'_, Option<TranslateProgress>> {
+        self.current.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// Updates the file in flight and forwards it, unless the run was
+    /// cancelled or no file is in flight: after a cancel only the cancelled
+    /// completions and the final `Finished` may follow (design D6).
+    fn update(&self, change: impl FnOnce(&mut TranslateProgress)) {
+        if *self.cancel.borrow() {
+            return;
+        }
+        let snapshot = {
+            let mut current = self.lock();
+            let Some(progress) = current.as_mut() else {
+                return;
+            };
+            change(progress);
+            progress.clone()
+        };
+        self.sink.report(snapshot);
+    }
+
+    fn start_file(&self, start: &FileStart<'_>) {
+        let snapshot = start.snapshot(TranslateStage::Terminology);
+        *self.lock() = Some(snapshot.clone());
+        self.sink.report(snapshot);
+    }
+
+    fn writing(&self) {
+        self.update(|progress| {
+            progress.stage = TranslateStage::Writing;
+            progress.batch_in_flight = 0;
+            progress.resend = false;
+        });
+    }
+
+    /// Ends the file in flight with its outcome. Not gated on the cancel
+    /// signal: the abandoned file's cancelled completion must still be sent.
+    fn finish_file(&self, outcome: TranslationStatusDto) {
+        let Some(mut snapshot) = self.lock().take() else {
+            return;
+        };
+        snapshot.stage = TranslateStage::FileDone;
+        snapshot.batch_in_flight = 0;
+        snapshot.resend = false;
+        snapshot.outcome = Some(outcome);
+        self.sink.report(snapshot);
+    }
+
+    /// Completion of a file the loop never handed to the engine: a skipped
+    /// item, or one left unstarted by a cancel. No terminology precedes it.
+    fn never_started(&self, start: &FileStart<'_>, outcome: TranslationStatusDto) {
+        let mut snapshot = start.snapshot(TranslateStage::FileDone);
+        snapshot.outcome = Some(outcome);
+        self.sink.report(snapshot);
+    }
+
+    fn finished(&self, total: u32) {
+        self.sink.report(TranslateProgress {
+            stage: TranslateStage::Finished,
+            index: total,
+            total,
+            file_name: String::new(),
+            item_id: 0,
+            processed_cues: 0,
+            total_cues: 0,
+            batch_size: 0,
+            batch_total: 0,
+            batches_done: 0,
+            batch_in_flight: 0,
+            resend: false,
+            outcome: None,
+        });
+    }
+
+    /// Maps one engine event onto the file in flight (design D6's table).
+    fn on_engine_event(&self, event: &TranslationProgress) {
+        match *event {
+            TranslationProgress::BatchStarted {
+                pass,
+                batch,
+                batches,
+                attempt,
+                ..
+            } => match pass {
+                TranslationPass::Initial => self.update(|progress| {
+                    progress.stage = TranslateStage::Translating;
+                    progress.batch_total = narrow(batches);
+                    progress.batches_done = progress.batches_done.min(progress.batch_total);
+                    progress.batch_in_flight = narrow(batch);
+                    progress.resend = attempt > 1;
+                }),
+                TranslationPass::FillIn => self.update(|progress| {
+                    progress.stage = TranslateStage::FillIn;
+                    progress.batch_in_flight = 0;
+                    progress.resend = false;
+                }),
+                _ => {}
+            },
+            TranslationProgress::BatchFinished {
+                pass,
+                batch,
+                batches,
+                processed_cues,
+                total_cues,
+            } => match pass {
+                TranslationPass::Initial => self.update(|progress| {
+                    progress.stage = TranslateStage::Translating;
+                    progress.batch_total = narrow(batches);
+                    progress.batches_done = narrow(batch).min(progress.batch_total);
+                    progress.batch_in_flight = 0;
+                    progress.resend = false;
+                    progress.processed_cues = narrow(processed_cues);
+                    progress.total_cues = narrow(total_cues);
+                }),
+                TranslationPass::FillIn => self.update(|progress| {
+                    progress.stage = TranslateStage::FillIn;
+                    progress.processed_cues = narrow(processed_cues);
+                    progress.total_cues = narrow(total_cues);
+                }),
+                _ => {}
+            },
+            // The terminology phase is already shown from the moment the file
+            // starts, so its bracket changes nothing visible; later variants
+            // are uninteresting until the GUI learns to show them.
+            _ => {}
+        }
+    }
+}
+
+/// The engine-side `Reporter`: forwards only the structured translation
+/// events, so the engine's human-oriented text lines never reach the GUI.
+struct EngineProgressReporter(Arc<ProgressTracker>);
+
+impl Reporter for EngineProgressReporter {
+    fn progress(&self, event: &ProgressEvent<'_>) {
+        if let ProgressEvent::Translation(progress) = event {
+            self.0.on_engine_event(progress);
+        }
+    }
+}
+
 // ─── Pure helpers ───────────────────────────────────────────────────────────
 
 fn to_paths(paths: &[String]) -> Vec<PathBuf> {
@@ -663,18 +891,72 @@ fn collect_input_files(paths: &[PathBuf]) -> Result<CollectedFiles, ErrorDto> {
     handler.collect_files().map_err(ErrorDto::from)
 }
 
-/// The subtitle files among the collected inputs, in scan order.
+/// The subtitle files among the collected inputs, in scan order, each once.
+///
+/// A file reachable through several sources — added directly and through its
+/// folder, or under nested folder sources — is kept at its first occurrence
+/// in source order (design D3). Both the scan and the plan read this, so the
+/// plan never offers a duplicate that would only collide with itself.
 fn subtitle_files(collected: &CollectedFiles) -> Result<Vec<PathBuf>, ErrorDto> {
     let file_paths: &[PathBuf] = collected;
     let media = FileDiscovery::new()
         .scan_file_list(file_paths)
         .map_err(ErrorDto::from)?;
 
+    let mut seen = HashSet::new();
     Ok(media
         .into_iter()
         .filter(|file| matches!(file.file_type, MediaFileType::Subtitle))
         .map(|file| file.path)
+        .filter(|path| seen.insert(resolved_key(path)))
         .collect())
+}
+
+/// A comparison key for "the same file": canonical where it resolves, the
+/// raw path otherwise.
+fn resolved_key(path: &Path) -> PathBuf {
+    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+}
+
+/// The user's sources in the order given, each with its resolved form,
+/// computed once per scan.
+struct SourceKeys {
+    sources: Vec<(PathBuf, PathBuf)>,
+}
+
+impl SourceKeys {
+    fn new(paths: &[PathBuf]) -> Self {
+        Self {
+            sources: paths
+                .iter()
+                .map(|path| (path.clone(), resolved_key(path)))
+                .collect(),
+        }
+    }
+}
+
+/// The source the user added that produced `path` (design D3).
+///
+/// An archive entry belongs to its archive. Otherwise the first source in the
+/// order given that produced the file wins: the file itself, or a folder it
+/// sits under. A file that matches no source (reached through a symlink, say)
+/// falls back to its parent folder so it still lands in a folder group.
+fn attribute_source(path: &Path, sources: &SourceKeys, collected: &CollectedFiles) -> String {
+    if let Some(archive) = collected.archive_origin(path) {
+        return archive.to_string_lossy().to_string();
+    }
+    let resolved = resolved_key(path);
+    sources
+        .sources
+        .iter()
+        .find(|(raw, key)| resolved.starts_with(key) || path.starts_with(raw))
+        .map(|(raw, _)| raw.to_string_lossy().to_string())
+        .unwrap_or_else(|| {
+            path.parent()
+                .unwrap_or(path)
+                .to_string_lossy()
+                .to_string()
+        })
 }
 
 /// The effective target language using CLI > config precedence (design D5),
@@ -782,9 +1064,8 @@ fn build_plan_dto(plan: &TranslatePlan, output_mode: TranslateOutputModeDto) -> 
         items: plan
             .items()
             .iter()
-            .enumerate()
-            .map(|(index, item)| TranslateItemDto {
-                id: index as u32,
+            .map(|item| TranslateItemDto {
+                id: item.id,
                 input_name: display_name(&item.input),
                 input_path: item.input.display().to_string(),
                 output_path: item.output.display().to_string(),
@@ -998,24 +1279,216 @@ mod tests {
         }
     }
 
-    /// Sends on its own `watch::Sender` as soon as the second file's progress
-    /// is reported — synchronously, before that file's translation begins, so
-    /// there is no scheduling race with the batch's own single-threaded
-    /// worker (unlike routing through `TranslateState::cancel`, which needs an
-    /// async lock and would race the loop instead of deterministically landing
-    /// mid-file, per design D3's stronger guarantee).
+    /// Sends on its own `watch::Sender` as soon as the second file reports
+    /// its terminology phase — synchronously, before that file's translation
+    /// begins, so there is no scheduling race with the batch's own
+    /// single-threaded worker (unlike routing through `TranslateState::cancel`,
+    /// which needs an async lock and would race the loop instead of
+    /// deterministically landing mid-file, per design D3's stronger
+    /// guarantee). Keyed on the file and phase, not on a report count, so a
+    /// finer progress stream does not move the cancel point.
     struct CancelOnSecondFile {
         tx: watch::Sender<bool>,
-        seen: Mutex<u32>,
     }
     impl TranslateReporter for CancelOnSecondFile {
         fn report(&self, progress: TranslateProgress) {
-            let mut seen = self.seen.lock().unwrap();
-            *seen += 1;
-            if *seen == 2 && progress.stage == TranslateStage::Translating {
+            if progress.index == 2 && progress.stage == TranslateStage::Terminology {
                 let _ = self.tx.send(true);
             }
         }
+    }
+
+    /// Records every snapshot and cancels the run the moment the second file's
+    /// first batch is in flight, i.e. while the engine is mid-request.
+    struct CancelOnSecondFileBatch {
+        tx: watch::Sender<bool>,
+        seen: Mutex<Vec<TranslateProgress>>,
+    }
+    impl TranslateReporter for CancelOnSecondFileBatch {
+        fn report(&self, progress: TranslateProgress) {
+            if progress.index == 2
+                && progress.stage == TranslateStage::Translating
+                && progress.batch_in_flight == 1
+            {
+                let _ = self.tx.send(true);
+            }
+            self.seen.lock().unwrap().push(progress);
+        }
+    }
+
+    /// Echoes like [`ScriptedAi`] but yields to the runtime before answering,
+    /// as a real HTTP request would, so a cancel sent while a batch is in
+    /// flight can win the race. Counts the translation requests it answered.
+    struct YieldingAi {
+        answered: Mutex<Vec<String>>,
+    }
+    #[async_trait]
+    impl AIProvider for YieldingAi {
+        async fn analyze_content(&self, _r: AnalysisRequest) -> subx_core::Result<MatchResult> {
+            unimplemented!()
+        }
+        async fn verify_match(&self, _v: VerificationRequest) -> subx_core::Result<ConfidenceScore> {
+            unimplemented!()
+        }
+        async fn chat_completion(&self, messages: Vec<serde_json::Value>) -> subx_core::Result<String> {
+            tokio::task::yield_now().await;
+            let prompt = last_prompt(&messages);
+            let ids = extract_ids(&prompt);
+            if ids.is_empty() {
+                return Ok(r#"{"terms":[]}"#.to_string());
+            }
+            self.answered.lock().unwrap().push(prompt);
+            Ok(echo(&ids))
+        }
+    }
+
+    /// Answers the first translation request with a cue ID that was never
+    /// sent, which makes the engine discard the response and resend the batch.
+    struct UnknownIdOnceAi {
+        sent_bogus: Mutex<bool>,
+    }
+    #[async_trait]
+    impl AIProvider for UnknownIdOnceAi {
+        async fn analyze_content(&self, _r: AnalysisRequest) -> subx_core::Result<MatchResult> {
+            unimplemented!()
+        }
+        async fn verify_match(&self, _v: VerificationRequest) -> subx_core::Result<ConfidenceScore> {
+            unimplemented!()
+        }
+        async fn chat_completion(&self, messages: Vec<serde_json::Value>) -> subx_core::Result<String> {
+            let ids = extract_ids(&last_prompt(&messages));
+            if ids.is_empty() {
+                return Ok(r#"{"terms":[]}"#.to_string());
+            }
+            let mut sent_bogus = self.sent_bogus.lock().unwrap();
+            if !*sent_bogus {
+                *sent_bogus = true;
+                return Ok(r#"{"translations":[{"id":"no-such-cue","text":"x"}]}"#.to_string());
+            }
+            Ok(echo(&ids))
+        }
+    }
+
+    /// Hands one fixed provider to the batch.
+    struct FixedFactory(Arc<dyn AIProvider>);
+    impl AiProviderFactory for FixedFactory {
+        fn create_provider(&self, _s: &dyn ConfigService) -> Result<Arc<dyn AIProvider>, ErrorDto> {
+            Ok(Arc::clone(&self.0))
+        }
+    }
+
+    fn last_prompt(messages: &[serde_json::Value]) -> String {
+        messages
+            .last()
+            .and_then(|m| m.get("content"))
+            .and_then(|c| c.as_str())
+            .unwrap_or("")
+            .to_string()
+    }
+
+    fn echo(ids: &[String]) -> String {
+        let translations: Vec<String> =
+            ids.iter().map(|id| format!(r#"{{"id":"{id}","text":"[{id}]"}}"#)).collect();
+        format!(r#"{{"translations":[{}]}}"#, translations.join(","))
+    }
+
+    /// An SRT with `count` one-second cues.
+    fn srt_with(count: usize) -> String {
+        (0..count)
+            .map(|i| {
+                format!(
+                    "{}\n00:{:02}:{:02},000 --> 00:{:02}:{:02},500\ncue {i}\n\n",
+                    i + 1,
+                    i / 60,
+                    i % 60,
+                    i / 60,
+                    i % 60
+                )
+            })
+            .collect()
+    }
+
+    fn service_with_batch_size(batch_size: usize) -> Arc<dyn ConfigService> {
+        Arc::new(
+            TestConfigBuilder::new()
+                .with_ai_provider("openai")
+                .with_ai_model("gpt-4.1-mini")
+                .with_ai_api_key("sk-test-value-1234")
+                .with_translation_default_target_language("zh-TW")
+                .with_translation_batch_size(batch_size)
+                .build_service(),
+        )
+    }
+
+    /// One snapshot reduced to the fields the progress scenarios are about.
+    #[derive(Debug, PartialEq)]
+    struct Step {
+        index: u32,
+        stage: TranslateStage,
+        batch_in_flight: u32,
+        batches_done: u32,
+        resend: bool,
+        processed: u32,
+        outcome: Option<TranslationStatusDto>,
+    }
+
+    fn steps(progress: &[TranslateProgress]) -> Vec<Step> {
+        progress
+            .iter()
+            .map(|p| Step {
+                index: p.index,
+                stage: p.stage.clone(),
+                batch_in_flight: p.batch_in_flight,
+                batches_done: p.batches_done,
+                resend: p.resend,
+                processed: p.processed_cues,
+                outcome: p.outcome.clone(),
+            })
+            .collect()
+    }
+
+    fn step(index: u32, stage: TranslateStage, in_flight: u32, done: u32, processed: u32) -> Step {
+        Step {
+            index,
+            stage,
+            batch_in_flight: in_flight,
+            batches_done: done,
+            resend: false,
+            processed,
+            outcome: None,
+        }
+    }
+
+    /// Previews `paths` and runs `ids` (all when `None`) with `factory`,
+    /// returning the report and every recorded snapshot.
+    async fn run_recorded(
+        service: Arc<dyn ConfigService>,
+        paths: Vec<PathBuf>,
+        factory: Arc<dyn AiProviderFactory>,
+        ids: Option<Vec<u32>>,
+    ) -> (TranslationReportDto, Vec<TranslateProgress>) {
+        let state = Arc::new(TranslateState::default());
+        let reporter = Arc::new(RecordingReporter::default());
+        let plan = preview(
+            &service,
+            &state,
+            paths,
+            options(Some("zh-TW"), TranslateOutputModeDto::Suffix, false),
+        )
+        .await
+        .unwrap();
+        let ids = ids.unwrap_or_else(|| all_ids(&plan));
+        let report = execute_translation_impl(
+            service,
+            state,
+            factory,
+            reporter.clone(),
+            &plan.plan_id,
+            &ids,
+        )
+        .await
+        .expect("the batch must run");
+        (report, reporter.seen())
     }
 
     fn write_zip(path: &Path, entries: &[(&str, &str)]) {
@@ -1174,6 +1647,114 @@ mod tests {
             .expect("the parsable file must be listed");
         assert!(!good.unparsable);
         assert_eq!(good.cue_count, 2);
+    }
+
+    fn sources_by_name(scan: &TranslateScanResult) -> Vec<(String, String)> {
+        scan.files.iter().map(|f| (f.name.clone(), f.source.clone())).collect()
+    }
+
+    #[test]
+    fn each_scan_item_names_the_source_that_produced_it() {
+        let dir = TempDir::new().unwrap();
+        let folder = dir.path().join("media");
+        fs::create_dir(&folder).unwrap();
+        fs::write(folder.join("episode.srt"), SRT).unwrap();
+        let loose = dir.path().join("loose.srt");
+        fs::write(&loose, SRT).unwrap();
+        let archive = dir.path().join("bundle.zip");
+        write_zip(&archive, &[("archived.srt", SRT)]);
+
+        let scan = scan_translate_inputs(service().as_ref(), &[loose.clone(), folder.clone(), archive.clone()])
+            .expect("the scan must succeed");
+
+        let text = |path: &Path| path.to_string_lossy().to_string();
+        assert_eq!(
+            sources_by_name(&scan),
+            [
+                ("loose.srt".to_string(), text(&loose)),
+                ("episode.srt".to_string(), text(&folder)),
+                ("archived.srt".to_string(), text(&archive)),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_file_added_directly_and_through_its_folder_is_listed_once() {
+        let dir = TempDir::new().unwrap();
+        let file = dir.path().join("one.srt");
+        fs::write(&file, SRT).unwrap();
+        fs::write(dir.path().join("two.srt"), SRT).unwrap();
+        let folder = dir.path().to_path_buf();
+        let text = |path: &Path| path.to_string_lossy().to_string();
+
+        let direct_first = scan_translate_inputs(service().as_ref(), &[file.clone(), folder.clone()]).unwrap();
+        let mut listed = sources_by_name(&direct_first);
+        listed.sort();
+        assert_eq!(
+            listed,
+            [("one.srt".to_string(), text(&file)), ("two.srt".to_string(), text(&folder))]
+        );
+
+        // The first source that produced the file wins, so the folder does
+        // when it was added first.
+        let folder_first = scan_translate_inputs(service().as_ref(), &[folder.clone(), file.clone()]).unwrap();
+        let mut listed = sources_by_name(&folder_first);
+        listed.sort();
+        assert_eq!(
+            listed,
+            [("one.srt".to_string(), text(&folder)), ("two.srt".to_string(), text(&folder))]
+        );
+    }
+
+    #[test]
+    fn nested_folder_sources_yield_each_file_once() {
+        let dir = TempDir::new().unwrap();
+        let inner = dir.path().join("inner");
+        fs::create_dir(&inner).unwrap();
+        fs::write(dir.path().join("outer.srt"), SRT).unwrap();
+        fs::write(inner.join("inner.srt"), SRT).unwrap();
+
+        let scan = scan_translate_inputs(service().as_ref(), &[dir.path().to_path_buf(), inner]).unwrap();
+
+        let mut names: Vec<String> = scan.files.iter().map(|f| f.name.clone()).collect();
+        names.sort();
+        assert_eq!(names, ["inner.srt", "outer.srt"]);
+        assert!(scan.files.iter().all(|f| f.source == dir.path().to_string_lossy()));
+    }
+
+    #[tokio::test]
+    async fn the_plan_lists_a_file_reachable_through_two_sources_once() {
+        let dir = TempDir::new().unwrap();
+        let file = dir.path().join("one.srt");
+        fs::write(&file, SRT).unwrap();
+
+        let plan = preview(
+            &service(),
+            &Arc::new(TranslateState::default()),
+            vec![file, dir.path().to_path_buf()],
+            options(Some("zh-TW"), TranslateOutputModeDto::Suffix, false),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(plan.items.len(), 1, "{:?}", plan.items);
+        assert_eq!(plan.items[0].skip_reason, None);
+    }
+
+    #[test]
+    fn a_file_matching_no_source_falls_back_to_its_parent_folder() {
+        let dir = TempDir::new().unwrap();
+        let elsewhere = dir.path().join("elsewhere");
+        fs::create_dir(&elsewhere).unwrap();
+        let file = elsewhere.join("stray.srt");
+        fs::write(&file, SRT).unwrap();
+        let unrelated = dir.path().join("unrelated");
+        fs::create_dir(&unrelated).unwrap();
+        let collected = collect_input_files(std::slice::from_ref(&unrelated)).unwrap();
+
+        let source = attribute_source(&file, &SourceKeys::new(&[unrelated]), &collected);
+
+        assert_eq!(source, elsewhere.to_string_lossy());
     }
 
     // ─── Preview ────────────────────────────────────────────────────────────
@@ -1518,13 +2099,30 @@ mod tests {
         assert_eq!(output.matches("-->").count(), 2, "the cue count must survive");
 
         let progress = reporter.seen();
-        let translating: Vec<&TranslateProgress> = progress
+        // Scan order follows the directory listing, so names are compared as
+        // a set while positions are compared in order.
+        let starts: Vec<(u32, u32)> = progress
             .iter()
-            .filter(|entry| entry.stage == TranslateStage::Translating)
+            .filter(|entry| entry.stage == TranslateStage::Terminology)
+            .map(|entry| (entry.index, entry.total))
             .collect();
-        assert_eq!(translating.len(), 2);
-        assert_eq!((translating[0].index, translating[0].total), (1, 2));
-        assert_eq!((translating[1].index, translating[1].total), (2, 2));
+        assert_eq!(starts, [(1, 2), (2, 2)]);
+        let mut names: Vec<&str> = progress
+            .iter()
+            .filter(|entry| entry.stage == TranslateStage::Terminology)
+            .map(|entry| entry.file_name.as_str())
+            .collect();
+        names.sort();
+        assert_eq!(names, ["one.srt", "two.srt"]);
+        for index in [1, 2] {
+            // Two cues fit one batch: it goes in flight, then returns.
+            let batches: Vec<(u32, u32)> = progress
+                .iter()
+                .filter(|entry| entry.index == index && entry.stage == TranslateStage::Translating)
+                .map(|entry| (entry.batch_in_flight, entry.batches_done))
+                .collect();
+            assert_eq!(batches, [(1, 0), (0, 1)], "file {index}: {progress:?}");
+        }
         assert_eq!(
             progress.last().map(|entry| entry.stage.clone()),
             Some(TranslateStage::Finished)
@@ -1724,7 +2322,7 @@ mod tests {
         .await
         .unwrap();
         let (tx, rx) = watch::channel(false);
-        let reporter = Arc::new(CancelOnSecondFile { tx, seen: Mutex::new(0) });
+        let reporter = Arc::new(CancelOnSecondFile { tx });
 
         // Drives `run_batch` directly rather than through
         // `execute_translation_impl`, so the test owns the `watch::Sender` the
@@ -1914,6 +2512,337 @@ mod tests {
             report.outcomes[0].warning.as_ref().map(|w| w.code.as_str()),
             Some(CODE_EMPTY_CUE_FALLBACK)
         );
+    }
+
+    // ─── Batch-level progress ───────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn a_clean_file_reports_its_phases_in_order() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("long.srt"), srt_with(250)).unwrap();
+
+        let (report, progress) = run_recorded(
+            service_with_batch_size(100),
+            vec![dir.path().to_path_buf()],
+            Arc::new(ScriptedAiFactory { provider: ScriptedAi::new() }),
+            None,
+        )
+        .await;
+
+        assert_eq!(report.success_count, 1, "{:?}", report.outcomes);
+        use TranslateStage::*;
+        // In-flight snapshots still carry the previous batch's processed count.
+        let mut expected = vec![
+            step(1, Terminology, 0, 0, 0),
+            step(1, Translating, 1, 0, 0),
+            step(1, Translating, 0, 1, 100),
+            step(1, Translating, 2, 1, 100),
+            step(1, Translating, 0, 2, 200),
+            step(1, Translating, 3, 2, 200),
+            step(1, Translating, 0, 3, 250),
+        ];
+        expected.push(step(1, Writing, 0, 3, 250));
+        expected.push(Step {
+            outcome: Some(TranslationStatusDto::Translated),
+            ..step(1, FileDone, 0, 3, 250)
+        });
+        expected.push(step(1, Finished, 0, 0, 0));
+        assert_eq!(steps(&progress), expected);
+        assert!(progress[..progress.len() - 1].iter().all(|p| p.total_cues == 250
+            && p.batch_size == 100
+            && p.batch_total == 3));
+    }
+
+    #[tokio::test]
+    async fn a_resent_batch_is_flagged_and_does_not_count_as_returned() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("one.srt"), srt_with(3)).unwrap();
+        let provider: Arc<dyn AIProvider> = Arc::new(UnknownIdOnceAi { sent_bogus: Mutex::new(false) });
+
+        let (report, progress) = run_recorded(
+            service_with_batch_size(2),
+            vec![dir.path().to_path_buf()],
+            Arc::new(FixedFactory(provider)),
+            None,
+        )
+        .await;
+
+        assert_eq!(report.success_count, 1, "{:?}", report.outcomes);
+        let batches: Vec<(u32, u32, bool)> = progress
+            .iter()
+            .filter(|p| p.stage == TranslateStage::Translating)
+            .map(|p| (p.batch_in_flight, p.batches_done, p.resend))
+            .collect();
+        assert_eq!(
+            batches,
+            [(1, 0, false), (1, 0, true), (0, 1, false), (2, 1, false), (0, 2, false)],
+            "batch 1 is resent once, and only its resend's return counts"
+        );
+    }
+
+    #[tokio::test]
+    async fn the_fill_in_pass_is_reported_as_its_own_phase() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("one.srt"), SRT).unwrap();
+
+        let (_, progress) = run_recorded(
+            service(),
+            vec![dir.path().to_path_buf()],
+            Arc::new(ScriptedAiFactory { provider: ScriptedAi::dropping_every_cue() }),
+            None,
+        )
+        .await;
+
+        let fill_in: Vec<&TranslateProgress> =
+            progress.iter().filter(|p| p.stage == TranslateStage::FillIn).collect();
+        assert!(!fill_in.is_empty(), "{progress:?}");
+        for snapshot in &fill_in {
+            assert_eq!(snapshot.batch_in_flight, 0);
+            assert_eq!(snapshot.batches_done, snapshot.batch_total);
+        }
+        let last = fill_in.last().unwrap();
+        assert_eq!(last.processed_cues, last.total_cues);
+        assert_eq!(last.total_cues, 2);
+    }
+
+    #[tokio::test]
+    async fn a_failed_file_reports_completion_and_the_batch_continues() {
+        /// Fails every request of the file whose cue text carries the marker,
+        /// its terminology request first.
+        struct FailMarked;
+        #[async_trait]
+        impl AIProvider for FailMarked {
+            async fn analyze_content(&self, _r: AnalysisRequest) -> subx_core::Result<MatchResult> {
+                unimplemented!()
+            }
+            async fn verify_match(&self, _v: VerificationRequest) -> subx_core::Result<ConfidenceScore> {
+                unimplemented!()
+            }
+            async fn chat_completion(&self, messages: Vec<serde_json::Value>) -> subx_core::Result<String> {
+                let prompt = last_prompt(&messages);
+                if prompt.contains("BREAKME") {
+                    return Err(SubXError::ai_service("scripted failure"));
+                }
+                let ids = extract_ids(&prompt);
+                if ids.is_empty() {
+                    return Ok(r#"{"terms":[]}"#.to_string());
+                }
+                Ok(echo(&ids))
+            }
+        }
+
+        let dir = TempDir::new().unwrap();
+        // `a` sorts first, so the failing file is the first of the two.
+        fs::write(dir.path().join("a.srt"), "1\n00:00:01,000 --> 00:00:02,000\nBREAKME\n\n").unwrap();
+        fs::write(dir.path().join("b.srt"), SRT).unwrap();
+
+        let (report, progress) = run_recorded(
+            service(),
+            vec![dir.path().join("a.srt"), dir.path().join("b.srt")],
+            Arc::new(FixedFactory(Arc::new(FailMarked))),
+            None,
+        )
+        .await;
+
+        assert_eq!(report.failure_count, 1);
+        let first_file: Vec<(TranslateStage, Option<TranslationStatusDto>)> = progress
+            .iter()
+            .filter(|p| p.index == 1)
+            .map(|p| (p.stage.clone(), p.outcome.clone()))
+            .collect();
+        assert_eq!(
+            first_file,
+            [
+                (TranslateStage::Terminology, None),
+                (TranslateStage::FileDone, Some(TranslationStatusDto::Failed)),
+            ]
+        );
+        let done = progress.iter().position(|p| p.index == 1 && p.stage == TranslateStage::FileDone).unwrap();
+        assert_eq!(
+            (progress[done + 1].index, progress[done + 1].stage.clone()),
+            (2, TranslateStage::Terminology)
+        );
+    }
+
+    #[tokio::test]
+    async fn cancelling_while_a_batch_is_in_flight_stops_progress() {
+        let dir = TempDir::new().unwrap();
+        for name in ["one.srt", "two.srt", "three.srt"] {
+            fs::write(dir.path().join(name), SRT).unwrap();
+        }
+        let paths: Vec<PathBuf> = ["one.srt", "two.srt", "three.srt"]
+            .iter()
+            .map(|name| dir.path().join(name))
+            .collect();
+        let service = service();
+        let state = Arc::new(TranslateState::default());
+        let plan = preview(
+            &service,
+            &state,
+            paths,
+            options(Some("zh-TW"), TranslateOutputModeDto::Suffix, false),
+        )
+        .await
+        .unwrap();
+        let (tx, rx) = watch::channel(false);
+        let reporter = Arc::new(CancelOnSecondFileBatch { tx, seen: Mutex::new(Vec::new()) });
+        let provider = Arc::new(YieldingAi { answered: Mutex::new(Vec::new()) });
+
+        let report = run_batch(
+            Arc::clone(&service),
+            Arc::clone(&state),
+            Arc::new(FixedFactory(provider.clone())),
+            reporter.clone(),
+            &plan.plan_id,
+            &all_ids(&plan),
+            rx,
+        )
+        .await
+        .unwrap();
+
+        assert!(report.cancelled);
+        let progress = reporter.seen.lock().unwrap().clone();
+        let cancel_at = progress
+            .iter()
+            .position(|p| p.index == 2 && p.batch_in_flight == 1)
+            .expect("the second file's first batch must have gone in flight");
+        let after: Vec<(u32, TranslateStage, Option<TranslationStatusDto>)> = progress[cancel_at + 1..]
+            .iter()
+            .map(|p| (p.index, p.stage.clone(), p.outcome.clone()))
+            .collect();
+        assert_eq!(
+            after,
+            [
+                (2, TranslateStage::FileDone, Some(TranslationStatusDto::Cancelled)),
+                (3, TranslateStage::FileDone, Some(TranslationStatusDto::Cancelled)),
+                (3, TranslateStage::Finished, None),
+            ]
+        );
+        // The in-flight request never answered: only file one's batch did.
+        assert_eq!(provider.answered.lock().unwrap().len(), 1);
+        assert!(dir.path().join("one.zh-TW.srt").exists());
+        assert!(!dir.path().join("two.zh-TW.srt").exists());
+        assert!(!dir.path().join("three.zh-TW.srt").exists());
+    }
+
+    #[tokio::test]
+    async fn progress_names_files_by_plan_id_after_a_deselection() {
+        let dir = TempDir::new().unwrap();
+        for name in ["a.srt", "b.srt", "c.srt"] {
+            fs::write(dir.path().join(name), SRT).unwrap();
+        }
+        let paths: Vec<PathBuf> = ["a.srt", "b.srt", "c.srt"].iter().map(|n| dir.path().join(n)).collect();
+
+        let (report, progress) = run_recorded(
+            service(),
+            paths,
+            Arc::new(ScriptedAiFactory { provider: ScriptedAi::new() }),
+            Some(vec![1, 2]),
+        )
+        .await;
+
+        assert_eq!(report.success_count, 2);
+        let per_file: Vec<(u32, u32)> = progress
+            .iter()
+            .filter(|p| p.stage == TranslateStage::Terminology)
+            .map(|p| (p.index, p.item_id))
+            .collect();
+        assert_eq!(per_file, [(1, 1), (2, 2)], "queue position 1 is plan item 1, not 0");
+        assert!(progress
+            .iter()
+            .filter(|p| p.stage != TranslateStage::Finished)
+            .all(|p| p.item_id == 1 || p.item_id == 2));
+    }
+
+    #[tokio::test]
+    async fn a_hand_selected_excluded_item_reports_a_skipped_completion_only() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("movie.srt"), SRT).unwrap();
+        fs::write(dir.path().join("movie.zh-TW.srt"), SRT).unwrap();
+        let service = service();
+        let state = Arc::new(TranslateState::default());
+        let plan = preview(
+            &service,
+            &state,
+            vec![dir.path().to_path_buf()],
+            options(Some("zh-TW"), TranslateOutputModeDto::Suffix, false),
+        )
+        .await
+        .unwrap();
+        let excluded = item_named(&plan, "movie.srt").id;
+        let reporter = Arc::new(RecordingReporter::default());
+
+        execute_translation_impl(
+            Arc::clone(&service),
+            state,
+            Arc::new(ScriptedAiFactory { provider: ScriptedAi::new() }),
+            reporter.clone(),
+            &plan.plan_id,
+            &[excluded],
+        )
+        .await
+        .unwrap();
+
+        let stages: Vec<(TranslateStage, Option<TranslationStatusDto>, u32)> = reporter
+            .seen()
+            .iter()
+            .map(|p| (p.stage.clone(), p.outcome.clone(), p.item_id))
+            .collect();
+        assert_eq!(
+            stages,
+            [
+                (TranslateStage::FileDone, Some(TranslationStatusDto::Skipped), excluded),
+                (TranslateStage::Finished, None, 0),
+            ]
+        );
+    }
+
+    #[test]
+    fn engine_counts_saturate_instead_of_wrapping() {
+        assert_eq!(narrow(7), 7);
+        assert_eq!(narrow(u64::MAX), u32::MAX);
+    }
+
+    #[test]
+    fn engine_events_outside_a_file_or_after_a_cancel_are_dropped() {
+        let sink = Arc::new(RecordingReporter::default());
+        let (tx, rx) = watch::channel(false);
+        let tracker = Arc::new(ProgressTracker::new(sink.clone(), rx));
+        let reporter = EngineProgressReporter(Arc::clone(&tracker));
+        let started = ProgressEvent::Translation(TranslationProgress::BatchStarted {
+            pass: TranslationPass::Initial,
+            batch: 1,
+            batches: 1,
+            cues: 2,
+            attempt: 1,
+        });
+
+        // No file in flight yet.
+        reporter.progress(&started);
+        // Text lines never reach the GUI.
+        reporter.progress(&ProgressEvent::Message("Processed cues: 1/2"));
+        assert!(sink.seen().is_empty());
+
+        let item = TranslatePlanItem {
+            id: 4,
+            input: PathBuf::from("/m/a.srt"),
+            output: PathBuf::from("/m/a.zh-TW.srt"),
+            cue_count: 2,
+            output_exists: false,
+            skip_reason: None,
+        };
+        tracker.start_file(&FileStart { index: 1, total: 1, name: "a.srt".into(), item: &item, batch_size: 0 });
+        tx.send(true).unwrap();
+        reporter.progress(&started);
+        tracker.writing();
+        tracker.finish_file(TranslationStatusDto::Cancelled);
+
+        let seen = sink.seen();
+        assert_eq!(seen.len(), 2, "{seen:?}");
+        assert_eq!(seen[0].stage, TranslateStage::Terminology);
+        assert_eq!(seen[0].batch_total, 0, "a zero batch size must not divide by zero");
+        assert_eq!(seen[1].stage, TranslateStage::FileDone);
+        assert_eq!(seen[1].item_id, 4);
     }
 
     #[test]
