@@ -187,7 +187,7 @@ describe("the match wizard", () => {
     await reachAnalysis(user);
 
     act(() => emit?.({ stage: "analyzing" }));
-    const analyzing = screen.getByText("Matching with AI");
+    const analyzing = screen.getByText("Analyze");
     expect(analyzing.closest("li")).toHaveAttribute("data-state", "active");
 
     act(() => pending.resolve(PLAN));
@@ -264,6 +264,21 @@ describe("the match wizard", () => {
     await user.click(await within(actionBar()).findByRole("button", { name: "Apply now" }));
 
     await waitFor(() => expect(api.executeSelected).toHaveBeenCalledWith("plan-1", [1, 2, 3, 4]));
+  });
+
+  it("sends the selected ids in ascending order, however they were toggled", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachAnalysis(user);
+
+    // Unchecking and rechecking moves id 0 to the end of the selection's insertion order.
+    const first = await screen.findByRole("checkbox", { name: "Include show.tc.srt" });
+    await user.click(first);
+    await user.click(first);
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(await within(actionBar()).findByRole("button", { name: "Apply now" }));
+
+    await waitFor(() => expect(api.executeSelected).toHaveBeenCalledWith("plan-1", [0, 1, 2, 3, 4]));
   });
 
   // @covers match-workflow/checkbox-selection-of-operations#empty-selection-blocks-execution
@@ -511,14 +526,29 @@ describe("the match wizard", () => {
 
   it("reports each item after a successful run", async () => {
     const user = userEvent.setup();
+    // One outcome per operation, in ascending id order, as the backend reports them.
+    const operations = PLAN.videos.flatMap((video) => video.matches);
+    vi.mocked(api.executeSelected).mockResolvedValue({
+      outcomes: operations.map((operation) => ({
+        subtitleName: operation.subtitleName,
+        targetPath: operation.targetPath,
+        applied: true,
+        error: null,
+      })),
+      successCount: operations.length,
+      failureCount: 0,
+    });
     renderWizard();
     await reachAnalysis(user);
     await user.click(await screen.findByRole("button", { name: "Continue" }));
     await user.click(await within(actionBar()).findByRole("button", { name: "Apply now" }));
 
-    const results = await screen.findByText("Results");
-    expect(results).toBeInTheDocument();
-    expect(screen.getByText("Done")).toBeInTheDocument();
+    await within(actionBar()).findByRole("button", { name: "Finish" });
+    const rows = within(screen.getByRole("list", { name: "Operations" })).getAllByRole("listitem");
+    expect(rows).toHaveLength(operations.length);
+    for (const row of rows) expect(row).toHaveAttribute("data-status", "ok");
+    expect(screen.getAllByText("Done")).toHaveLength(operations.length);
+    expect(document.querySelector('[data-result="success"]')).toHaveTextContent(`${operations.length} succeeded`);
   });
 
   it("feeds the chosen relocation mode into the analysis", async () => {

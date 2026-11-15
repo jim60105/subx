@@ -1,0 +1,82 @@
+/*
+ * The analysis loom. Every animation is scoped to `data-motion="animated"`, so
+ * the static (reduced-motion) drawing has nothing to neutralise.
+ */
+.analysis-loom {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.analysis-loom__video,
+.analysis-loom__subtitle {
+  fill: var(--ink);
+}
+
+.analysis-loom__hole {
+  fill: var(--paper);
+}
+
+/*
+ * `backwards`, not `both`: a held forwards fill would pin opacity at 1 above
+ * the orphan rule below, because animation values outrank normal declarations.
+ */
+.analysis-loom[data-motion="animated"] .analysis-loom__video,
+.analysis-loom[data-motion="animated"] .analysis-loom__subtitle {
+  animation: loom-in var(--motion-base) var(--ease-out) backwards;
+}
+
+.analysis-loom__trial {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  opacity: 0;
+  animation: loom-trial 420ms var(--ease-out) both;
+}
+
+.analysis-loom__settled {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1;
+  animation: loom-settle var(--motion-base) var(--ease-out) both;
+}
+
+.analysis-loom__settled[data-final="true"] {
+  animation: none;
+}
+
+.analysis-loom__subtitle[data-orphan="true"] {
+  opacity: 0.28;
+  transition: opacity var(--motion-base) var(--ease-out);
+}
+
+@keyframes loom-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes loom-trial {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes loom-settle {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

@@ -148,3 +148,20 @@ describe("the app header build identity", () => {
     expect(current).toMatch(/white-space:\s*nowrap/);
   });
 });
+
+describe("reduced motion", () => {
+  const block = blockOf(read("styles", "global.css"), "@media (prefers-reduced-motion: reduce)");
+
+  /// A staggered reveal is a delay, not a duration: zeroing only the
+  /// durations would still reveal rows one after another.
+  // @covers match-workflow/execute-step-resolves-each-row-from-the-single-report#reduced-motion-reveals-the-final-state-at-once
+  it("collapses every duration and delay so the final state appears at once", () => {
+    const declarations = declarationsOf(block, "*::after");
+
+    expect(declarations).toMatch(/animation-duration:\s*0\.01ms\s*!important/);
+    expect(declarations).toMatch(/animation-delay:\s*0s\s*!important/);
+    expect(declarations).toMatch(/animation-iteration-count:\s*1\s*!important/);
+    expect(declarations).toMatch(/transition-duration:\s*0\.01ms\s*!important/);
+    expect(declarations).toMatch(/transition-delay:\s*0s\s*!important/);
+  });
+});

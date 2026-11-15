@@ -4,7 +4,7 @@
  * views here.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import App from "../../src/App";
@@ -28,12 +28,19 @@ import { TranslateSourcesStep } from "../../src/features/translate/TranslateSour
 import {
   EMPTY_CONVERT_PLAN,
   EMPTY_TRANSLATE_PLAN,
+  EXECUTION_PLAN,
   EXECUTION_REPORT,
   REVIEW_PLAN,
   SYNC_DEFAULTS,
   TRANSLATE_REPORT,
 } from "../../src/test/screenFixtures";
-import type { MatchOperationDto, MatchPlanDto, RelocationModeDto } from "../../src/types/ipc";
+import type {
+  ExecutionReportDto,
+  MatchOperationDto,
+  MatchPlanDto,
+  MatchStage,
+  RelocationModeDto,
+} from "../../src/types/ipc";
 
 const noop = () => {};
 
@@ -172,6 +179,134 @@ function MatchReviewView() {
   );
 }
 
+const params = new URLSearchParams(window.location.search);
+
+/** How long the unpinned analysis view holds each stage, in the order the backend sends them. */
+const ANALYSIS_SEQUENCE: ReadonlyArray<readonly [MatchStage, number]> = [
+  ["scanning", 2000],
+  ["analyzing", 16000],
+  ["finalizing", 3000],
+];
+
+function pinned<T extends string>(name: string, allowed: readonly T[]): T | null {
+  const value = params.get(name);
+  return allowed.find((entry) => entry === value) ?? null;
+}
+
+/**
+ * Match step 2 inside the real wizard frame. Without `?stage=` it walks the
+ * three stages and repeats, so the illustration's pacing can be judged;
+ * `?stage=scanning|analyzing|finalizing` pins one.
+ */
+function MatchAnalysisView() {
+  const { t } = useTranslation("match");
+  const pin = pinned<MatchStage>("stage", ["scanning", "analyzing", "finalizing"]);
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    if (pin !== null) return;
+    const timer = window.setTimeout(
+      () => setStep((current) => (current + 1) % ANALYSIS_SEQUENCE.length),
+      ANALYSIS_SEQUENCE[step][1],
+    );
+    return () => window.clearTimeout(timer);
+  }, [pin, step]);
+  return (
+    <WizardShell
+      steps={WIZARD_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }))}
+      activeStep={1}
+      secondary={{ label: t("analysis.cancel"), onClick: noop }}
+      next={{ label: t("analysis.running"), disabled: true }}
+    >
+      <AnalysisStep
+        stage={pin ?? ANALYSIS_SEQUENCE[step][0]}
+        error={undefined}
+        scan={{ videoCount: 24, subtitleCount: 31 }}
+      />
+    </WizardShell>
+  );
+}
+
+/** Nine operations, the sixth of which fails because its target already exists. */
+const EXECUTE_SAMPLE_PLAN: MatchPlanDto = {
+  planId: "preview-execute",
+  relocationMode: "rename",
+  videos: Array.from({ length: 9 }, (_, index) => {
+    const episode = String(index + 1).padStart(2, "0");
+    return {
+      videoName: `Frieren.S01E${episode}.1080p.mkv`,
+      matches: [
+        {
+          id: index,
+          subtitleName: index === 3 ? "Frieren episode final(2).tc.ass" : `[Sub] Frieren ${episode}.tc.ass`,
+          targetPath: `/media/Frieren/Frieren.S01E${episode}.1080p.tc.ass`,
+          confidence: 96,
+          language: "tc",
+          reasoning: [],
+        },
+      ],
+    };
+  }),
+  unmatchedVideos: [],
+  unmatchedSubtitles: [],
+};
+
+const EXECUTE_SAMPLE_REPORT: ExecutionReportDto = (() => {
+  const outcomes = EXECUTE_SAMPLE_PLAN.videos.map(({ matches: [operation] }) => ({
+    subtitleName: operation.subtitleName,
+    targetPath: operation.targetPath,
+    applied: operation.id !== 5,
+    error:
+      operation.id === 5
+        ? { code: "core.file_already_exists", message: "target exists", hintCode: null }
+        : null,
+  }));
+  return { outcomes, successCount: 8, failureCount: 1 };
+})();
+
+type ExecutePhase = "idle" | "running" | "done";
+
+/**
+ * Match step 4 inside the real wizard frame. Without `?phase=` the primary
+ * action runs idle → running (2.5 s) → done, and Finish starts over;
+ * `?phase=idle|running|done` pins one phase.
+ */
+function MatchExecuteView() {
+  const { t } = useTranslation("match");
+  const pin = pinned<ExecutePhase>("phase", ["idle", "running", "done"]);
+  const [phase, setPhase] = useState<ExecutePhase>(pin ?? "idle");
+  useEffect(() => {
+    if (pin !== null || phase !== "running") return;
+    const timer = window.setTimeout(() => setPhase("done"), 2500);
+    return () => window.clearTimeout(timer);
+  }, [pin, phase]);
+  const ids = new Set(EXECUTE_SAMPLE_PLAN.videos.map(({ matches: [operation] }) => operation.id));
+  const next =
+    phase === "done"
+      ? { label: t("execute.report.finish"), onClick: () => pin === null && setPhase("idle") }
+      : {
+          label: phase === "running" ? t("execute.running") : t("execute.run"),
+          disabled: phase === "running",
+          onClick: () => pin === null && setPhase("running"),
+        };
+  return (
+    <WizardShell
+      steps={WIZARD_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }))}
+      activeStep={3}
+      back={{ label: t("execute.back"), disabled: phase !== "idle", onClick: noop }}
+      next={next}
+    >
+      <ExecuteStep
+        plan={EXECUTE_SAMPLE_PLAN}
+        selectedIds={ids}
+        mode="rename"
+        isExecuting={phase === "running"}
+        report={phase === "done" ? EXECUTE_SAMPLE_REPORT : null}
+        executeError={undefined}
+      />
+    </WizardShell>
+  );
+}
+
 export const VIEWS: Record<string, () => JSX.Element> = {
   app: () => <App />,
   SourcesStep: () => (
@@ -190,12 +325,21 @@ export const VIEWS: Record<string, () => JSX.Element> = {
   "match-sources-empty": () => <MatchSourcesView initial={[]} />,
   "match-sources-long": () => <MatchSourcesView initial={LONG_SOURCES} />,
   "match-review": () => <MatchReviewView />,
-  AnalysisStep: () => <AnalysisStep stage="analyzing" error={undefined} />,
+  "match-analysis": () => <MatchAnalysisView />,
+  "match-execute": () => <MatchExecuteView />,
+  AnalysisStep: () => <AnalysisStep stage="analyzing" error={undefined} scan={{ videoCount: 1, subtitleCount: 1 }} />,
   ReviewStep: () => (
     <ReviewStep plan={REVIEW_PLAN} selectedIds={new Set([0, 1, 2])} onToggle={noop} onToggleLanguage={noop} />
   ),
   ExecuteStep: () => (
-    <ExecuteStep mode="rename" selectedCount={1} report={EXECUTION_REPORT} executeError={undefined} />
+    <ExecuteStep
+      plan={EXECUTION_PLAN}
+      selectedIds={new Set([0])}
+      mode="rename"
+      isExecuting={false}
+      report={EXECUTION_REPORT}
+      executeError={undefined}
+    />
   ),
   ConvertSourcesStep: () => (
     <ConvertSourcesStep

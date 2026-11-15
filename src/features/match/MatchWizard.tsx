@@ -133,7 +133,7 @@ export function MatchWizard({ onOpenSettings }: MatchWizardProps) {
         />
       )}
       {wizard.step === "analysis" && (
-        <AnalysisStep stage={wizard.stage} error={wizard.analysisError} />
+        <AnalysisStep stage={wizard.stage} error={wizard.analysisError} scan={wizard.scan} />
       )}
       {wizard.step === "review" && wizard.plan !== null && (
         <ReviewStep
@@ -143,10 +143,12 @@ export function MatchWizard({ onOpenSettings }: MatchWizardProps) {
           onToggleLanguage={wizard.toggleLanguageSelection}
         />
       )}
-      {wizard.step === "execute" && (
+      {wizard.step === "execute" && wizard.plan !== null && (
         <ExecuteStep
+          plan={wizard.plan}
+          selectedIds={wizard.selectedIds}
           mode={wizard.mode}
-          selectedCount={wizard.selectedCount}
+          isExecuting={wizard.isExecuting}
           report={wizard.report}
           executeError={wizard.executeError}
         />
