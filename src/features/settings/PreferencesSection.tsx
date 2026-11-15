@@ -6,13 +6,14 @@ import { ThemeSelect } from "../../components/ThemeSelect/ThemeSelect";
  *
  * Renders the shell's shared pickers rather than its own: the header and this
  * screen must behave identically, and both already persist to GUI-local
- * storage. Nothing here reaches the CLI configuration file.
+ * storage. Here they lay every option out inline; the title bar keeps its
+ * dropdowns. Nothing here reaches the CLI configuration file.
  */
 export function PreferencesSection() {
   return (
     <div className="settings-section__fields settings-section__fields--inline">
-      <LanguageSelect variant="labeled" />
-      <ThemeSelect variant="labeled" />
+      <LanguageSelect variant="inline" />
+      <ThemeSelect variant="inline" />
     </div>
   );
 }

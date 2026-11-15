@@ -365,6 +365,10 @@ const SCREENS = [
       renderWithI18n(
         <SyncApplyStep
           offsetMs={0}
+          // A file name such as `movie.srt` has the shape of a translation
+          // key, so the diff's kept line is left out here; its text is user
+          // data, covered by SyncApplyStep.test.tsx.
+          subtitlePath={null}
           outputPath=""
           applyResult={null}
           applyError={undefined}

@@ -5,21 +5,6 @@
   max-width: 44rem;
 }
 
-.settings__intro {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.settings__heading {
-  font-size: var(--text-2xl);
-  letter-spacing: -0.01em;
-}
-
-.settings__subheading {
-  color: var(--ink-2);
-}
-
 .settings__loading {
   color: var(--ink-3);
 }
@@ -33,8 +18,10 @@
 
 .settings-section__header {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  align-items: baseline;
+  justify-content: space-between;
   padding-bottom: var(--space-2);
   border-bottom: 1px solid var(--ink);
 }
@@ -43,9 +30,10 @@
   font-size: var(--text-lg);
 }
 
-.settings-section__description {
-  font-size: var(--text-sm);
-  color: var(--ink-2);
+.settings-section__where {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--ink-3);
 }
 
 .settings-section__fields {
@@ -105,6 +93,24 @@
   border-radius: var(--radius-control);
 }
 
+/* The API key row: the masked key or the input, with its action beside it. */
+.settings-key {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.settings-key__mask {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.settings-key__action {
+  flex-shrink: 0;
+  color: var(--accent-ink);
+}
+
 .settings-control:disabled {
   cursor: not-allowed;
   opacity: 0.6;
@@ -142,18 +148,20 @@
   align-items: center;
 }
 
-.settings-test__description {
-  font-size: var(--text-xs);
-  color: var(--ink-3);
+.settings-test__success {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--add);
 }
 
-.settings-test__success {
-  padding-block: var(--space-2);
-  padding-inline-start: var(--space-3);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--add);
-  border-inline-start: 2px solid var(--add);
+.settings-test__dot {
+  width: 8px;
+  height: 8px;
+  background: var(--add);
+  border-radius: 50%;
 }
 
 @media (width <= 30rem) {

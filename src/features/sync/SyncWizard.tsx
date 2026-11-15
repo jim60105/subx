@@ -174,6 +174,7 @@ export function SyncWizard() {
       {wizard.step === "apply" && (
         <SyncApplyStep
           offsetMs={wizard.offsetMs}
+          subtitlePath={wizard.subtitlePath}
           outputPath={wizard.proposedOutputPath}
           applyResult={wizard.applyResult}
           applyError={wizard.applyError}

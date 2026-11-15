@@ -6,11 +6,14 @@ export interface PreferenceSelectOption {
   label: ReactNode;
 }
 
-/** `compact` hides the label visually (header chrome); `labeled` shows it (settings field). */
-export type PreferenceSelectVariant = "compact" | "labeled";
+/**
+ * `compact` is the only dropdown form: a visually hidden label for the header
+ * chrome. Settings lays its preferences out inline with `PreferenceChoice`.
+ */
+export type PreferenceSelectVariant = "compact";
 
 interface PreferenceSelectProps {
-  /** Accessible name, always present in the DOM regardless of variant. */
+  /** Accessible name, always present in the DOM though visually hidden. */
   label: string;
   value: string;
   options: PreferenceSelectOption[];
@@ -23,9 +26,9 @@ interface PreferenceSelectProps {
  * The single rendering-and-wiring implementation behind every GUI-only
  * preference control (theme, language, and any later one). Domain-specific
  * wrappers such as `LanguageSelect` and `ThemeSelect` supply only their own
- * options and change handler; every surface that shows a preference picker —
- * the header, the settings screen — renders through this component, so they
- * can never drift apart on markup or accessibility behaviour.
+ * options and change handler; every surface that shows a preference as a
+ * dropdown renders through this component, so they can never drift apart on
+ * markup or accessibility behaviour.
  */
 export function PreferenceSelect({
   label,
@@ -68,10 +71,7 @@ export function PreferenceSelect({
 
   return (
     <div ref={containerRef} className={classes}>
-      <label
-        htmlFor={selectId}
-        className={variant === "compact" ? "visually-hidden" : "preference-select__label"}
-      >
+      <label htmlFor={selectId} className="visually-hidden">
         {label}
       </label>
       <div className="preference-select__control">

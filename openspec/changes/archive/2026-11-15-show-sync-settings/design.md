@@ -98,12 +98,12 @@ interface ApiKeyFieldProps {
 }
 ```
 
-Local state `replacing: boolean`, initially `false`; an effect resets it to `false` whenever the `saved` object's identity changes (`useSettingsForm` replaces `config` after every successful save and re-read; comparing the masked text would miss a new key that ends in the same characters). If the post-save re-read fails `saved` does not change and the empty input stays, which is safe: an empty draft writes nothing. Inside `SettingsField id="ai-api-key"`:
+Local state `replacing: boolean`, initially `false`. It is reset to `false` when `saved.apiKeyMasked` or `saved.apiKeySet` changes, i.e. when a key write actually landed. (Revised during apply: resetting on the `saved` object's identity would also fire on every window-focus refetch, which replaces `config` — a user who clicks Replace and switches to a password manager would come back to a vanished input, and a typed draft kept by the refetch would be hidden yet still saved.) The input is shown whenever `!saved.apiKeySet || replacing || value !== ""`, so a non-empty draft is never hidden (a rejected key write keeps its draft and its error visible). Rewriting a key whose masked form is identical leaves the empty input open, which is safe: an empty draft writes nothing. Inside `SettingsField id="ai-api-key"`:
 
-- `saved.apiKeySet && !replacing`: `<span id="ai-api-key" className="settings-key__mask">{saved.apiKeyMasked}</span>` (it takes the field's `id` so `SettingsField`'s `<label htmlFor>` never points at nothing) and `<button type="button" className="button button--tertiary" onClick={() => setReplacing(true)}>{t("ai.apiKey.replace")}</button>`. No input is rendered.
-- otherwise: the existing password input (empty, `autoComplete="off"`, placeholder `t("ai.apiKey.unsetPlaceholder")` only when no key is set, `autoFocus` when it appeared through `replacing`), plus, only when `saved.apiKeySet`, `<button type="button" className="button button--tertiary" onClick={() => { onChange(""); setReplacing(false); }}>{t("ai.apiKey.keep")}</button>`.
+- input hidden: `<span id="ai-api-key" className="settings-key__mask">{saved.apiKeyMasked}</span>` and `<button type="button" className="button button--tertiary" onClick={() => setReplacing(true)}>{t("ai.apiKey.replace")}</button>`. No input is rendered.
+- otherwise: the existing password input (empty, `autoComplete="off"`, placeholder `t("ai.apiKey.unsetPlaceholder")` only when no key is set, focused through a ref when it appeared through Replace), plus, only when `saved.apiKeySet`, `<button type="button" className="button button--tertiary" onClick={() => { onChange(""); setReplacing(false); }}>{t("ai.apiKey.keep")}</button>`.
 
-`SettingsField` gains `hintHidden?: boolean`, which adds `visually-hidden` to the hint paragraph; the API key field passes `hint={t("ai.apiKey.hint")} hintHidden`. `AiSettingsSection.tsx` renders `<ApiKeyField … />` in place of its inline key field. `useSettingsForm` is not changed: an empty draft still means "leave as is".
+While the input is hidden there is no labelable control, so `SettingsField` gains `labelsControl?: boolean` (default `true`); with `false` the label renders as a `<span id="{id}-label">` instead of `<label htmlFor>` (a `<label>` pointing at a span is a dead association), and the Replace button is named by `aria-labelledby` = its own text plus that label ("Replace API key") and described by the masked key. Focus returns to Replace after "Keep current key". `SettingsField` also gains `hintHidden?: boolean`, which adds `visually-hidden` to the hint paragraph; the API key field passes `hint={t("ai.apiKey.hint")} hintHidden`. `AiSettingsSection.tsx` renders `<ApiKeyField … />` in place of its inline key field. `useSettingsForm` is not changed: an empty draft still means "leave as is".
 
 ### D6: Connection test
 
@@ -146,11 +146,13 @@ Add to `settings.json`:
 
 | Key | en | zh-TW |
 |---|---|---|
-| `ai.storedIn` | config.toml · shared with subx-cli | config.toml · 與 subx-cli 共用 |
+| `ai.storedIn` | config.toml · shared with the SubX command line | config.toml · 與 SubX 命令列共用 |
 | `preferences.storedIn` | This app only | 僅此應用程式 |
 | `ai.apiKey.replace` | Replace | 取代 |
 | `ai.apiKey.keep` | Keep current key | 保留現有金鑰 |
 | `test.latency` | {{latency}} ms | {{latency}} ms |
+
+(`ai.storedIn` was revised during apply: the original value named `subx-cli`, but `app-shell` "Thin Tauri command layer structure" forbids naming the engine crate anywhere outside `src-tauri/`, enforced by `backendCodeParity.test.ts`. The label uses the product term the removed subtitle already used.)
 
 Delete from `settings.json`: `subtitle`, `ai.description`, `preferences.description`. Keep `title`, `ai.apiKey.hint`, `test.description`, `test.success` (now visually hidden).
 

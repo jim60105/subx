@@ -118,9 +118,3 @@
   color: var(--accent-ink);
   background: var(--paper-2);
 }
-
-.preference-select--labeled .preference-select__label {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--ink-2);
-}

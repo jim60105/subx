@@ -1,7 +1,9 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import App from "../../App";
+import { SUPPORTED_LANGUAGES } from "../../i18n/languages";
 import { renderWithI18n, setupI18n } from "../../test/renderWithI18n";
 import { ThemeProvider } from "../../theme/ThemeProvider";
 import type { ConfigDto, ConnectionTestResult, ErrorDto, SetConfigRequest } from "../../types/ipc";
@@ -130,7 +132,16 @@ function renderSettings() {
 
 const model = () => screen.getByLabelText("Model");
 const baseUrl = () => screen.getByLabelText("Base URL");
-const apiKey = () => screen.getByLabelText("API key");
+const apiKey = () => screen.getByLabelText("API key", { selector: "input" });
+const queryApiKey = () => screen.queryByLabelText("API key", { selector: "input" });
+const replaceButton = () => screen.getByRole("button", { name: "Replace API key" });
+const keepButton = () => screen.getByRole("button", { name: "Keep current key" });
+/** The heading row (`<header>`) of the section whose title is `title`. */
+const sectionHeader = (title: string) =>
+  screen.getByRole("heading", { level: 2, name: title }).closest("header") as HTMLElement;
+/** The section whose title is `title`. */
+const section = (title: string) =>
+  screen.getByRole("heading", { level: 2, name: title }).closest("section") as HTMLElement;
 const saveButton = () => screen.getByRole("button", { name: "Save changes" });
 
 describe("settings screen", () => {
@@ -143,19 +154,107 @@ describe("settings screen", () => {
   });
 
   // @covers settings-management/api-key-is-masked-and-write-only#masked-display
-  it("shows the stored API key only as a masked placeholder", async () => {
+  it("shows a configured API key only in masked form, with no input until Replace", async () => {
     mockBackend();
     renderSettings();
 
-    await waitFor(() => expect(apiKey()).toHaveAttribute("placeholder", SAVED_KEY_MASK));
-    expect(apiKey()).toHaveValue("");
+    expect(await screen.findByText(SAVED_KEY_MASK)).toBeVisible();
+    expect(queryApiKey()).not.toBeInTheDocument();
+    expect(replaceButton()).toHaveAccessibleDescription(/^\*{4}1234 Stored keys are never shown/);
+    // The hint survives for assistive technology only.
+    expect(
+      screen.getByText(/Stored keys are never shown/),
+    ).toHaveClass("visually-hidden");
   });
 
-  it("marks the key as unconfigured when there is none", async () => {
+  // @covers settings-management/api-key-is-masked-and-write-only#replace-reveals-an-empty-input
+  it("reveals an empty, focused input when Replace is activated", async () => {
+    mockBackend();
+    renderSettings();
+    await userEvent.click(await screen.findByRole("button", { name: "Replace API key" }));
+
+    expect(apiKey()).toHaveValue("");
+    expect(apiKey()).toHaveFocus();
+    expect(apiKey()).not.toHaveAttribute("placeholder");
+    // Neither the cleartext nor the mask is put into the input.
+    expect(apiKey()).not.toHaveValue(SAVED_KEY_MASK);
+  });
+
+  // @covers settings-management/api-key-is-masked-and-write-only#keeping-the-current-key-discards-the-draft
+  it("discards the draft and restores the mask when the current key is kept", async () => {
+    const backend = mockBackend();
+    renderSettings();
+    await userEvent.click(await screen.findByRole("button", { name: "Replace API key" }));
+    await userEvent.type(apiKey(), "sk-draft-to-discard");
+    expect(saveButton()).toBeEnabled();
+
+    await userEvent.click(keepButton());
+
+    expect(queryApiKey()).not.toBeInTheDocument();
+    expect(screen.getByText(SAVED_KEY_MASK)).toBeVisible();
+    expect(replaceButton()).toHaveFocus();
+    expect(saveButton()).toBeDisabled();
+    // No input on the page, and no text, carries a key the user did not type.
+    const inputValues = Array.from(document.querySelectorAll("input"), (input) => input.value);
+    expect(inputValues.filter((value) => value.startsWith("sk-"))).toEqual([]);
+    expect(document.body.textContent).not.toMatch(/sk-/);
+    expect(backend.writes).toEqual([]);
+  });
+
+  // @covers settings-management/api-key-is-masked-and-write-only#no-configured-key-shows-the-input-directly
+  it("shows the empty key input directly when no key is configured", async () => {
     mockBackend({ apiKeyMasked: "", apiKeySet: false });
     renderSettings();
 
     await waitFor(() => expect(apiKey()).toHaveAttribute("placeholder", "No key configured"));
+    expect(apiKey()).toHaveValue("");
+    expect(screen.queryByRole("button", { name: "Replace API key" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Keep current key" })).not.toBeInTheDocument();
+  });
+
+  it("closes the input on the mask once the first key is saved", async () => {
+    const backend = mockBackend({ apiKeyMasked: "", apiKeySet: false });
+    renderSettings();
+    await waitFor(() => expect(apiKey()).toHaveAttribute("placeholder", "No key configured"));
+
+    await userEvent.type(apiKey(), "sk-first-key-4321");
+    await userEvent.click(saveButton());
+
+    expect(await screen.findByText("****4321")).toBeVisible();
+    expect(queryApiKey()).not.toBeInTheDocument();
+    expect(replaceButton()).toBeInTheDocument();
+    expect(backend.writes).toEqual([{ key: "ai.api_key", value: "sk-first-key-4321" }]);
+  });
+
+  it("keeps an open Replace input, and its draft, across a window-focus refetch", async () => {
+    mockBackend();
+    renderSettings();
+    await userEvent.click(await screen.findByRole("button", { name: "Replace API key" }));
+
+    window.dispatchEvent(new Event("focus"));
+    await act(async () => {});
+    expect(apiKey()).toHaveValue("");
+
+    await userEvent.type(apiKey(), "sk-half-pasted");
+    window.dispatchEvent(new Event("focus"));
+    await act(async () => {});
+    expect(apiKey()).toHaveValue("sk-half-pasted");
+  });
+
+  it("keeps a rejected key visible in its input with the error", async () => {
+    const backend = mockBackend();
+    backend.reject("ai.api_key", {
+      code: "config.invalid_api_key",
+      message: "bad key",
+      hintCode: null,
+    });
+    renderSettings();
+    await userEvent.click(await screen.findByRole("button", { name: "Replace API key" }));
+    await userEvent.type(apiKey(), "sk-rejected");
+    await userEvent.click(saveButton());
+
+    await waitFor(() => expect(apiKey()).toHaveAttribute("aria-invalid", "true"));
+    expect(apiKey()).toHaveValue("sk-rejected");
   });
 
   it("writes only the changed fields, provider first", async () => {
@@ -177,13 +276,15 @@ describe("settings screen", () => {
   it("replaces the key and shows only the new mask afterwards", async () => {
     const backend = mockBackend();
     renderSettings();
-    await waitFor(() => expect(apiKey()).toHaveAttribute("placeholder", SAVED_KEY_MASK));
+    await userEvent.click(await screen.findByRole("button", { name: "Replace API key" }));
 
     await userEvent.type(apiKey(), "sk-brand-new-key-9876");
     await userEvent.click(saveButton());
 
-    await waitFor(() => expect(apiKey()).toHaveAttribute("placeholder", "****9876"));
-    expect(apiKey()).toHaveValue("");
+    expect(await screen.findByText("****9876")).toBeVisible();
+    expect(queryApiKey()).not.toBeInTheDocument();
+    expect(replaceButton()).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent("sk-brand-new-key-9876");
     expect(backend.writes).toEqual([{ key: "ai.api_key", value: "sk-brand-new-key-9876" }]);
   });
 
@@ -223,6 +324,25 @@ describe("settings screen", () => {
     await userEvent.click(screen.getByRole("button", { name: "Test connection" }));
 
     expect(await screen.findByText("Connection succeeded in 128 ms.")).toBeInTheDocument();
+  });
+
+  // @covers settings-management/ai-connection-test#success-is-reported-beside-the-action
+  it("reports a success beside the test action, described rather than explained", async () => {
+    mockBackend();
+    const { container } = renderSettings();
+    await waitFor(() => expect(model()).toHaveValue("gpt-4.1-mini"));
+
+    const testButton = screen.getByRole("button", { name: "Test connection" });
+    const description = "Saves your changes, then sends one short request to the provider.";
+    expect(testButton).toHaveAccessibleDescription(description);
+    expect(screen.getByText(description)).toHaveClass("visually-hidden");
+
+    await userEvent.click(testButton);
+
+    const status = await screen.findByRole("status");
+    expect(container.querySelector(".settings-test__action")).toContainElement(status);
+    expect(status).toHaveTextContent("128 ms");
+    expect(within(status).getByText("128 ms")).toBeVisible();
   });
 
   // @covers settings-management/ai-connection-test#failing-test
@@ -352,32 +472,95 @@ describe("settings screen", () => {
     expect(model()).toHaveValue("saved-model");
   });
 
-  it("renders the shell's shared language and theme pickers", async () => {
+  // @covers settings-management/section-headings-state-where-values-are-stored#ai-section-names-the-shared-configuration-file
+  // @covers settings-management/section-headings-state-where-values-are-stored#preferences-section-is-labelled-app-only
+  it("labels where each section's values are stored at its heading", async () => {
     mockBackend();
     renderSettings();
+    await waitFor(() => expect(model()).toHaveValue("gpt-4.1-mini"));
 
-    await waitFor(() => expect(screen.getByLabelText("Language")).toBeInTheDocument());
-    expect(screen.getByLabelText("Theme")).toBeInTheDocument();
-    expect(screen.getByLabelText("Theme")).toHaveValue("system");
+    expect(within(sectionHeader("AI provider")).getByText(/config\.toml/)).toBeVisible();
+    expect(within(sectionHeader("Appearance and language")).getByText("This app only")).toBeVisible();
+    // The sentences the labels replace are gone.
+    expect(screen.queryByText(/Written to the same configuration file/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Stored in this app only/)).not.toBeInTheDocument();
+    // The page title stays for assistive technology; the breadcrumb shows it.
+    expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toHaveClass("visually-hidden");
+  });
+
+  // @covers settings-management/gui-local-preferences-on-the-same-screen#options-are-laid-out-inline
+  it("lays the language and theme options out inline", async () => {
+    mockBackend();
+    renderSettings();
+    await waitFor(() => expect(model()).toHaveValue("gpt-4.1-mini"));
+    const preferences = section("Appearance and language");
+
+    const language = within(preferences).getByRole("group", { name: "Language" });
+    const theme = within(preferences).getByRole("group", { name: "Theme" });
+    expect(within(language).getAllByRole("radio")).toHaveLength(SUPPORTED_LANGUAGES.length);
+    expect(within(theme).getAllByRole("radio")).toHaveLength(3);
+    expect(within(language).getByRole("radio", { name: "English" })).toBeChecked();
+    expect(within(theme).getByRole("radio", { name: "Follow system" })).toBeChecked();
+
+    expect(within(preferences).queryByRole("listbox")).not.toBeInTheDocument();
+    expect(within(preferences).queryByRole("combobox")).not.toBeInTheDocument();
+    expect(preferences.querySelector("[aria-haspopup]")).toBeNull();
   });
 
   // @covers settings-management/gui-local-preferences-on-the-same-screen#preferences-do-not-touch-the-cli-config
   it("never writes to the CLI config when a preference changes", async () => {
     const backend = mockBackend();
     renderSettings();
-    await waitFor(() => expect(screen.getByLabelText("Theme")).toBeInTheDocument());
+    await waitFor(() => expect(model()).toHaveValue("gpt-4.1-mini"));
     // The only writes so far are none: nothing has been saved.
     expect(backend.writes).toHaveLength(0);
 
     // Change the theme, then the language — both GUI-local preferences.
-    await userEvent.selectOptions(screen.getByLabelText("Theme"), "dark");
-    await userEvent.selectOptions(screen.getByLabelText("Language"), "zh-TW");
+    await userEvent.click(screen.getByRole("radio", { name: "Dark" }));
+    await userEvent.click(screen.getByRole("radio", { name: "正體中文" }));
 
     // The preference change persists to GUI-local storage, not the CLI config.
     expect(window.localStorage.getItem("subx.theme")).toBe("dark");
+    expect(await screen.findByRole("radio", { name: "深色" })).toBeChecked();
     // `set_config_value` is the only path to the CLI config file, and it must
     // not have been reached.
     expect(backend.writes).toEqual([]);
+  });
+
+  // @covers settings-management/gui-local-preferences-on-the-same-screen#inline-choice-and-title-bar-dropdown-stay-in-sync
+  it("keeps the inline theme choice and the title-bar dropdown in step", async () => {
+    const commands: string[] = [];
+    mockIPC((command) => {
+      commands.push(command);
+      if (command === "get_build_info") return { version: "0.4.0", gitHash: "abc1234", debug: true };
+      if (command === "get_config") {
+        return {
+          ai: {
+            provider: "openai",
+            model: "gpt-4.1-mini",
+            baseUrl: "https://api.openai.com/v1",
+            apiKeyMasked: SAVED_KEY_MASK,
+            apiKeySet: true,
+          },
+        } satisfies ConfigDto;
+      }
+      throw new Error(`unexpected command: ${command}`);
+    });
+    const { container } = renderWithI18n(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+    await userEvent.click(await screen.findByRole("radio", { name: "Dark" }));
+
+    expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+    expect(window.localStorage.getItem("subx.theme")).toBe("dark");
+    const header = container.querySelector(".app-header") as HTMLElement;
+    expect(within(header).getByLabelText("Theme")).toHaveValue("dark");
+    expect(within(header).getByRole("button", { name: "Dark" })).toBeInTheDocument();
+    expect(commands).not.toContain("set_config_value");
   });
 
   // @covers settings-management/a-failed-configuration-load-does-not-block-the-settings-form#form-stays-editable-when-the-initial-read-fails

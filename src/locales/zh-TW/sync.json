@@ -43,7 +43,9 @@
       "label": "語音靈敏度",
       "value": "{{percent}}%",
       "hint": "數值越低越嚴格：較安靜的段落比較不會被判定為語音。",
-      "perRun": "此設定僅套用於這次執行，不會變更你已儲存的設定。"
+      "perRun": "此設定僅套用於這次執行，不會變更你已儲存的設定。",
+      "low": "較嚴格",
+      "high": "較靈敏"
     },
     "back": "上一步",
     "continue": "繼續"
@@ -63,13 +65,19 @@
     "label": "偏移量（毫秒）",
     "seconds": "{{seconds}} 秒",
     "hint": "正值會延後字幕出現，負值則會提前。",
-    "exceedsMax": "此數值超過設定中的 {{limit}} 秒上限，請調小後再繼續。"
+    "exceedsMax": "此數值超過設定中的 {{limit}} 秒上限，請調小後再繼續。",
+    "unit": "秒",
+    "decrease": "減少 {{step}} 毫秒",
+    "increase": "增加 {{step}} 毫秒",
+    "preview": {
+      "original": "原本",
+      "shifted": "套用後"
+    }
   },
   "apply": {
     "title": "儲存同步後的字幕",
     "summary": "每一句字幕都會平移 {{seconds}} 秒。",
     "outputLabel": "儲存至",
-    "originalKept": "你選擇的檔案不會被更動，平移後的副本會寫入上方路徑。",
     "start": "儲存",
     "applying": "儲存中……",
     "confirmOverwrite": "覆蓋既有檔案",

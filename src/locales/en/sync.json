@@ -43,7 +43,9 @@
       "label": "Speech sensitivity",
       "value": "{{percent}}%",
       "hint": "Lower is stricter: quieter passages are less likely to count as speech.",
-      "perRun": "This applies to this run only and does not change your saved settings."
+      "perRun": "This applies to this run only and does not change your saved settings.",
+      "low": "Stricter",
+      "high": "More sensitive"
     },
     "back": "Back",
     "continue": "Continue"
@@ -63,13 +65,19 @@
     "label": "Offset in milliseconds",
     "seconds": "{{seconds}} seconds",
     "hint": "A positive value delays the subtitles; a negative one makes them appear sooner.",
-    "exceedsMax": "This is beyond the {{limit}} second limit in your settings. Reduce it to continue."
+    "exceedsMax": "This is beyond the {{limit}} second limit in your settings. Reduce it to continue.",
+    "unit": "s",
+    "decrease": "Decrease by {{step}} ms",
+    "increase": "Increase by {{step}} ms",
+    "preview": {
+      "original": "Original",
+      "shifted": "Shifted"
+    }
   },
   "apply": {
     "title": "Save the synced subtitle",
     "summary": "Every cue will move by {{seconds}} seconds.",
     "outputLabel": "Save to",
-    "originalKept": "The file you selected is never changed; the shifted copy is written to the path above.",
     "start": "Save",
     "applying": "Saving…",
     "confirmOverwrite": "Replace the existing file",
