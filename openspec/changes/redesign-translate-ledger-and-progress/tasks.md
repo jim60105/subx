@@ -35,7 +35,7 @@ Tests for this change's new scenarios are written **without** `// @covers` annot
 ## 5. Review and integration
 
 - [x] 5.1 Create `visual-review.md` in this change directory in the format of `openspec/changes/archive/2026-11-15-show-convert-translate/visual-review.md`, with rows for: (1) the ledger with folder, archive and unparsable entries; (2) the ledger while scanning; (3) the run step mid-batch with a waiting and a finished file; (4) the in-flight hatch and the resend state; (5) the all-done state; (6) long paths and names truncating with the full text reachable. With `npm run dev` running, use the `agent-browser` skill (throwaway headless Chromium only; `agent-browser close` when done) to capture each preview view in both themes and both languages, and fill in "Observed" and "Screenshot". Verify: every row has an observation and a screenshot path; "Verdict" is left for the owner.
-- [ ] 5.2 Run `openspec validate redesign-translate-ledger-and-progress --strict` and then `npm run verify`. Verify: both pass, `npm run spec:trace` reports 0 unverified scenarios and 0 dangling annotations, and coverage stays at or above 85 % in both languages (close any gap with tests, not exclusions).
+- [x] 5.2 Run `openspec validate redesign-translate-ledger-and-progress --strict` and then `npm run verify`. Verify: both pass, `npm run spec:trace` reports 0 unverified scenarios and 0 dangling annotations, and coverage stays at or above 85 % in both languages (close any gap with tests, not exclusions).
 
 ## Workflow follow-up
 
