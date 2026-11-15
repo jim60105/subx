@@ -105,8 +105,8 @@ describe("no component hard-codes a colour", () => {
     expect(colorLiteralsIn("background: rgba(0, 0, 0, 0.5);")).toContain("rgba(");
     expect(colorLiteralsIn("border-color: red;")).toContain("red");
     expect(colorLiteralsIn("background: transparent;")).toEqual([]);
-    expect(colorLiteralsIn("color: var(--text-primary);")).toEqual([]);
+    expect(colorLiteralsIn("color: var(--ink);")).toEqual([]);
     // A token name that merely contains a colour word is not a literal.
-    expect(colorLiteralsIn("color: var(--accent-text);")).toEqual([]);
+    expect(colorLiteralsIn("color: var(--accent-ink);")).toEqual([]);
   });
 });

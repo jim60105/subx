@@ -1,15 +1,15 @@
 /**
  * WCAG AA contrast over the theme tokens.
  *
- * `theme-system` requires that "all text meets readable contrast against its
- * background" in both themes. Nothing else in the suite checks that, and it is
- * not something review catches reliably — so this reads `tokens.css` itself,
- * composites the translucent surfaces the way a browser would, and computes the
- * ratios.
+ * `theme-system` requires every text colour to stay readable against the
+ * surfaces it is rendered on, in both themes. Nothing else in the suite checks
+ * that, and it is not something review catches reliably — so this reads
+ * `tokens.css` itself and computes the ratios.
  *
- * It is only a proof of the requirement because `tokens.colorLiteral.test.ts`
- * separately forbids colours declared anywhere else: a contrast proof over the
- * tokens says nothing if a component can bypass them.
+ * The proof is exact only while every colour is opaque (nothing composites), so
+ * one test below pins that, and it is only a proof at all because
+ * `tokens.colorLiteral.test.ts` separately forbids colours declared anywhere
+ * else.
  */
 
 import fs from "node:fs";
@@ -25,14 +25,10 @@ const TOKENS_CSS = fs
 
 /** WCAG AA for body text. */
 const AA_NORMAL = 4.5;
-/**
- * WCAG AA for large text — ≥ 18.66px bold or ≥ 24px. The only token pair this
- * applies to is the gradient-clipped app name (`.gradient-text` on
- * `.app-header__name`, `--text-xl` = 22px at weight 700).
- */
-const AA_LARGE = 3;
+/** WCAG AA for non-text marks (rules, markers, underlines) and large numerals. */
+const AA_NON_TEXT = 3;
 
-type Rgba = { r: number; g: number; b: number; a: number };
+type Rgb = { r: number; g: number; b: number };
 
 // --- CSS parsing -----------------------------------------------------------
 
@@ -56,8 +52,6 @@ function declarationsOf(selector: string): Map<string, string> {
 
   const body = TOKENS_CSS.slice(TOKENS_CSS.indexOf("{", start) + 1, end);
   const declarations = new Map<string, string>();
-  // Split on top-level semicolons only: several values contain nested commas
-  // and parentheses, but none contain a semicolon.
   for (const raw of body.split(";")) {
     const colon = raw.indexOf(":");
     if (colon === -1) continue;
@@ -68,12 +62,16 @@ function declarationsOf(selector: string): Map<string, string> {
   return declarations;
 }
 
+const THEMES = ["dark", "light"] as const;
+
+/** The colour tokens one theme block declares (`color-scheme` is not a token). */
+function themeBlock(theme: (typeof THEMES)[number]): Map<string, string> {
+  return declarationsOf(`:root[data-theme="${theme}"]`);
+}
+
 /** The tokens in effect for a theme: the shared `:root` block plus its override. */
-function themeTokens(theme: "dark" | "light"): Map<string, string> {
-  return new Map([
-    ...declarationsOf(":root"),
-    ...declarationsOf(`:root[data-theme="${theme}"]`),
-  ]);
+function themeTokens(theme: (typeof THEMES)[number]): Map<string, string> {
+  return new Map([...declarationsOf(":root"), ...themeBlock(theme)]);
 }
 
 /** Substitute `var(--x)` until no references remain. */
@@ -92,82 +90,19 @@ function resolve(value: string, tokens: Map<string, string>): string {
 
 // --- Colour ----------------------------------------------------------------
 
-function parseColor(value: string): Rgba {
+const OPAQUE_HEX = /^#[0-9a-f]{6}$/i;
+
+function parseHex(value: string): Rgb {
   const text = value.trim();
-
-  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(text);
-  if (hex) {
-    const digits =
-      hex[1].length === 3
-        ? hex[1]
-            .split("")
-            .map((d) => d + d)
-            .join("")
-        : hex[1];
-    return {
-      r: parseInt(digits.slice(0, 2), 16),
-      g: parseInt(digits.slice(2, 4), 16),
-      b: parseInt(digits.slice(4, 6), 16),
-      a: 1,
-    };
-  }
-
-  const rgb = /^rgba?\(([^)]+)\)$/i.exec(text);
-  if (rgb) {
-    const parts = rgb[1].split(/[,\s/]+/).filter(Boolean).map(Number);
-    return { r: parts[0], g: parts[1], b: parts[2], a: parts[3] ?? 1 };
-  }
-
-  // `color-mix(in srgb, <color> N%, transparent)` is the tinted-panel idiom.
-  // Mixing with `transparent` leaves the colour's RGB unchanged and scales its
-  // alpha by N% — so the result is alpha N% only when the colour is opaque; a
-  // colour that already carries alpha multiplies through.
-  const mix = /^color-mix\(\s*in srgb,\s*(.+?)\s+([\d.]+)%\s*,\s*transparent\s*\)$/i.exec(text);
-  if (mix) {
-    const base = parseColor(mix[1]);
-    return { ...base, a: base.a * (Number(mix[2]) / 100) };
-  }
-
-  throw new Error(`Cannot parse colour "${value}"`);
-}
-
-/** The two endpoint colours of a two-stop `linear-gradient(...)`. */
-function gradientEndpoints(value: string): [Rgba, Rgba] {
-  const inner = /^linear-gradient\((.*)\)$/is.exec(value.trim());
-  if (!inner) throw new Error(`Not a linear-gradient: "${value}"`);
-
-  // Split on commas that are not inside parentheses, then drop the angle.
-  const stops: string[] = [];
-  let depth = 0;
-  let current = "";
-  for (const char of inner[1]) {
-    if (char === "(") depth += 1;
-    if (char === ")") depth -= 1;
-    if (char === "," && depth === 0) {
-      stops.push(current);
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-  stops.push(current);
-
-  const colors = stops.slice(1).map((stop) => parseColor(stop.trim()));
-  if (colors.length !== 2) throw new Error(`Expected two colour stops in "${value}"`);
-  return [colors[0], colors[1]];
-}
-
-/** Composite a (possibly translucent) colour over an opaque backdrop. */
-function over(top: Rgba, bottom: Rgba): Rgba {
+  if (!OPAQUE_HEX.test(text)) throw new Error(`Not an opaque 6-digit hex colour: "${value}"`);
   return {
-    r: top.r * top.a + bottom.r * (1 - top.a),
-    g: top.g * top.a + bottom.g * (1 - top.a),
-    b: top.b * top.a + bottom.b * (1 - top.a),
-    a: 1,
+    r: parseInt(text.slice(1, 3), 16),
+    g: parseInt(text.slice(3, 5), 16),
+    b: parseInt(text.slice(5, 7), 16),
   };
 }
 
-function relativeLuminance({ r, g, b }: Rgba): number {
+function relativeLuminance({ r, g, b }: Rgb): number {
   const channel = (value: number) => {
     const srgb = value / 255;
     return srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4;
@@ -175,7 +110,7 @@ function relativeLuminance({ r, g, b }: Rgba): number {
   return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
 }
 
-export function contrastRatio(foreground: Rgba, background: Rgba): number {
+export function contrastRatio(foreground: Rgb, background: Rgb): number {
   const a = relativeLuminance(foreground);
   const b = relativeLuminance(background);
   const [lighter, darker] = a > b ? [a, b] : [b, a];
@@ -184,168 +119,67 @@ export function contrastRatio(foreground: Rgba, background: Rgba): number {
 
 // --- The checks ------------------------------------------------------------
 
-/**
- * Every text token paired with the backgrounds it is actually rendered on.
- *
- * The `where` note is the point of the table: a pair nobody renders proves
- * nothing, and a rendered pair that is missing here is a hole in the proof.
- */
-const CHECKS: Array<{
-  foreground: string;
-  /** Layers from the page backwards; the first is nearest the text. */
-  background: string[];
-  where: string;
-  minimum?: number;
-}> = [
-  { foreground: "--text-primary", background: ["--bg-base"], where: "global.css body text" },
-  { foreground: "--text-primary", background: ["--surface", "--bg-base"], where: "panel headings" },
-  { foreground: "--text-secondary", background: ["--bg-base"], where: "HomeScreen.css intro" },
-  {
-    foreground: "--text-secondary",
-    background: ["--surface", "--bg-base"],
-    where: "TaskCard / SettingsScreen body copy",
-  },
-  { foreground: "--text-muted", background: ["--bg-base"], where: "AppHeader.css tagline" },
-  {
-    foreground: "--text-secondary",
-    background: ["--surface", "--bg-base"],
-    where: "AppHeader.css version badge",
-  },
-  {
-    foreground: "--text-secondary",
-    background: ["--surface", "--bg-base"],
-    where: "WizardShell / SettingsScreen hints",
-  },
-  {
-    foreground: "--accent-text",
-    background: ["--surface", "--bg-base"],
-    where: "TaskCard.css badge, WizardShell.css active step label",
-  },
-  {
-    foreground: "--accent-text",
-    background: ["--surface-hover", "--bg-base"],
-    where: "AppHeader.css settings button on hover",
-  },
-  {
-    foreground: "--danger",
-    background: ["--danger-surface", "--surface", "--bg-base"],
-    where: "ErrorNotice.css title",
-  },
-  {
-    foreground: "--success",
-    background: ["--success-surface", "--surface", "--bg-base"],
-    where: "SettingsScreen.css connection-test success panel",
-  },
-];
+const TEXT_TOKENS = ["--ink", "--ink-2", "--ink-3", "--accent-ink", "--add", "--del"];
+const SURFACES = ["--paper", "--paper-2"];
 
 /**
- * Gradients that carry text. Both endpoints are checked, not an average: the
- * text sits on the whole sweep, so the worst end is the one that matters.
+ * Every foreground paired with the backgrounds it is rendered on. Text sits on
+ * the window (`--paper`) or a hover/selected row (`--paper-2`); the only fills
+ * are ink (primary button) and del (window close hover).
  */
-const GRADIENT_CHECKS: Array<{
-  foreground: string;
-  gradient: string;
-  where: string;
-  minimum: number;
-}> = [
+const CHECKS: Array<{ foreground: string; background: string; where: string; minimum: number }> = [
+  ...TEXT_TOKENS.flatMap((foreground) =>
+    SURFACES.map((background) => ({
+      foreground,
+      background,
+      where: "text on the window or a hover/selected row",
+      minimum: AA_NORMAL,
+    })),
+  ),
+  { foreground: "--on-ink", background: "--ink", where: "primary button label", minimum: AA_NORMAL },
   {
-    foreground: "--text-on-accent",
-    gradient: "--accent-gradient-strong",
-    where: "TaskCard.css:40, WizardShell.css:34 and :106, SettingsScreen.css:145",
+    foreground: "--on-ink",
+    background: "--del",
+    where: "window close button on hover",
     minimum: AA_NORMAL,
   },
-];
-
-/**
- * Text painted *with* a gradient via `background-clip: text`, checked against
- * the page background instead.
- */
-const CLIPPED_TEXT_CHECKS: Array<{
-  gradient: string;
-  background: string;
-  where: string;
-  minimum: number;
-}> = [
   {
-    gradient: "--accent-gradient-strong",
-    background: "--bg-base",
-    where: "global.css .gradient-text on AppHeader's app name (22px / 700 — large text)",
-    minimum: AA_LARGE,
+    foreground: "--accent",
+    background: "--paper",
+    where: "markers, active underline, focus ring",
+    minimum: AA_NON_TEXT,
   },
 ];
 
-function stack(layers: string[], tokens: Map<string, string>): Rgba {
-  // Bottom layer first, compositing each one over the result.
-  return layers
-    .map((token) => parseColor(resolve(`var(${token})`, tokens)))
-    .reduceRight((backdrop, layer) => over(layer, backdrop));
-}
-
-describe.each(["dark", "light"] as const)("%s theme", (theme) => {
+describe.each(THEMES)("%s theme", (theme) => {
   const tokens = themeTokens(theme);
 
   // @covers theme-system/dual-light-dark-themes-with-neon-gradient-identity#both-themes-render-every-shell-screen
   it.each(CHECKS)(
-    "$foreground on $background meets AA ($where)",
-    ({ foreground, background, minimum = AA_NORMAL }) => {
+    "$foreground on $background meets $minimum:1 ($where)",
+    ({ foreground, background, minimum }) => {
       const ratio = contrastRatio(
-        parseColor(resolve(`var(${foreground})`, tokens)),
-        stack(background, tokens),
+        parseHex(resolve(`var(${foreground})`, tokens)),
+        parseHex(resolve(`var(${background})`, tokens)),
       );
       expect(Number(ratio.toFixed(2))).toBeGreaterThanOrEqual(minimum);
     },
   );
-
-  it.each(GRADIENT_CHECKS)(
-    "$foreground on $gradient meets AA at its worst endpoint ($where)",
-    ({ foreground, gradient, minimum }) => {
-      const text = parseColor(resolve(`var(${foreground})`, tokens));
-      const page = parseColor(resolve("var(--bg-base)", tokens));
-      const worst = Math.min(
-        ...gradientEndpoints(resolve(`var(${gradient})`, tokens)).map((endpoint) =>
-          contrastRatio(text, over(endpoint, page)),
-        ),
-      );
-      expect(Number(worst.toFixed(2))).toBeGreaterThanOrEqual(minimum);
-    },
-  );
-
-  it.each(CLIPPED_TEXT_CHECKS)(
-    "$gradient as clipped text on $background meets AA at its worst endpoint ($where)",
-    ({ gradient, background, minimum }) => {
-      const page = parseColor(resolve(`var(${background})`, tokens));
-      const worst = Math.min(
-        ...gradientEndpoints(resolve(`var(${gradient})`, tokens)).map((endpoint) =>
-          contrastRatio(over(endpoint, page), page),
-        ),
-      );
-      expect(Number(worst.toFixed(2))).toBeGreaterThanOrEqual(minimum);
-    },
-  );
-
-  it("declares a text colour for every pair the table checks", () => {
-    for (const { foreground, background } of CHECKS) {
-      expect(tokens.has(foreground), `${foreground} missing in ${theme}`).toBe(true);
-      for (const layer of background) {
-        expect(tokens.has(layer), `${layer} missing in ${theme}`).toBe(true);
-      }
-    }
-  });
 });
 
-describe("the gradient identity is shared, not duplicated", () => {
-  it("derives both accent gradients from the same Rust orange origin", () => {
-    // `theme-system` requires accent elements to "use the shared gradient in
-    // both themes". The text-bearing variant darkens only the cyan endpoint, so
-    // the identity stays one gradient rather than two unrelated ones.
-    const tokens = themeTokens("dark");
-    expect(tokens.get("--accent-gradient")).toContain("var(--accent-from)");
-    expect(tokens.get("--accent-gradient-strong")).toContain("var(--accent-to)");
+describe("the token set", () => {
+  it("declares every theme colour as an opaque hex, with the same names in both themes", () => {
+    for (const theme of THEMES) {
+      for (const [name, value] of themeBlock(theme)) {
+        expect(value, `${name} in ${theme}`).toMatch(OPAQUE_HEX);
+      }
+    }
+    expect([...themeBlock("dark").keys()].sort()).toEqual([...themeBlock("light").keys()].sort());
+    expect(themeBlock("light").size).toBe(11);
   });
 
-  it("is identical in both themes", () => {
-    for (const name of ["--accent-from", "--accent-to", "--accent-gradient", "--accent-gradient-strong"]) {
-      expect(themeTokens("dark").get(name)).toBe(themeTokens("light").get(name));
-    }
+  it("rejects a translucent value rather than mis-computing it", () => {
+    expect(() => parseHex("#00000080")).toThrow(/opaque/);
+    expect(() => parseHex("rgba(0, 0, 0, 0.5)")).toThrow(/opaque/);
   });
 });
