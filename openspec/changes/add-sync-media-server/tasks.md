@@ -4,9 +4,9 @@ Boundaries: edit only the files named below. No component, hook or locale file o
 
 ## 1. Media server
 
-- [ ] 1.1 Edit `src-tauri/Cargo.toml` per design D2. Verify: `cargo check --manifest-path src-tauri/Cargo.toml` passes and `git diff src-tauri/Cargo.lock` adds no `[[package]]` block and changes no version.
-- [ ] 1.2 Create `src-tauri/src/media_server.rs` per D3 and declare it in `lib.rs`. In its `#[cfg(test)]` module, unit-test every `parse_range` rule of D3 as a table, and `content_type_of` for one extension per type plus an unknown one. Verify: `cargo test --manifest-path src-tauri/Cargo.toml media_server`.
-- [ ] 1.3 In the same test module send raw HTTP/1.1 over `tokio::net::TcpStream` (with `Connection: close`) to a started server and write one test per scenario of "Preview media is served over token-authorized loopback HTTP". For revocation use a 64 MiB sparse file, read the head and one chunk, revoke, then read until EOF or a read error (both end the stream) and assert fewer body bytes than `Content-Length`. Also assert no response header starts with `access-control-`, that two published tokens differ and have 32 hex digits, and that dropping the server ends a running stream. Verify: same command.
+- [x] 1.1 Edit `src-tauri/Cargo.toml` per design D2. Verify: `cargo check --manifest-path src-tauri/Cargo.toml` passes and `git diff src-tauri/Cargo.lock` adds no `[[package]]` block and changes no version.
+- [x] 1.2 Create `src-tauri/src/media_server.rs` per D3 and declare it in `lib.rs`. In its `#[cfg(test)]` module, unit-test every `parse_range` rule of D3 as a table, and `content_type_of` for one extension per type plus an unknown one. Verify: `cargo test --manifest-path src-tauri/Cargo.toml media_server`.
+- [x] 1.3 In the same test module send raw HTTP/1.1 over `tokio::net::TcpStream` (with `Connection: close`) to a started server and write one test per scenario of "Preview media is served over token-authorized loopback HTTP". For revocation use a 64 MiB sparse file, read the head and one chunk, revoke, then read until EOF or a read error (both end the stream) and assert fewer body bytes than `Content-Length`. Also assert no response header starts with `access-control-`, that two published tokens differ and have 32 hex digits, and that dropping the server ends a running stream. Verify: same command.
 
 ## 2. Session and commands
 

@@ -41,13 +41,23 @@ specta-typescript = "=0.0.12"
 tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
 # Native file/folder picker for the match wizard's Step 1 "Browse" action.
 tauri-plugin-dialog = "2"
+# The sync preview's loopback media server (`media_server.rs`). WebKitGTK cannot
+# play media through a custom scheme (tauri-apps/tauri#3725), so preview media is
+# served over token-authorized HTTP on 127.0.0.1. All four were already resolved
+# in Cargo.lock through tauri's own tree, so no new package enters the build.
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = { version = "0.1", features = ["channel"] }
+getrandom = "0.4"
 
 [dependencies.tokio]
 # The wizard's analysis runs in a spawned task whose plan state is guarded by a
 # `tokio::sync::Mutex` (writers hold it across `.await`), so `sync` must be an
 # explicit feature here — it is otherwise only a transitive dependency of tauri.
+# `net`, `fs`, `io-util`, `macros` and `time` are the media server's: it accepts
+# on a socket, streams files in chunks and races each chunk against revocation.
 version = "1"
-features = ["sync", "rt"]
+features = ["sync", "rt", "net", "fs", "io-util", "macros", "time"]
 
 [dev-dependencies]
 # The `test` feature unlocks `tauri::test`'s mock runtime, which is the only way

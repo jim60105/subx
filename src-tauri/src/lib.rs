@@ -5,6 +5,7 @@ mod dto;
 mod error;
 #[cfg(test)]
 mod ipc_tests;
+mod media_server;
 pub mod platform;
 mod paths;
 mod state;
