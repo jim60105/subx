@@ -123,12 +123,18 @@ export function SyncPlayer({ session, offsetMs, onPosition }: SyncPlayerProps) {
     const shown = video.getAttribute("src");
     if (shown !== target) {
       if (shown !== null) {
+        // Without a capture from `preparing`, this is the element's own place:
+        // after a failed audio playback, wherever the audio stopped (0 if it
+        // never loaded), which is where returning to the video resumes.
         const resume = resumeRef.current ?? snapshot(video);
         // Returning to the video stays paused; continuing in audio keeps playing.
         resumeRef.current = media.status === "video" ? { ...resume, playing: false } : resume;
       } else {
         resumeRef.current = null;
       }
+      // Until the new source reports its own place, cues must not be matched
+      // against the old one's.
+      if (resumeRef.current === null) setPositionMs(0);
       stopFrames();
       setPlaying(false);
       setHasPicture(true);

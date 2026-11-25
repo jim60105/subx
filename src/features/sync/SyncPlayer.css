@@ -26,11 +26,15 @@
 /* Paper and ink of its own, so contrast never depends on the picture. */
 .sync-player__slip {
   position: absolute;
+  inset-inline: 0;
   bottom: var(--space-3);
-  left: 50%;
   display: flex;
   flex-direction: column;
+  /* Centred across the whole stage, so a long cue wraps at the stage's width
+     rather than at half of it. */
+  width: max-content;
   max-width: calc(100% - 2 * var(--space-4));
+  margin-inline: auto;
   padding: var(--space-1) var(--space-3);
   font-size: var(--text-lg);
   line-height: 1.35;
@@ -39,7 +43,6 @@
   white-space: pre-line;
   background: var(--paper);
   border-inline-start: 2px solid var(--accent);
-  transform: translateX(-50%);
 }
 
 .sync-player__line {

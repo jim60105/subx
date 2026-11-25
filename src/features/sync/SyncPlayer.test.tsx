@@ -193,6 +193,20 @@ describe("the sync player", () => {
     expect(slipText()).toBeNull();
   });
 
+  it("forgets the old position when a new session's media replaces the old", () => {
+    const { rerender } = renderPlayer(makeSession({ status: "video", url: VIDEO_URL }));
+    const { state } = stubMedia(video());
+    state.currentTime = 6;
+    fireEvent.seeked(video());
+    expect(slipText()).toBe("first");
+
+    rerender(makeSession({ status: "opening" }));
+    rerender(makeSession({ status: "video", url: "http://127.0.0.1:9/s2" }));
+
+    expect(slipText()).toBeNull();
+    expect(screen.getByText("0:00.0 / 0:00.0")).toBeInTheDocument();
+  });
+
   it("continues a silent video in audio from the same place, playing, at the same volume", async () => {
     const user = userEvent.setup();
     const session = makeSession({ status: "video", url: VIDEO_URL });
