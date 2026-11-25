@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import "./WizardShell.css";
@@ -20,6 +21,12 @@ export interface WizardNavAction {
    * with the visible text (WCAG 2.5.3, label in name).
    */
   accessibleLabel?: string;
+  /**
+   * Moves keyboard focus to this control when it becomes marked (including
+   * the shell's first render), if focus is on the document body or inside the
+   * action bar. Honoured on `secondary` only.
+   */
+  takeFocus?: boolean;
   /**
    * Short status rendered directly before the control, such as how many items
    * the primary action will act on. Honoured on `next` only.
@@ -82,6 +89,19 @@ export function WizardShell({
   next,
 }: WizardShellProps) {
   const { t } = useTranslation("wizard");
+  const actionsRef = useRef<HTMLDivElement>(null);
+  const secondaryRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const secondaryActions = secondaryList(secondary);
+  const focusIndex = secondaryActions.findIndex((action) => action.takeFocus === true);
+
+  // Keyed on the index alone, so a mark that stays never re-takes focus.
+  useEffect(() => {
+    if (focusIndex === -1) return;
+    const active = document.activeElement;
+    const bar = actionsRef.current;
+    if (active !== null && active !== document.body && !(bar?.contains(active) ?? false)) return;
+    secondaryRefs.current[focusIndex]?.focus();
+  }, [focusIndex]);
 
   return (
     <section className="wizard">
@@ -114,7 +134,7 @@ export function WizardShell({
 
       <div className="wizard__content">{children}</div>
 
-      <div className="wizard__actions">
+      <div className="wizard__actions" ref={actionsRef}>
         {back && (
           <button
             type="button"
@@ -127,10 +147,13 @@ export function WizardShell({
           </button>
         )}
         <div className="wizard__actions-end">
-          {secondaryList(secondary).map((action, index) => (
+          {secondaryActions.map((action, index) => (
             // Keyed by position: the slot's order is what stays stable.
             <button
               key={index}
+              ref={(element) => {
+                secondaryRefs.current[index] = element;
+              }}
               type="button"
               className="button button--tertiary wizard__button"
               disabled={action.disabled}

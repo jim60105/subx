@@ -4,15 +4,15 @@ Scenario IDs below are the `// @covers` values, derived by `scripts/check-spec-c
 
 ## 1. Rust formatting (design D1)
 
-- [ ] 1.1 From the repository root, run `cargo fmt --manifest-path src-tauri/Cargo.toml`. Make no manual edits and add no rustfmt config. Verify:
+- [x] 1.1 From the repository root, run `cargo fmt --manifest-path src-tauri/Cargo.toml`. Make no manual edits and add no rustfmt config. Verify:
   - `cargo fmt --manifest-path src-tauri/Cargo.toml --check` exits 0.
   - `git diff --stat` lists only `.rs` files under `src-tauri/`; the 11 files named in design Context are expected.
-- [ ] 1.2 Run `cargo test --manifest-path src-tauri/Cargo.toml` and verify it passes. Then commit the formatting on its own, with nothing else in the commit, for example `style(tauri): apply rustfmt to the src-tauri crate`.
+- [x] 1.2 Run `cargo test --manifest-path src-tauri/Cargo.toml` and verify it passes. Then commit the formatting on its own, with nothing else in the commit, for example `style(tauri): apply rustfmt to the src-tauri crate`.
 
 ## 2. WizardShell `takeFocus` (design D2, spec app-shell)
 
-- [ ] 2.1 In `src/components/WizardShell/WizardShell.tsx`, add the `takeFocus?: boolean` field with the exact doc comment from design D2 to `WizardNavAction`. Add the `actionsRef` / `secondaryRefs` / `focusIndex` / `useEffect` logic verbatim from D2, `ref={actionsRef}` on `.wizard__actions`, and the callback ref on each secondary button. Render secondary buttons from `secondaryActions`. Do not change classes, order or attributes of any button. Verify: `npx tsc --noEmit` passes and the existing `npx vitest run src/components/WizardShell` tests still pass unchanged. (The effect also runs on the first render, which the spec allows. No current caller mounts the shell with a marked action.)
-- [ ] 2.2 In `src/components/WizardShell/WizardShell.test.tsx`, add a `describe("secondary takeFocus")` block. Drive re-renders with `rerender` from `renderWithI18n(...)`, and focus elements with `element.focus()` inside `act`. Add four tests, each annotated:
+- [x] 2.1 In `src/components/WizardShell/WizardShell.tsx`, add the `takeFocus?: boolean` field with the exact doc comment from design D2 to `WizardNavAction`. Add the `actionsRef` / `secondaryRefs` / `focusIndex` / `useEffect` logic verbatim from D2, `ref={actionsRef}` on `.wizard__actions`, and the callback ref on each secondary button. Render secondary buttons from `secondaryActions`. Do not change classes, order or attributes of any button. Verify: `npx tsc --noEmit` passes and the existing `npx vitest run src/components/WizardShell` tests still pass unchanged. (The effect also runs on the first render, which the spec allows. No current caller mounts the shell with a marked action.)
+- [x] 2.2 In `src/components/WizardShell/WizardShell.test.tsx`, add a `describe("secondary takeFocus")` block. Drive re-renders with `rerender` from `renderWithI18n(...)`, and focus elements with `element.focus()` inside `act`. Add four tests, each annotated:
   - `// @covers app-shell/secondary-action-can-take-keyboard-focus#focus-moves-from-a-control-that-became-disabled`: render `secondary={{label:"Skip"}}` and `next={{label:"Start", onClick}}`, then focus Start. Re-render with `secondary={{label:"Cancel", takeFocus:true}}` and `next={{label:"Working", disabled:true}}`. Expect `document.activeElement` to be the Cancel button.
   - `// @covers app-shell/secondary-action-can-take-keyboard-focus#focus-moves-when-the-focused-control-is-removed`: render `secondary={[{label:"Skip"},{label:"Start"}]}`, then focus Start. Re-render with `secondary={{label:"Cancel", takeFocus:true}}`. Expect focus on Cancel.
   - `// @covers app-shell/secondary-action-can-take-keyboard-focus#focus-outside-the-action-bar-is-not-taken`: put an `<input aria-label="Field" />` in the children and focus it. Re-render with a `takeFocus` secondary. Expect focus still on the input.
