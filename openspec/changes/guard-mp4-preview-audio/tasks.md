@@ -4,7 +4,7 @@ Boundaries: edit only the files named below. Tests for this change's scenarios s
 
 ## 1. Parser
 
-- [ ] 1.1 Create `src-tauri/src/mp4_timing.rs` per design D1 and D2, declare it in `lib.rs`. In its tests, a helper builds `ftyp`, `moov` (v0/v1, any number of traks with edits) and `mdat` in a `Vec<u8>`; one test per scenario that concerns parsing (timescales, selected track, complex lists, versions and orders, late fragment, malformed), one for zero duration and for `mvex` giving no segment, each limit of D2 once, a 64-bit box size, and a non-MP4 input giving `None`. Verify: `cargo test --manifest-path src-tauri/Cargo.toml mp4_timing`.
+- [x] 1.1 Create `src-tauri/src/mp4_timing.rs` per design D1 and D2, declare it in `lib.rs`. In its tests, a helper builds `ftyp`, `moov` (v0/v1, any number of traks with edits) and `mdat` in a `Vec<u8>`; one test per scenario that concerns parsing (timescales, selected track, complex lists, versions and orders, late fragment, malformed), one for zero duration and for `mvex` giving no segment, each limit of D2 once, a 64-bit box size, and a non-MP4 input giving `None`. Verify: `cargo test --manifest-path src-tauri/Cargo.toml mp4_timing`.
 
 ## 2. Decoder
 

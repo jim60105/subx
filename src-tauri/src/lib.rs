@@ -7,6 +7,7 @@ mod error;
 #[cfg(test)]
 mod ipc_tests;
 mod media_server;
+mod mp4_timing;
 pub mod platform;
 mod paths;
 mod state;
