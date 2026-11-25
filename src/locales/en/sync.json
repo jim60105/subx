@@ -78,6 +78,26 @@
       "shifted": "Shifted"
     }
   },
+  "preview": {
+    "play": "Play",
+    "pause": "Pause",
+    "seek": "Position",
+    "volume": "Volume",
+    "noSound": "No sound?",
+    "backToVideo": "Back to video",
+    "none": {
+      "title": "No media to preview",
+      "description": "Without a video or audio file there is nothing to play. You can still adjust the offset and continue."
+    },
+    "opening": "Opening the media…",
+    "preparing": {
+      "failed": "This video cannot be played here, so its sound is being prepared. You can keep adjusting the offset.",
+      "requested": "Preparing the sound. You can keep adjusting the offset."
+    },
+    "unavailable": {
+      "title": "The preview is unavailable"
+    }
+  },
   "apply": {
     "title": "Save the synced subtitle",
     "summary": "Every cue will move by {{seconds}} seconds.",

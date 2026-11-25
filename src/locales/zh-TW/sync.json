@@ -78,6 +78,26 @@
       "shifted": "套用後"
     }
   },
+  "preview": {
+    "play": "播放",
+    "pause": "暫停",
+    "seek": "播放位置",
+    "volume": "音量",
+    "noSound": "沒有聲音？",
+    "backToVideo": "回到影片",
+    "none": {
+      "title": "沒有可預覽的媒體",
+      "description": "沒有影片或音訊檔案就無法播放。仍可調整偏移量並繼續。"
+    },
+    "opening": "正在開啟媒體…",
+    "preparing": {
+      "failed": "這部影片無法在此播放，正在改為準備它的聲音。你可以繼續調整偏移量。",
+      "requested": "正在準備聲音。你可以繼續調整偏移量。"
+    },
+    "unavailable": {
+      "title": "無法預覽"
+    }
+  },
   "apply": {
     "title": "儲存同步後的字幕",
     "summary": "每一句字幕都會平移 {{seconds}} 秒。",
