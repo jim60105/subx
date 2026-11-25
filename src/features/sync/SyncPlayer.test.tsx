@@ -7,11 +7,13 @@ import { I18nextProvider } from "react-i18next";
 
 import { i18n, setupI18n } from "../../test/renderWithI18n";
 import type { PreviewCueDto } from "../../types/ipc";
+import { SyncOffsetView } from "./SyncOffsetStep";
 import { formatMediaTime, SyncPlayer } from "./SyncPlayer";
 import type { PreviewMedia, PreviewSession } from "./usePreviewSession";
 
 const VIDEO_URL = "http://127.0.0.1:9/s1";
 const AUDIO_URL = "http://127.0.0.1:9/s1/audio";
+const PREVIEW_ERROR = { code: "preview.media_unreadable", message: "x", hintCode: null };
 const CUES: PreviewCueDto[] = [
   { startMs: 5_000, endMs: 7_000, text: "{\\an8}<i>first</i>" },
   { startMs: 11_000, endMs: 14_000, text: "second" },
@@ -498,5 +500,65 @@ describe("the sync player", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent("cannot be played here");
     expect(video().getAttribute("src")).toBe(VIDEO_URL);
+  });
+});
+
+describe("the time rule in the player", () => {
+  function renderStep(session: PreviewSession) {
+    return render(
+      <I18nextProvider i18n={i18n}>
+        <SyncOffsetView
+          session={session}
+          defaults={null}
+          detection={{ offsetMs: 750, confidence: 82, warnings: [] }}
+          offsetMs={750}
+          offsetExceedsMax={false}
+          onOffsetChange={() => {}}
+        />
+      </I18nextProvider>,
+    );
+  }
+
+  /** The offset controls' markup, without the ids `useId` numbers per render. */
+  function offsetControls(container: HTMLElement): string {
+    const field = container.querySelector(".offset-field");
+    if (field === null) throw new Error("the step rendered no offset field");
+    return field.outerHTML.replace(/ (id|aria-describedby)="[^"]*"/g, "");
+  }
+
+  function baselineControls(): string {
+    const { container, unmount } = renderStep(makeSession({ status: "video", url: VIDEO_URL }));
+    const markup = offsetControls(container);
+    unmount();
+    return markup;
+  }
+
+  it.each([
+    ["video", { status: "video", url: VIDEO_URL }],
+    ["audio", { status: "audio", url: AUDIO_URL }],
+  ] as const)("draws the rule between the stage and the transport with %s and cues", (_, media) => {
+    const { container } = renderStep(makeSession(media));
+
+    const rule = container.querySelector(".time-rule");
+    expect(rule).not.toBeNull();
+    expect(rule?.previousElementSibling).toHaveClass("sync-player__stage");
+    expect(rule?.nextElementSibling).toHaveClass("sync-player__transport");
+  });
+
+  // @covers sync-workflow/time-rule-scrolls-real-cues#rule-is-absent-without-playable-media-or-cues
+  it.each([
+    ["without media", makeSession({ status: "none" })],
+    ["while opening", makeSession({ status: "opening" })],
+    ["while preparing audio", makeSession({ status: "preparing", reason: "failed" })],
+    ["when unavailable", makeSession({ status: "unavailable", error: PREVIEW_ERROR, canReturn: false })],
+    ["when the cues failed to load", { ...makeSession({ status: "video", url: VIDEO_URL }, []), cueError: PREVIEW_ERROR }],
+    ["without cues", makeSession({ status: "video", url: VIDEO_URL }, [])],
+  ])("draws no rule %s and leaves the offset controls unchanged", (_, session) => {
+    const baseline = baselineControls();
+    const { container } = renderStep(session);
+
+    expect(container.querySelector(".time-rule")).toBeNull();
+    expect(offsetControls(container)).toBe(baseline);
+    expect(screen.getByRole("spinbutton", { name: "Offset in milliseconds" })).toHaveValue(750);
   });
 });

@@ -60,7 +60,6 @@
   },
   "offset": {
     "title": "調整偏移量",
-    "description": "下方數值就是實際會套用的值。若結果接近但不夠精準，可以直接調整。",
     "detected": "偵測到的偏移量",
     "confidence": "信心度",
     "confidenceValue": "{{percent}}%",
@@ -73,6 +72,9 @@
     "unit": "秒",
     "decrease": "減少 {{step}} 毫秒",
     "increase": "增加 {{step}} 毫秒",
+    "nudgeDown": "−{{step}} 毫秒",
+    "nudgeUp": "+{{step}} 毫秒",
+    "msUnit": "毫秒",
     "preview": {
       "original": "原本",
       "shifted": "套用後"

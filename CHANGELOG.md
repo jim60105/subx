@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Sync: the offset step plays the chosen media with the shifted subtitle over it, with play/pause, position, seek and volume. Changing the offset moves the subtitle at once without interrupting playback. When the picture cannot be shown, or after choosing "No sound?", the sound is decoded and played instead; if neither works the reason is shown. The preview never blocks editing the offset or continuing.
+- Sync: the offset step plays the chosen media with the shifted subtitle over it, with play/pause, position, seek and volume. Changing the offset moves the subtitle at once without interrupting playback. When the picture cannot be shown, or after choosing "No sound?", the sound is decoded and played instead; if neither works the reason is shown. The preview never blocks editing the offset or continuing. A time rule under the picture scrolls the real cues past a fixed needle, hollow at their original times and solid at their shifted times, with the cue being shown marked; it replaces the schematic cue preview. The offset figure, the −50 ms and +50 ms buttons, the millisecond field and the detected offset and confidence share one row, and the figure moves in the direction of each change.
 
 ### Changed
 - Match: clicking anywhere on a pairing in the review step selects or deselects it; the checkbox and the reasoning disclosure keep their own behaviour, and dragging to select text does not change the selection.

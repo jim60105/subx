@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ErrorNotice } from "../../components/ErrorNotice/ErrorNotice";
 import { plainCueText } from "./cueText";
 import { activeCues } from "./cueTiming";
+import { TimeRule } from "./TimeRule";
 import type { PreviewSession } from "./usePreviewSession";
 import "./SyncPlayer.css";
 
@@ -42,7 +43,7 @@ function snapshot(video: HTMLVideoElement): Resume {
 
 /**
  * The offset step's player: one media element, the shifted subtitle over it,
- * and a transport.
+ * the time rule, and a transport.
  *
  * The offset is applied here, per render, from the position the element
  * reports, so changing it never reloads, seeks or pauses the media. Frames are
@@ -52,7 +53,7 @@ function snapshot(video: HTMLVideoElement): Resume {
  */
 export function SyncPlayer({ session, offsetMs, onPosition }: SyncPlayerProps) {
   const { t } = useTranslation("sync");
-  const { media, cues } = session;
+  const { media, cues, cueError } = session;
 
   // The last URL the element was given. It is kept through `preparing` and
   // `unavailable`, so the picture stays until the audio is ready and the
@@ -221,6 +222,8 @@ export function SyncPlayer({ session, offsetMs, onPosition }: SyncPlayerProps) {
         .map((cue) => ({ cue, text: plainCueText(cue.text) }))
         .filter(({ text }) => text !== "")
     : [];
+  // Without cues, or with cues that failed to load, there is nothing to draw.
+  const showRule = playable && cueError === undefined && cues.length > 0;
   const showAudioMark =
     media.status === "audio" || (media.status === "video" && !hasPicture);
   const durationKnown = Number.isFinite(duration);
@@ -299,6 +302,8 @@ export function SyncPlayer({ session, offsetMs, onPosition }: SyncPlayerProps) {
           </div>
         )}
       </div>
+
+      {showRule && <TimeRule cues={cues} positionMs={positionMs} offsetMs={offsetMs} />}
 
       {playable && (
         <div className="sync-player__transport">

@@ -212,3 +212,24 @@ describe("the convert source list", () => {
     expect(declarations).toMatch(/padding-bottom:\s*0/);
   });
 });
+
+describe("the sync offset step", () => {
+  const player = read("features", "sync", "SyncPlayer.css");
+  const rule = read("features", "sync", "TimeRule.css");
+  const step = read("features", "sync", "SyncOffsetStep.css");
+
+  /// The stage takes what height is left and gives it up first, down to a
+  /// floor, so the offset row stays in view on a short window.
+  it("lets only the stage shrink, down to a floor", () => {
+    const stage = declarationsOf(player, ".sync-player__stage");
+
+    expect(stage).toMatch(/flex:\s*1 1 0\s*;/);
+    expect(stage).toMatch(/min-height:\s*6rem/);
+    expect(declarationsOf(step, ".sync-offset > :not(.sync-player)")).toMatch(/flex-shrink:\s*0/);
+    expect(declarationsOf(rule, ".time-rule")).toMatch(/flex-shrink:\s*0/);
+  });
+
+  it("gives the time rule a fixed height", () => {
+    expect(declarationsOf(rule, ".time-rule")).toMatch(/(^|;|\s)height:\s*74px/);
+  });
+});

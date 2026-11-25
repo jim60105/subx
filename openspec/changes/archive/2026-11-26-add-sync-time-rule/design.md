@@ -36,7 +36,7 @@ Inside: `.time-rule__belt` at `left: 50%` with inline `transform: translateX(-<p
 
 `OffsetPreview` import and element, its files, its constants and the `previewShift` tests are deleted. One `.offset-field__row` (flex, wrap off): figure + unit, the two nudge buttons with visible text `−50 ms` / `+50 ms` (locale keys `offset.nudgeDown`, `offset.nudgeUp` with `{{step}}`) and the existing accessible names, the number input with its label `visually-hidden` and a visible unit text. Optional prop `children` is rendered at the inline end; `SyncOffsetView` passes the facts `dl` there. Hint, seconds echo and limit error keep their markup below the row.
 
-Figure motion: a `key` change per value with `data-direction="up|down"` set from the previous value held in a ref; the keyframes translate 6px or −6px to 0 over `--motion-fast`. No animation on first render. The global reduced-motion rule ends it at once.
+Figure motion: a `key` change per value with `data-direction="up|down"` set from the previous value, held in state and adjusted during render when the value changes; the keyframes translate 6px or −6px to 0 over `--motion-fast`. No animation on first render. The global reduced-motion rule ends it at once.
 
 ### D4 `SyncOffsetView`
 
