@@ -533,6 +533,7 @@ fn language_in_target_name(detector: &LanguageDetector, op: &MatchOperation) -> 
 }
 
 /// Drops a trailing counter (`tc.2`, `en-2`); a bare number or `tc2` is kept.
+/// A numeric region subtag reads as a counter too, so `es-419` becomes `es`.
 fn strip_counter(tag: &str) -> &str {
     let head = tag.trim_end_matches(|c: char| c.is_ascii_digit());
     if head.len() == tag.len() {

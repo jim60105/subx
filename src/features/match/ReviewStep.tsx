@@ -51,6 +51,7 @@ function PairRow({ row, selected, onToggle }: PairRowProps) {
     // Both signals are needed: a moved pointer alone may be a shaky click,
     // and a selection alone may predate this click or come from a double click.
     const start = press.current;
+    press.current = null;
     const moved =
       start !== null &&
       (Math.abs(event.clientX - start.x) > DRAG_THRESHOLD || Math.abs(event.clientY - start.y) > DRAG_THRESHOLD);

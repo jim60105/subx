@@ -445,6 +445,34 @@ describe("ReviewStep whole-row toggle", () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
+  it("a vertical drag that selects text does not toggle", () => {
+    const { onToggle } = renderWithToggle();
+    const name = part("sub-0.srt", ".review-ledger__name");
+    vi.spyOn(window, "getSelection").mockReturnValue({ isCollapsed: false } as Selection);
+
+    fireEvent.mouseDown(name, { clientX: 10, clientY: 10 });
+    fireEvent.click(name, { clientX: 10, clientY: 40 });
+
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it("a control around the whole review does not swallow row clicks", async () => {
+    const user = userEvent.setup();
+    const onToggle = vi.fn();
+    render(
+      <I18nextProvider i18n={i18n}>
+        <label>
+          <ReviewStep plan={LEDGER_PLAN} selectedIds={new Set()} onToggle={onToggle} onToggleLanguage={vi.fn()} />
+        </label>
+      </I18nextProvider>,
+    );
+
+    await user.click(part("sub-0.srt", ".review-ledger__to"));
+
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    expect(onToggle).toHaveBeenCalledWith(0);
+  });
+
   it("a moved click without a text selection still toggles", () => {
     const { onToggle } = renderWithToggle();
     const name = part("sub-0.srt", ".review-ledger__name");
