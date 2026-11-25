@@ -269,7 +269,7 @@ async function translateToRun(user: User) {
   await user.click(screen.getByRole("button", { name: "Continue" }));
 }
 
-/** Steps 1–3 on the automatic path, landing on the apply step. */
+/** Steps 1–3, skipping the detection, landing on the apply step. */
 async function syncToApply(user: User) {
   render(
     <I18nextProvider i18n={i18n}>
@@ -279,10 +279,8 @@ async function syncToApply(user: User) {
   await user.click(screen.getByRole("button", { name: "Choose subtitle" }));
   await screen.findByTitle("/m/episode.srt");
   await user.click(screen.getByRole("button", { name: "Continue" }));
-  await screen.findByRole("group", { name: "Offset method" });
-  await user.click(screen.getByRole("radio", { name: /Enter it myself/ }));
-  await user.click(screen.getByRole("button", { name: "Continue" }));
-  await user.click(await screen.findByRole("button", { name: "Continue" }));
+  await user.click(await within(bar()).findByRole("button", { name: "Skip" }));
+  await user.click(await within(bar()).findByRole("button", { name: "Continue" }));
   await screen.findByRole("textbox", { name: "Save to" });
 }
 

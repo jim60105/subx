@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type {
-  SyncApplyResultDto,
-  SyncDefaultsDto,
-  SyncDetectionDto,
-  SyncMethodDto,
-} from "../../types/ipc";
+import type { SyncApplyResultDto, SyncDefaultsDto, SyncDetectionDto } from "../../types/ipc";
 import { isErrorDto } from "../../types/ipc";
 import {
   applySyncOffset,
@@ -14,30 +9,37 @@ import {
   getSyncDefaults,
 } from "./syncWizardApi";
 
-export type SyncStepId = "inputs" | "method" | "detect" | "apply";
+export type SyncStepId = "inputs" | "detect" | "offset" | "apply";
+
+/** The detect step's three states (design D1). */
+export type DetectPhase = "ask" | "detecting" | "failed";
 
 /** Ordered step ids, used for the WizardShell indicator. */
-export const SYNC_STEPS: readonly SyncStepId[] = ["inputs", "method", "detect", "apply"] as const;
+export const SYNC_STEPS: readonly SyncStepId[] = ["inputs", "detect", "offset", "apply"] as const;
 
 export interface SyncWizard {
   step: SyncStepId;
   mediaPath: string | null;
   subtitlePath: string | null;
+  /** Automatic detection needs a media file to listen to. */
+  hasMedia: boolean;
   /** `null` until the shared configuration has been read. */
   defaults: SyncDefaultsDto | null;
   defaultsError: unknown;
-  method: SyncMethodDto;
+  /** `sync.default_method = manual`: skipping is the primary choice. */
+  prefersManual: boolean;
   /** Per-run VAD sensitivity as a whole percentage; `null` until the shared
    * configuration has been read. */
   sensitivity: number | null;
-  /** The value that will be applied: entered in manual mode, detected and then
-   * editable in automatic mode. */
+  /** The value that will be applied: detected or zero, then edited on the
+   * offset step. */
   offsetMs: number;
   /** True when `offsetMs` is beyond the configured maximum. */
   offsetExceedsMax: boolean;
-  /** Automatic detection needs a media file; manual never does. */
-  canDetect: boolean;
-  isDetecting: boolean;
+  /** True once the offset step has been entered for the current files, which
+   * is what makes keeping the current offset a choice on the detect step. */
+  hasReview: boolean;
+  detectPhase: DetectPhase;
   detection: SyncDetectionDto | null;
   detectError: unknown;
   /** The output path the user chose, or `null` to let the backend default it. */
@@ -50,23 +52,47 @@ export interface SyncWizard {
   /** True once an apply was refused because its target already exists.
    * Confirming retries against exactly that target, never the live field. */
   canConfirmOverwrite: boolean;
+  /** Selecting a different file resets the offset and the detection. */
   setMediaPath: (path: string | null) => void;
   setSubtitlePath: (path: string | null) => void;
-  setMethod: (method: SyncMethodDto) => void;
   setSensitivity: (sensitivity: number) => void;
   setOffsetMs: (offsetMs: number) => void;
   setOutputPath: (path: string) => void;
-  toMethod: () => void;
-  backToInputs: () => void;
+  /** Files → detect, in the ask state. */
   toDetect: () => void;
-  backToMethod: () => void;
-  toApply: () => void;
+  backToInputs: () => void;
+  /** Ask or failed → detecting. Keeps the offset until a result arrives. */
+  startDetection: () => void;
+  /** Detecting → ask; a late result is discarded. */
+  cancelDetection: () => void;
+  /** Ask or failed → offset, with offset 0 and no detection. */
+  skipDetection: () => void;
+  /** Ask or failed → offset, with the offset and detection kept. */
+  keepOffset: () => void;
+  /** Offset → detect, in the ask state; the offset and detection are kept. */
   backToDetect: () => void;
+  toApply: () => void;
+  /** Save → offset. */
+  backToOffset: () => void;
   apply: () => Promise<void>;
   /** Re-runs the refused apply with the overwrite confirmed (design D5). */
   confirmOverwrite: () => Promise<void>;
   /** Discards everything and returns to Step 1. */
   restart: () => void;
+}
+
+/**
+ * Asks the backend to abort the running detection, never rejecting.
+ *
+ * The returned promise is what the next detection waits for, so a cancel still
+ * in flight cannot abort the run that follows it.
+ */
+function cancelQuietly(): Promise<void> {
+  try {
+    return Promise.resolve(cancelSyncDetection()).catch(() => undefined);
+  } catch {
+    return Promise.resolve();
+  }
 }
 
 /**
@@ -94,17 +120,17 @@ export function defaultOutputPath(subtitlePath: string): string {
  * Owns every piece of wizard state and the backend calls; the step components
  * are presentational. Nothing is held backend-side between detection and apply
  * (design D1) — what travels is a single number, which is why `offsetMs` is
- * both what detection writes and what the review step edits.
+ * both what detection writes and what the offset step edits.
  */
 export function useSyncWizard(): SyncWizard {
   const [step, setStep] = useState<SyncStepId>("inputs");
-  const [mediaPath, setMediaPath] = useState<string | null>(null);
-  const [subtitlePath, setSubtitlePath] = useState<string | null>(null);
+  const [mediaPath, setMediaPathState] = useState<string | null>(null);
+  const [subtitlePath, setSubtitlePathState] = useState<string | null>(null);
   const [defaults, setDefaults] = useState<SyncDefaultsDto | null>(null);
   const [defaultsError, setDefaultsError] = useState<unknown>(undefined);
-  const [method, setMethodState] = useState<SyncMethodDto>("auto");
   const [sensitivity, setSensitivityState] = useState<number | null>(null);
   const [offsetMs, setOffsetMs] = useState(0);
+  const [hasReview, setHasReview] = useState(false);
   const [isDetecting, setIsDetecting] = useState(false);
   const [detection, setDetection] = useState<SyncDetectionDto | null>(null);
   const [detectError, setDetectError] = useState<unknown>(undefined);
@@ -125,16 +151,26 @@ export function useSyncWizard(): SyncWizard {
   // Identifies the in-flight detection. Only the newest may apply its result —
   // the frontend half of the backend's epoch guard (design D2).
   const detectionGenRef = useRef(0);
+  // Mirrors `isDetecting` synchronously, so a second Start that lands before
+  // the re-render cannot send a request the backend would refuse as
+  // `sync.detection_in_progress`.
+  const detectingRef = useRef(false);
+  // The most recent cancel request. A detection waits for it before starting,
+  // so the backend's abort cannot land on the run that follows it.
+  const pendingCancelRef = useRef<Promise<void>>(Promise.resolve());
+  // The selected paths, read synchronously by the setters: one drop may set
+  // both slots in a single tick, and the setters stay identity-stable for the
+  // drop subscription that calls them.
+  const mediaRef = useRef<string | null>(null);
+  const subtitleRef = useRef<string | null>(null);
 
-  // The configuration seeds Step 2's controls and the offset limit Step 2 and
-  // Step 3 both validate against, so it is read once for the screen's life.
+  // The configuration seeds Step 2's controls and the offset limit Step 3
+  // validates against, so it is read once for the screen's life.
   useEffect(() => {
     let cancelled = false;
     void getSyncDefaults().then(
       (result) => {
-        if (cancelled) return;
-        setDefaults(result);
-        setMethodState(result.defaultMethod);
+        if (!cancelled) setDefaults(result);
       },
       (error: unknown) => {
         if (!cancelled) setDefaultsError(error);
@@ -145,12 +181,33 @@ export function useSyncWizard(): SyncWizard {
     };
   }, []);
 
-  const setMethod = useCallback((next: SyncMethodDto) => {
-    setMethodState(next);
-    // A detection belongs to the method that produced it.
+  // A detection and an offset belong to the pair that produced them.
+  const resetReview = useCallback(() => {
+    setOffsetMs(0);
     setDetection(null);
     setDetectError(undefined);
+    setHasReview(false);
   }, []);
+
+  const setMediaPath = useCallback(
+    (path: string | null) => {
+      if (path === mediaRef.current) return;
+      mediaRef.current = path;
+      setMediaPathState(path);
+      resetReview();
+    },
+    [resetReview],
+  );
+
+  const setSubtitlePath = useCallback(
+    (path: string | null) => {
+      if (path === subtitleRef.current) return;
+      subtitleRef.current = path;
+      setSubtitlePathState(path);
+      resetReview();
+    },
+    [resetReview],
+  );
 
   const setSensitivity = useCallback((next: number) => {
     setSensitivityState(next);
@@ -165,54 +222,83 @@ export function useSyncWizard(): SyncWizard {
     setPendingOverwrite(null);
   }, []);
 
-  const toMethod = useCallback(() => {
-    setStep("method");
+  const toDetect = useCallback(() => {
+    setDetectError(undefined);
+    setStep("detect");
   }, []);
 
   const backToInputs = useCallback(() => {
+    setDetectError(undefined);
     setStep("inputs");
   }, []);
 
+  const stopDetecting = useCallback(() => {
+    detectingRef.current = false;
+    setIsDetecting(false);
+  }, []);
+
   const runDetection = useCallback(async () => {
-    if (mediaPath === null || subtitlePath === null) return;
+    if (mediaPath === null || subtitlePath === null || detectingRef.current) return;
     const generation = ++detectionGenRef.current;
     const isCurrent = () => generation === detectionGenRef.current;
 
+    // The offset and any earlier detection stay until a result replaces them:
+    // a failed or cancelled run leaves the review as it was.
+    detectingRef.current = true;
     setIsDetecting(true);
-    setDetection(null);
     setDetectError(undefined);
+    await pendingCancelRef.current;
+    // Whoever made this run stale (cancel, restart) has already cleared the
+    // detecting state.
+    if (!isCurrent()) return;
     try {
       const result = await detectSyncOffset(mediaPath, subtitlePath, sensitivity);
       if (!isCurrent()) return;
       setDetection(result);
       setOffsetMs(result.offsetMs);
+      setHasReview(true);
+      setStep("offset");
     } catch (error) {
       if (!isCurrent()) return;
       setDetectError(error);
     } finally {
-      if (isCurrent()) setIsDetecting(false);
+      if (isCurrent()) stopDetecting();
     }
-  }, [mediaPath, subtitlePath, sensitivity]);
+  }, [mediaPath, subtitlePath, sensitivity, stopDetecting]);
 
-  const toDetect = useCallback(() => {
-    setStep("detect");
-    // Manual mode has nothing to detect: the entered value goes straight to
-    // review, which is the same editable field the detected one lands in.
-    if (method === "auto") void runDetection();
-  }, [method, runDetection]);
+  const startDetection = useCallback(() => {
+    void runDetection();
+  }, [runDetection]);
 
-  const backToMethod = useCallback(() => {
+  const cancelDetection = useCallback(() => {
     // Bumping the ref stops a late *response* from reaching React state, but
     // the backend keeps running the invocation the user abandoned — Tauri does
     // not cancel a command just because nobody awaits it. `cancel_sync_detection`
     // aborts the task and bumps the backend epoch, which is what guarantees a
     // cancelled detection never surfaces a result (design D2).
-    void cancelSyncDetection();
+    pendingCancelRef.current = cancelQuietly();
     detectionGenRef.current += 1;
-    setIsDetecting(false);
+    stopDetecting();
+    setDetectError(undefined);
+  }, [stopDetecting]);
+
+  const skipDetection = useCallback(() => {
+    setOffsetMs(0);
     setDetection(null);
     setDetectError(undefined);
-    setStep("method");
+    setHasReview(true);
+    setStep("offset");
+  }, []);
+
+  const keepOffset = useCallback(() => {
+    setDetectError(undefined);
+    setHasReview(true);
+    setStep("offset");
+  }, []);
+
+  const backToDetect = useCallback(() => {
+    setDetectError(undefined);
+    setStep("detect");
   }, []);
 
   const toApply = useCallback(() => {
@@ -222,11 +308,11 @@ export function useSyncWizard(): SyncWizard {
     setStep("apply");
   }, []);
 
-  const backToDetect = useCallback(() => {
+  const backToOffset = useCallback(() => {
     setApplyResult(null);
     setApplyError(undefined);
     setPendingOverwrite(null);
-    setStep("detect");
+    setStep("offset");
   }, []);
 
   const runApply = useCallback(
@@ -260,36 +346,41 @@ export function useSyncWizard(): SyncWizard {
 
   const restart = useCallback(() => {
     setPendingOverwrite(null);
-    void cancelSyncDetection();
+    pendingCancelRef.current = cancelQuietly();
     detectionGenRef.current += 1;
-    setMediaPath(null);
-    setSubtitlePath(null);
-    setOffsetMs(0);
-    setIsDetecting(false);
-    setDetection(null);
-    setDetectError(undefined);
+    stopDetecting();
+    mediaRef.current = null;
+    subtitleRef.current = null;
+    setMediaPathState(null);
+    setSubtitlePathState(null);
+    resetReview();
     setOutputPathState(null);
     setApplyResult(null);
     setApplyError(undefined);
     setStep("inputs");
-  }, []);
+  }, [resetReview, stopDetecting]);
 
-  const canDetect = subtitlePath !== null && (method === "manual" || mediaPath !== null);
   const offsetExceedsMax =
     defaults !== null && Math.abs(offsetMs) > defaults.maxOffsetMs;
+  const detectPhase: DetectPhase = isDetecting
+    ? "detecting"
+    : detectError !== undefined
+      ? "failed"
+      : "ask";
 
   return {
     step,
     mediaPath,
     subtitlePath,
+    hasMedia: mediaPath !== null,
     defaults,
     defaultsError,
-    method,
+    prefersManual: defaults?.defaultMethod === "manual",
     sensitivity: sensitivity ?? defaults?.vadSensitivity ?? null,
     offsetMs,
     offsetExceedsMax,
-    canDetect,
-    isDetecting,
+    hasReview,
+    detectPhase,
     detection,
     detectError,
     outputPath,
@@ -301,16 +392,18 @@ export function useSyncWizard(): SyncWizard {
     canConfirmOverwrite: pendingOverwrite !== null,
     setMediaPath,
     setSubtitlePath,
-    setMethod,
     setSensitivity,
     setOffsetMs,
     setOutputPath,
-    toMethod,
-    backToInputs,
     toDetect,
-    backToMethod,
-    toApply,
+    backToInputs,
+    startDetection,
+    cancelDetection,
+    skipDetection,
+    keepOffset,
     backToDetect,
+    toApply,
+    backToOffset,
     apply,
     confirmOverwrite,
     restart,

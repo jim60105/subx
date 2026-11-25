@@ -90,7 +90,7 @@
     "match.execution_locked.hint": "請等待另一項操作結束後再試一次。",
     "convert.no_subtitles.hint": "請加入資料夾、字幕檔，或內含字幕的壓縮檔。",
     "convert.stale_plan.hint": "請返回上一步重新準備轉換。",
-    "sync.vad_unavailable.hint": "請返回上一步改為自行輸入偏移量。",
+    "sync.vad_unavailable.hint": "請略過偵測，改為自行設定偏移量。",
     "sync.offset_exceeds_max.hint": "請改用較小的偏移量，或在設定檔中調高 sync.max_offset_seconds。",
     "sync.output_exists.hint": "請改選其他路徑，或確認要覆蓋既有檔案。",
     "sync.output_is_input.hint": "請選擇與所選字幕不同的輸出路徑。",

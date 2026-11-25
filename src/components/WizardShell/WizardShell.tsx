@@ -16,6 +16,11 @@ export interface WizardNavAction {
   /** Omitted only by a disabled placeholder, such as an in-progress label. */
   onClick?: () => void;
   /**
+   * Accessible name, when the visible label rounds a figure. It must start
+   * with the visible text (WCAG 2.5.3, label in name).
+   */
+  accessibleLabel?: string;
+  /**
    * Short status rendered directly before the control, such as how many items
    * the primary action will act on. Honoured on `next` only.
    */
@@ -34,10 +39,19 @@ interface WizardShellProps {
   children: ReactNode;
   /** Inline-start slot: retreat only. */
   back?: WizardNavAction;
-  /** Inline-end cluster, before `next`: cancel, escape hatches — never forward motion. */
-  secondary?: WizardNavAction;
+  /** Inline-end cluster, before `next`: cancel, escape hatches, or the
+   * non-primary forward choices. At most two. */
+  secondary?: WizardNavAction | readonly [WizardNavAction, WizardNavAction];
   /** Inline-end-most slot: the primary, forward action. */
   next?: WizardNavAction;
+}
+
+/** The secondary slot as a list, in declared order. */
+function secondaryList(
+  secondary: WizardShellProps["secondary"],
+): readonly WizardNavAction[] {
+  if (secondary === undefined) return [];
+  return "label" in secondary ? [secondary] : secondary;
 }
 
 export function stepState(index: number, activeStep: number): WizardStepState {
@@ -55,8 +69,9 @@ export function stepState(index: number, activeStep: number): WizardStepState {
  * rendered on every step, including steps that declare no action at all. That
  * is what keeps the primary control in one place: it sits outside the
  * scrollable content panel, so neither switching steps nor scrolling the body
- * moves it. Features route every forward action through `next` rather than
- * drawing buttons inside the panel.
+ * moves it. Features route every forward action through `next` — or, for a
+ * step offering several forward choices, the non-primary ones through
+ * `secondary` — rather than drawing buttons inside the panel.
  */
 export function WizardShell({
   steps,
@@ -105,22 +120,26 @@ export function WizardShell({
             type="button"
             className="button button--tertiary wizard__button"
             disabled={back.disabled}
+            aria-label={back.accessibleLabel}
             onClick={back.onClick}
           >
             {back.label}
           </button>
         )}
         <div className="wizard__actions-end">
-          {secondary && (
+          {secondaryList(secondary).map((action, index) => (
+            // Keyed by position: the slot's order is what stays stable.
             <button
+              key={index}
               type="button"
               className="button button--tertiary wizard__button"
-              disabled={secondary.disabled}
-              onClick={secondary.onClick}
+              disabled={action.disabled}
+              aria-label={action.accessibleLabel}
+              onClick={action.onClick}
             >
-              {secondary.label}
+              {action.label}
             </button>
-          )}
+          ))}
           {/* A polite status, not a control: it sits beside the primary
               action without taking a slot or a tab stop of its own. */}
           {next?.note && (
@@ -136,6 +155,7 @@ export function WizardShell({
               type="button"
               className="button button--primary wizard__button wizard__button--primary"
               disabled={next.disabled}
+              aria-label={next.accessibleLabel}
               onClick={next.onClick}
             >
               {next.label}

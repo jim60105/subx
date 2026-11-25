@@ -4,10 +4,11 @@ import { useTranslation } from "react-i18next";
 import { WizardShell } from "../../components/WizardShell/WizardShell";
 import type { WizardNavAction, WizardStep } from "../../components/WizardShell/WizardShell";
 import { pickFile, subscribeToDroppedPaths } from "../../platform/filePickers";
+import { formatSeconds } from "./OffsetField";
 import { SyncApplyStep } from "./SyncApplyStep";
 import { SyncDetectStep } from "./SyncDetectStep";
 import { SyncInputsStep } from "./SyncInputsStep";
-import { SyncMethodStep } from "./SyncMethodStep";
+import { SyncOffsetStep } from "./SyncOffsetStep";
 import { SYNC_STEPS, useSyncWizard } from "./useSyncWizard";
 
 /**
@@ -31,7 +32,7 @@ function isSubtitlePath(path: string): boolean {
  *
  * All state lives in `useSyncWizard`; this component wires that state to the
  * shell's navigation and to the presentational step components, and subscribes
- * to window file drops.
+ * to window file drops while the files step is shown.
  */
 export function SyncWizard() {
   const { t } = useTranslation("sync");
@@ -49,7 +50,11 @@ export function SyncWizard() {
     [setMediaPath, setSubtitlePath],
   );
 
+  // Drops are accepted on the files step only: anywhere later, a stray drop
+  // would silently replace a file and with it the offset under review.
+  const onFilesStep = wizard.step === "inputs";
   useEffect(() => {
+    if (!onFilesStep) return;
     let unlisten: (() => void) | undefined;
     let cancelled = false;
     void subscribeToDroppedPaths(acceptDroppedPaths).then((fn) => {
@@ -60,7 +65,7 @@ export function SyncWizard() {
       cancelled = true;
       unlisten?.();
     };
-  }, [acceptDroppedPaths]);
+  }, [onFilesStep, acceptDroppedPaths]);
 
   const steps: WizardStep[] = SYNC_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }));
   const activeStep = SYNC_STEPS.indexOf(wizard.step);
@@ -68,43 +73,61 @@ export function SyncWizard() {
   // Every action the wizard offers, on every step, lives in the shell's bar so
   // the primary control never moves; the step components only render state.
   let back: WizardNavAction | undefined;
-  let secondary: WizardNavAction | undefined;
+  let secondary: WizardNavAction | readonly [WizardNavAction, WizardNavAction] | undefined;
   let next: WizardNavAction | undefined;
   if (wizard.step === "inputs") {
     next = {
       label: t("inputs.continue"),
       disabled: wizard.subtitlePath === null,
-      onClick: wizard.toMethod,
-    };
-  } else if (wizard.step === "method") {
-    back = { label: t("method.back"), onClick: wizard.backToInputs };
-    next = {
-      label: t("method.continue"),
-      disabled: !wizard.canDetect || wizard.offsetExceedsMax,
       onClick: wizard.toDetect,
     };
   } else if (wizard.step === "detect") {
-    // Going back abandons the detection rather than leaving it running behind
-    // the user; it is this step's cancel as well as its retreat.
-    back = { label: t("detect.back"), onClick: wizard.backToMethod };
-    next =
-      !wizard.isDetecting && wizard.detectError !== undefined
-        ? { label: t("detect.retry"), onClick: wizard.toDetect }
-        : {
-            label: t("detect.continue"),
-            // One formula for the whole step, not one per phase: manual mode
-            // never produces a `detection`, and re-deriving this from
-            // `detection !== null` would leave it with no way forward.
-            disabled:
-              wizard.isDetecting ||
-              wizard.offsetExceedsMax ||
-              (wizard.method === "auto" && wizard.detection === null),
-            onClick: wizard.toApply,
-          };
+    const skip: WizardNavAction = { label: t("detect.skip"), onClick: wizard.skipDetection };
+    const start: WizardNavAction = { label: t("detect.start"), onClick: wizard.startDetection };
+    // The figure rounds to 10 ms; the accessible name carries the exact value.
+    const offset = formatSeconds(wizard.offsetMs);
+    const keep: WizardNavAction = {
+      label: t("detect.keep", { offset }),
+      accessibleLabel: t("detect.keepLabel", {
+        offset,
+        seconds: (wizard.offsetMs / 1000).toFixed(3),
+      }),
+      onClick: wizard.keepOffset,
+    };
+    if (wizard.detectPhase === "detecting") {
+      // The primary position stays occupied, disabled, for the whole run.
+      secondary = { label: t("detect.cancel"), onClick: wizard.cancelDetection };
+      next = { label: t("detect.detecting"), disabled: true };
+    } else {
+      back = { label: t("detect.back"), onClick: wizard.backToInputs };
+      if (wizard.detectPhase === "failed") {
+        next = { label: t("detect.retry"), onClick: wizard.startDetection };
+        secondary = wizard.hasReview ? [skip, keep] : skip;
+      } else if (wizard.hasReview) {
+        // Keeping is the only choice that discards nothing, so it is primary.
+        next = keep;
+        secondary = wizard.hasMedia ? [skip, start] : skip;
+      } else if (!wizard.hasMedia) {
+        next = skip;
+      } else if (wizard.prefersManual) {
+        next = skip;
+        secondary = start;
+      } else {
+        next = start;
+        secondary = skip;
+      }
+    }
+  } else if (wizard.step === "offset") {
+    back = { label: t("offset.back"), onClick: wizard.backToDetect };
+    next = {
+      label: t("offset.continue"),
+      disabled: wizard.offsetExceedsMax,
+      onClick: wizard.toApply,
+    };
   } else if (wizard.applyResult !== null) {
     next = { label: t("apply.report.finish"), onClick: wizard.restart };
   } else {
-    back = { label: t("apply.back"), disabled: wizard.isApplying, onClick: wizard.backToDetect };
+    back = { label: t("apply.back"), disabled: wizard.isApplying, onClick: wizard.backToOffset };
     const save: WizardNavAction = {
       label: wizard.isApplying ? t("apply.applying") : t("apply.start"),
       disabled: wizard.isApplying,
@@ -145,27 +168,21 @@ export function SyncWizard() {
           onClearSubtitle={() => setSubtitlePath(null)}
         />
       )}
-      {wizard.step === "method" && (
-        <SyncMethodStep
-          method={wizard.method}
-          hasMedia={wizard.mediaPath !== null}
+      {wizard.step === "detect" && (
+        <SyncDetectStep
+          phase={wizard.detectPhase}
+          hasMedia={wizard.hasMedia}
           defaults={wizard.defaults}
           defaultsError={wizard.defaultsError}
           sensitivity={wizard.sensitivity}
-          offsetMs={wizard.offsetMs}
-          offsetExceedsMax={wizard.offsetExceedsMax}
-          onMethodChange={wizard.setMethod}
+          detectError={wizard.detectError}
           onSensitivityChange={wizard.setSensitivity}
-          onOffsetChange={wizard.setOffsetMs}
         />
       )}
-      {wizard.step === "detect" && (
-        <SyncDetectStep
-          method={wizard.method}
+      {wizard.step === "offset" && (
+        <SyncOffsetStep
           defaults={wizard.defaults}
-          isDetecting={wizard.isDetecting}
           detection={wizard.detection}
-          detectError={wizard.detectError}
           offsetMs={wizard.offsetMs}
           offsetExceedsMax={wizard.offsetExceedsMax}
           onOffsetChange={wizard.setOffsetMs}

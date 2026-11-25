@@ -90,7 +90,7 @@
     "match.execution_locked.hint": "Wait for the other operation to finish, then try again.",
     "convert.no_subtitles.hint": "Add a folder, a subtitle file or an archive that contains subtitles.",
     "convert.stale_plan.hint": "Go back and prepare the conversion again.",
-    "sync.vad_unavailable.hint": "Go back and enter the offset yourself instead.",
+    "sync.vad_unavailable.hint": "Skip detection and set the offset yourself instead.",
     "sync.offset_exceeds_max.hint": "Use a smaller offset, or raise sync.max_offset_seconds in your configuration.",
     "sync.output_exists.hint": "Choose another path, or confirm replacing the existing file.",
     "sync.output_is_input.hint": "Pick an output path different from the subtitle you selected.",

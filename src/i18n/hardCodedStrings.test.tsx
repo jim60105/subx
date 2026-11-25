@@ -29,7 +29,7 @@ import { SettingsScreen } from "../features/settings/SettingsScreen";
 import { SyncApplyStep } from "../features/sync/SyncApplyStep";
 import { SyncDetectStep } from "../features/sync/SyncDetectStep";
 import { SyncInputsStep } from "../features/sync/SyncInputsStep";
-import { SyncMethodStep } from "../features/sync/SyncMethodStep";
+import { SyncOffsetStep } from "../features/sync/SyncOffsetStep";
 import { TranslateOptionsStep } from "../features/translate/TranslateOptionsStep";
 import { TranslateReportStep } from "../features/translate/TranslateReportStep";
 import { TranslateRunStep } from "../features/translate/TranslateRunStep";
@@ -329,34 +329,79 @@ const SCREENS = [
       ),
   },
   {
-    name: "SyncMethodStep",
+    name: "SyncDetectStep (ask)",
     render: () =>
       renderWithI18n(
-        <SyncMethodStep
-          method="manual"
-          hasMedia={false}
+        <SyncDetectStep
+          phase="ask"
+          hasMedia
           defaults={SYNC_DEFAULTS}
           defaultsError={undefined}
-          sensitivity={0.5}
-          offsetMs={0}
-          offsetExceedsMax={false}
-          onMethodChange={() => {}}
+          sensitivity={50}
+          detectError={undefined}
           onSensitivityChange={() => {}}
-          onOffsetChange={() => {}}
         />,
       ),
   },
   {
-    name: "SyncDetectStep",
+    name: "SyncDetectStep (detecting)",
     render: () =>
       renderWithI18n(
         <SyncDetectStep
-          method="manual"
+          phase="detecting"
+          hasMedia
           defaults={SYNC_DEFAULTS}
-          isDetecting={false}
-          detection={null}
+          defaultsError={undefined}
+          sensitivity={50}
           detectError={undefined}
-          offsetMs={0}
+          onSensitivityChange={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "SyncDetectStep (failed)",
+    render: () =>
+      renderWithI18n(
+        <SyncDetectStep
+          phase="failed"
+          hasMedia
+          defaults={SYNC_DEFAULTS}
+          defaultsError={undefined}
+          sensitivity={50}
+          // The backend's raw message is shown behind a disclosure; it is data,
+          // so the fixture gives it the shape of a key.
+          detectError={{ code: "sync.vad_unavailable", message: "sync.vad_unavailable", hintCode: "sync.vad_unavailable.hint" }}
+          onSensitivityChange={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "SyncDetectStep (no media)",
+    render: () =>
+      renderWithI18n(
+        <SyncDetectStep
+          phase="ask"
+          hasMedia={false}
+          defaults={SYNC_DEFAULTS}
+          defaultsError={undefined}
+          sensitivity={50}
+          detectError={undefined}
+          onSensitivityChange={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "SyncOffsetStep",
+    render: () =>
+      renderWithI18n(
+        <SyncOffsetStep
+          defaults={SYNC_DEFAULTS}
+          detection={{
+            offsetMs: 1_500,
+            confidence: 82,
+            warnings: [{ code: "sync.detection_warning", message: "sync.detection_warning", hintCode: null }],
+          }}
+          offsetMs={1_250}
           offsetExceedsMax={false}
           onOffsetChange={() => {}}
         />,

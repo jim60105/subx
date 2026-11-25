@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 
 import App from "../../src/App";
 import { WizardShell } from "../../src/components/WizardShell/WizardShell";
+import type { WizardNavAction } from "../../src/components/WizardShell/WizardShell";
 import { ConvertOptionsStep } from "../../src/features/convert/ConvertOptionsStep";
 import { ConvertRunStep } from "../../src/features/convert/ConvertRunStep";
 import { ConvertSourcesStep } from "../../src/features/convert/ConvertSourcesStep";
@@ -22,11 +23,13 @@ import { AiSettingsSection } from "../../src/features/settings/AiSettingsSection
 import { ConnectionTestPanel } from "../../src/features/settings/ConnectionTestPanel";
 import { PreferencesSection } from "../../src/features/settings/PreferencesSection";
 import "../../src/features/settings/SettingsScreen.css";
-import { OffsetField } from "../../src/features/sync/OffsetField";
+import { formatSeconds, OffsetField } from "../../src/features/sync/OffsetField";
 import { SyncApplyStep } from "../../src/features/sync/SyncApplyStep";
 import { SyncDetectStep } from "../../src/features/sync/SyncDetectStep";
 import { SyncInputsStep } from "../../src/features/sync/SyncInputsStep";
-import { SyncMethodStep } from "../../src/features/sync/SyncMethodStep";
+import { SyncOffsetStep } from "../../src/features/sync/SyncOffsetStep";
+import { SYNC_STEPS } from "../../src/features/sync/useSyncWizard";
+import type { DetectPhase } from "../../src/features/sync/useSyncWizard";
 import { TranslateOptionsStep } from "../../src/features/translate/TranslateOptionsStep";
 import { TranslateReportStep } from "../../src/features/translate/TranslateReportStep";
 import { TranslateRunStep } from "../../src/features/translate/TranslateRunStep";
@@ -696,21 +699,78 @@ function SyncApplyView() {
   );
 }
 
-function SyncMethodView() {
-  const [sensitivity, setSensitivity] = useState(50);
+/**
+ * Sync step 2 inside the real wizard frame, with the action bar `SyncWizard`
+ * builds for it. `?phase=ask|detecting|failed`, `?media=0` drops the media
+ * file, and `?kept=1` adds the kept offset of a visit to step 3.
+ */
+function SyncDetectView() {
+  const { t } = useTranslation("sync");
+  const requested = params.get("phase");
+  const phase: DetectPhase =
+    requested === "detecting" || requested === "failed" ? requested : "ask";
+  const hasMedia = params.get("media") !== "0";
+  const kept = params.get("kept") === "1";
+  // The fixture's sensitivity is not a percentage; the wizard always holds one.
+  const [sensitivity, setSensitivity] = useState(40);
+  const keptMs = 1_254;
+
+  const skip: WizardNavAction = { label: t("detect.skip"), onClick: noop };
+  const start: WizardNavAction = { label: t("detect.start"), onClick: noop };
+  const keep: WizardNavAction = {
+    label: t("detect.keep", { offset: formatSeconds(keptMs) }),
+    accessibleLabel: t("detect.keepLabel", {
+      offset: formatSeconds(keptMs),
+      seconds: (keptMs / 1000).toFixed(3),
+    }),
+    onClick: noop,
+  };
+  const back: WizardNavAction | undefined =
+    phase === "detecting" ? undefined : { label: t("detect.back"), onClick: noop };
+  let secondary: WizardNavAction | readonly [WizardNavAction, WizardNavAction] | undefined;
+  let next: WizardNavAction;
+  if (phase === "detecting") {
+    secondary = { label: t("detect.cancel"), onClick: noop };
+    next = { label: t("detect.detecting"), disabled: true };
+  } else if (phase === "failed") {
+    next = { label: t("detect.retry"), onClick: noop };
+    secondary = kept ? [skip, keep] : skip;
+  } else if (kept) {
+    next = keep;
+    secondary = hasMedia ? [skip, start] : skip;
+  } else if (!hasMedia) {
+    next = skip;
+  } else {
+    next = start;
+    secondary = skip;
+  }
+
   return (
-    <SyncMethodStep
-      method="auto"
-      hasMedia
-      defaults={SYNC_DEFAULTS}
-      defaultsError={undefined}
-      sensitivity={sensitivity}
-      offsetMs={0}
-      offsetExceedsMax={false}
-      onMethodChange={noop}
-      onSensitivityChange={setSensitivity}
-      onOffsetChange={noop}
-    />
+    <WizardShell
+      steps={SYNC_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }))}
+      activeStep={1}
+      back={back}
+      secondary={secondary}
+      next={next}
+    >
+      <SyncDetectStep
+        phase={phase}
+        hasMedia={hasMedia}
+        defaults={SYNC_DEFAULTS}
+        defaultsError={undefined}
+        sensitivity={sensitivity}
+        detectError={
+          phase === "failed"
+            ? {
+                code: "sync.vad_unavailable",
+                message: "VAD detector is required but not available",
+                hintCode: "sync.vad_unavailable.hint",
+              }
+            : undefined
+        }
+        onSensitivityChange={setSensitivity}
+      />
+    </WizardShell>
   );
 }
 
@@ -782,7 +842,7 @@ export const VIEWS: Record<string, () => JSX.Element> = {
   "translate-run": () => <TranslateRunView />,
   "sync-offset": () => <SyncOffsetView />,
   "sync-apply": () => <SyncApplyView />,
-  "sync-method": () => <SyncMethodView />,
+  "sync-detect": () => <SyncDetectView />,
   settings: () => <SettingsView />,
   AnalysisStep: () => <AnalysisStep stage="analyzing" error={undefined} scan={{ videoCount: 1, subtitleCount: 1 }} />,
   ReviewStep: () => (
@@ -845,27 +905,21 @@ export const VIEWS: Record<string, () => JSX.Element> = {
       onClearSubtitle={noop}
     />
   ),
-  SyncMethodStep: () => (
-    <SyncMethodStep
-      method="manual"
+  SyncDetectStep: () => (
+    <SyncDetectStep
+      phase="ask"
       hasMedia={false}
       defaults={SYNC_DEFAULTS}
       defaultsError={undefined}
-      sensitivity={0.5}
-      offsetMs={0}
-      offsetExceedsMax={false}
-      onMethodChange={noop}
+      sensitivity={SYNC_DEFAULTS.vadSensitivity}
+      detectError={undefined}
       onSensitivityChange={noop}
-      onOffsetChange={noop}
     />
   ),
-  SyncDetectStep: () => (
-    <SyncDetectStep
-      method="manual"
+  SyncOffsetStep: () => (
+    <SyncOffsetStep
       defaults={SYNC_DEFAULTS}
-      isDetecting={false}
       detection={null}
-      detectError={undefined}
       offsetMs={0}
       offsetExceedsMax={false}
       onOffsetChange={noop}
