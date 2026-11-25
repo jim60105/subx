@@ -57,7 +57,7 @@ Audio that has no decodable track, or whose WAV would exceed the format's size l
 
 ### Requirement: Preview audio belongs to its session
 
-Preparing audio SHALL act on the open session named by its id, run at most one decoding job per session, and return a URL that serves the WAV. Closing or replacing the session SHALL cancel its job, revoke its URLs and delete its WAV.
+Preparing audio SHALL act on the open session named by its id, run at most one decoding job per session, and return a URL that serves the WAV. The WAV SHALL be an unnamed temporary file. Releasing it, or closing or replacing the session, or application exit SHALL cancel the job, revoke its URL and drop its file.
 
 #### Scenario: Prepared audio is served
 
@@ -77,7 +77,27 @@ Preparing audio SHALL act on the open session named by its id, run at most one d
 #### Scenario: Closing removes the audio
 
 - **WHEN** a session with prepared audio is closed or replaced
-- **THEN** the audio URL answers 404 and the WAV no longer exists
+- **THEN** the audio URL answers 404 and no handle to the WAV remains once its streams have ended
+
+#### Scenario: Releasing keeps the session
+
+- **WHEN** audio is released for an open session, whether ready, running or absent
+- **THEN** the release succeeds, any job is cancelled, the audio URL answers 404, no handle to the WAV remains, the media URL still works, and audio can be prepared again
+
+#### Scenario: Superseded job cannot publish
+
+- **WHEN** a released job finishes after a new preparation started for the same session
+- **THEN** its result is dropped with `preview.cancelled` and the new job is unaffected
+
+#### Scenario: Prepared audio has no name
+
+- **WHEN** audio has been decoded on Unix
+- **THEN** the temporary directory lists no entry for it
+
+#### Scenario: Ranges are served from the open file
+
+- **WHEN** two overlapping ranges of the prepared audio are requested at the same time
+- **THEN** each response has exactly its own bytes
 
 #### Scenario: Stale session is refused
 
