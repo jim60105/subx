@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import { baseName } from "../../platform/fileKind";
@@ -28,13 +29,45 @@ interface PairRowProps {
   onToggle: (id: number) => void;
 }
 
+/** Nested controls that keep their own click behavior inside a pairing row. */
+const ROW_CONTROLS = "input, summary, button, a, select, textarea, label";
+
+/** Pointer travel, in CSS pixels on either axis, that counts as a drag. */
+const DRAG_THRESHOLD = 4;
+
 function PairRow({ row, selected, onToggle }: PairRowProps) {
   const { t } = useTranslation("match");
   const { operation } = row;
   const filled = meterSegments(operation.confidence);
+  const press = useRef<{ x: number; y: number } | null>(null);
+
+  // A pointer-only shortcut: the checkbox stays the single keyboard and
+  // assistive-technology control, so the row gets no role or tab stop
+  // (design D3). Clicks a nested control synthesizes, including keyboard
+  // activation, are left to that control.
+  const handleClick = (event: MouseEvent<HTMLLIElement>) => {
+    const control = (event.target as Element).closest(ROW_CONTROLS);
+    if (control !== null && event.currentTarget.contains(control)) return;
+    // Both signals are needed: a moved pointer alone may be a shaky click,
+    // and a selection alone may predate this click or come from a double click.
+    const start = press.current;
+    const moved =
+      start !== null &&
+      (Math.abs(event.clientX - start.x) > DRAG_THRESHOLD || Math.abs(event.clientY - start.y) > DRAG_THRESHOLD);
+    if (moved && window.getSelection()?.isCollapsed === false) return;
+    onToggle(operation.id);
+  };
 
   return (
-    <li className="review-ledger__row" data-kind="pair" data-low={row.low ? "true" : undefined}>
+    <li
+      className="review-ledger__row"
+      data-kind="pair"
+      data-low={row.low ? "true" : undefined}
+      onMouseDown={(event) => {
+        press.current = { x: event.clientX, y: event.clientY };
+      }}
+      onClick={handleClick}
+    >
       <input
         type="checkbox"
         checked={selected}

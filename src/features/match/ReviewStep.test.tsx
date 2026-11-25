@@ -1,7 +1,8 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { I18nextProvider } from "react-i18next";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useState } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { i18n, setupI18n } from "../../test/renderWithI18n";
 import type { MatchOperationDto, MatchPlanDto } from "../../types/ipc";
@@ -328,5 +329,188 @@ describe("ReviewStep ledger", () => {
 
     await user.click(within(row).getByRole("checkbox"));
     expect(onToggle).toHaveBeenCalledWith(7);
+  });
+});
+
+describe("ReviewStep whole-row toggle", () => {
+  beforeEach(async () => {
+    await setupI18n("en");
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function renderWithToggle(selectedIds = new Set<number>()) {
+    const onToggle = vi.fn();
+    const view = render(
+      <I18nextProvider i18n={i18n}>
+        <ReviewStep plan={LEDGER_PLAN} selectedIds={selectedIds} onToggle={onToggle} onToggleLanguage={vi.fn()} />
+      </I18nextProvider>,
+    );
+    return { onToggle, ...view };
+  }
+
+  function part(subtitleName: string, selector: string): HTMLElement {
+    const element = rowOf(subtitleName).querySelector<HTMLElement>(selector);
+    if (element === null) throw new Error(`${selector} is missing in ${subtitleName}`);
+    return element;
+  }
+
+  it.each([".review-ledger__video", ".review-ledger__name", ".review-ledger__to"])(
+    "clicking %s toggles that row once",
+    async (selector) => {
+      const user = userEvent.setup();
+      const { onToggle } = renderWithToggle();
+
+      await user.click(part("sub-0.srt", selector));
+
+      expect(onToggle).toHaveBeenCalledTimes(1);
+      expect(onToggle).toHaveBeenCalledWith(0);
+    },
+  );
+
+  it("clicking the checkbox toggles exactly once", async () => {
+    const user = userEvent.setup();
+    const { onToggle } = renderWithToggle();
+
+    await user.click(screen.getByRole("checkbox", { name: "Include sub-0.srt" }));
+
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    expect(onToggle).toHaveBeenCalledWith(0);
+  });
+
+  it("pressing Space on the focused checkbox toggles exactly once", async () => {
+    const user = userEvent.setup();
+    const { onToggle } = renderWithToggle();
+
+    screen.getByRole("checkbox", { name: "Include sub-0.srt" }).focus();
+    await user.keyboard(" ");
+
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    expect(onToggle).toHaveBeenCalledWith(0);
+  });
+
+  it("the disclosure opens and closes without changing selection", async () => {
+    const user = userEvent.setup();
+    const { onToggle } = renderWithToggle();
+    const details = part("sub-2.srt", "details");
+    const summary = part("sub-2.srt", "summary");
+
+    await user.click(summary);
+    expect(details).toHaveAttribute("open");
+    await user.click(summary);
+    expect(details).not.toHaveAttribute("open");
+    // jsdom does not activate a summary from the keyboard; this is the click
+    // a browser synthesizes for Enter or Space on it.
+    fireEvent.click(summary);
+
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it("clicking reasoning text in a low row toggles it", async () => {
+    const user = userEvent.setup();
+    const { onToggle } = renderWithToggle();
+
+    await user.click(within(rowOf("sub-1.srt")).getByText("Episode number inferred from dialogue."));
+
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    expect(onToggle).toHaveBeenCalledWith(1);
+  });
+
+  it("clicking revealed reasoning text toggles the row and keeps the disclosure open", async () => {
+    const user = userEvent.setup();
+    const { onToggle } = renderWithToggle();
+    const details = part("sub-2.srt", "details");
+    await user.click(part("sub-2.srt", "summary"));
+
+    await user.click(within(details).getByText("Same episode number."));
+
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    expect(onToggle).toHaveBeenCalledWith(2);
+    expect(details).toHaveAttribute("open");
+  });
+
+  it("a drag that selects text does not toggle", () => {
+    const { onToggle } = renderWithToggle();
+    const name = part("sub-0.srt", ".review-ledger__name");
+    vi.spyOn(window, "getSelection").mockReturnValue({ isCollapsed: false } as Selection);
+
+    fireEvent.mouseDown(name, { clientX: 10 });
+    fireEvent.click(name, { clientX: 60 });
+    expect(onToggle).not.toHaveBeenCalled();
+
+    fireEvent.mouseDown(name, { clientX: 10 });
+    fireEvent.click(name, { clientX: 10 });
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it("a moved click without a text selection still toggles", () => {
+    const { onToggle } = renderWithToggle();
+    const name = part("sub-0.srt", ".review-ledger__name");
+
+    fireEvent.mouseDown(name, { clientX: 10 });
+    fireEvent.click(name, { clientX: 60 });
+
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it("a double click toggles twice", async () => {
+    const user = userEvent.setup();
+    const { onToggle } = renderWithToggle();
+
+    await user.dblClick(part("sub-0.srt", ".review-ledger__name"));
+
+    expect(onToggle).toHaveBeenCalledTimes(2);
+    expect(onToggle).toHaveBeenNthCalledWith(2, 0);
+  });
+
+  it("clicking an unmatched row changes nothing", async () => {
+    const user = userEvent.setup();
+    const { onToggle, container } = renderWithToggle();
+
+    for (const kind of ["unmatched-video", "unmatched-subtitle"]) {
+      const row = container.querySelector<HTMLElement>(`[data-kind="${kind}"]`);
+      if (row === null) throw new Error(`${kind} row is missing`);
+      await user.click(row);
+    }
+
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it("the row adds no keyboard stop and keeps the checkbox name", () => {
+    renderWithToggle();
+
+    const row = rowOf("sub-0.srt");
+    expect(row).not.toHaveAttribute("tabindex");
+    expect(row).not.toHaveAttribute("role");
+    expect(screen.getByRole("checkbox", { name: "Include sub-0.srt" })).toBeInTheDocument();
+  });
+
+  it("a row click flips only that row's checkbox", async () => {
+    const user = userEvent.setup();
+    function Stateful() {
+      const [selected, setSelected] = useState(new Set([0, 1, 2, 3]));
+      const toggle = (id: number) =>
+        setSelected((current) => {
+          const next = new Set(current);
+          if (next.has(id)) next.delete(id);
+          else next.add(id);
+          return next;
+        });
+      return <ReviewStep plan={LEDGER_PLAN} selectedIds={selected} onToggle={toggle} onToggleLanguage={vi.fn()} />;
+    }
+    render(
+      <I18nextProvider i18n={i18n}>
+        <Stateful />
+      </I18nextProvider>,
+    );
+
+    await user.click(part("sub-2.srt", ".review-ledger__to"));
+
+    const states = [0, 1, 2, 3].map(
+      (id) => (screen.getByRole("checkbox", { name: `Include sub-${id}.srt` }) as HTMLInputElement).checked,
+    );
+    expect(states).toEqual([true, true, false, true]);
   });
 });
