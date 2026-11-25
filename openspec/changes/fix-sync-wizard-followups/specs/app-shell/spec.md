@@ -2,7 +2,7 @@
 
 ### Requirement: Secondary action can take keyboard focus
 
-A consuming feature MAY mark a `secondary` action as taking focus. When an action becomes marked, and it was not marked on the previous render, `WizardShell` SHALL move keyboard focus to that control if focus is on the document body or inside the action bar. Focus elsewhere SHALL stay where it is, and an action that stays marked SHALL NOT take focus again on later renders. The mark SHALL NOT change any slot's position.
+A consuming feature MAY mark a `secondary` action as taking focus. When an action becomes marked, either on the first render or after a render where it was not marked, `WizardShell` SHALL move keyboard focus to that control if focus is on the document body or inside the action bar. Focus elsewhere SHALL stay where it is, and an action that stays marked SHALL NOT take focus again on later renders. The mark SHALL NOT change any slot's position.
 
 #### Scenario: Focus moves from a control that became disabled
 

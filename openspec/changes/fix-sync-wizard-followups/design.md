@@ -47,9 +47,9 @@ Contract added to `WizardNavAction` in `WizardShell.tsx`:
 
 ```ts
   /**
-   * Moves keyboard focus to this control when it becomes marked, if focus is
-   * on the document body or inside the action bar. Honoured on `secondary`
-   * only.
+   * Moves keyboard focus to this control when it becomes marked (including
+   * the shell's first render), if focus is on the document body or inside the
+   * action bar. Honoured on `secondary` only.
    */
   takeFocus?: boolean;
 ```
@@ -117,7 +117,8 @@ In `useSyncWizard.ts`:
    ```ts
    // Leaving the screen mid-run abandons the detection exactly as Cancel does;
    // the late result is dropped by the generation bump. Nothing is set in
-   // React state: the component is going away.
+   // React state: the component is going away. A run still waiting on the
+   // previous cancel also counts as running; its extra cancel is harmless.
    useEffect(
      () => () => {
        if (!detectingRef.current) return;
@@ -158,5 +159,6 @@ This section is the human-reviewed document for this change. A reviewer listens 
 
 - [Module-scoped `pendingCancel` leaks between tests] → `resetPendingCancelForTests()` in every `beforeEach` that renders the wizard, following the preview-queue precedent.
 - [`takeFocus` on a mouse click moves focus to Cancel, which can show a focus ring] → `:focus-visible` heuristics usually suppress the ring after pointer interaction. This is accepted.
-- [Pressing Enter twice quickly now cancels the run it just started] → This follows from putting focus on the only actionable control. Cancel is non-destructive, because the offset is kept (see "Offset reset rules").
+- [Pressing Enter twice quickly, or holding Enter long enough for key auto-repeat, now cancels the run it just started] → Accepted. This follows from putting focus on the only actionable control. Cancel is non-destructive, because the offset is kept (see "Offset reset rules"). No debounce is added.
+- [The new unmount cleanup sends a cancel when RTL's auto-cleanup unmounts a test that ended mid-detection, and that call can be counted in the next test] → Tests that count `cancelSyncDetection` calls clear that mock immediately before the action under test (task 4.3).
 - [Wider `cargo fmt --check` drift stays] → Recorded in the proposal as observed and out of scope. It needs a separate request.
