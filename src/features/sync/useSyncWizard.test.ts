@@ -281,17 +281,20 @@ describe("leaving the wizard", () => {
     const run = deferred<SyncDetectionDto>();
     vi.mocked(api.detectSyncOffset).mockReturnValue(run.promise);
     const errors = vi.spyOn(console, "error");
-    const { result, unmount } = await onDetectStep();
-    act(() => result.current.startDetection());
-    await waitFor(() => expect(api.detectSyncOffset).toHaveBeenCalledTimes(1));
+    try {
+      const { result, unmount } = await onDetectStep();
+      act(() => result.current.startDetection());
+      await waitFor(() => expect(api.detectSyncOffset).toHaveBeenCalledTimes(1));
 
-    vi.mocked(api.cancelSyncDetection).mockClear();
-    unmount();
+      vi.mocked(api.cancelSyncDetection).mockClear();
+      unmount();
 
-    expect(api.cancelSyncDetection).toHaveBeenCalledTimes(1);
-    await act(async () => run.resolve(DETECTION));
-    expect(errors).not.toHaveBeenCalled();
-    errors.mockRestore();
+      expect(api.cancelSyncDetection).toHaveBeenCalledTimes(1);
+      await act(async () => run.resolve(DETECTION));
+      expect(errors).not.toHaveBeenCalled();
+    } finally {
+      errors.mockRestore();
+    }
   });
 
   it("makes a newly mounted wizard wait for the previous wizard's cancel", async () => {
