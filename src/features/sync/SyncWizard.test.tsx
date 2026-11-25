@@ -484,7 +484,7 @@ describe("the sync wizard", () => {
     renderWizard();
     await reachDetect(user, false);
     await user.click(primary());
-    await user.click(screen.getByRole("button", { name: "Increase by 50 ms" }));
+    await user.click(screen.getByRole("button", { name: /^\+50 ms/ }));
 
     await user.click(within(actionBar()).getByRole("button", { name: "Back" }));
 

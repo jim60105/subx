@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { SUPPORTED_LANGUAGES } from "../../i18n/languages";
 import { renderWithI18n, setupI18n } from "../../test/renderWithI18n";
 import { formatSeconds, NUDGE_STEP_MS, OffsetField } from "./OffsetField";
 
@@ -25,8 +26,8 @@ describe("the offset field", () => {
   it("steps the offset with the nudge controls and keeps the figure and field in agreement", async () => {
     const user = userEvent.setup();
     const { container } = renderWithI18n(<StatefulOffsetField />);
-    const increase = screen.getByRole("button", { name: `Increase by ${NUDGE_STEP_MS} ms` });
-    const decrease = screen.getByRole("button", { name: `Decrease by ${NUDGE_STEP_MS} ms` });
+    const increase = screen.getByRole("button", { name: /^\+50 ms/ });
+    const decrease = screen.getByRole("button", { name: /^−50 ms/ });
 
     expect(increase).toHaveTextContent("+50 ms");
     expect(decrease).toHaveTextContent("\u221250 ms");
@@ -58,8 +59,8 @@ describe("the offset field", () => {
   it("moves the figure in the direction of each change, and not on first render", async () => {
     const user = userEvent.setup();
     const { container } = renderWithI18n(<StatefulOffsetField />);
-    const increase = screen.getByRole("button", { name: `Increase by ${NUDGE_STEP_MS} ms` });
-    const decrease = screen.getByRole("button", { name: `Decrease by ${NUDGE_STEP_MS} ms` });
+    const increase = screen.getByRole("button", { name: /^\+50 ms/ });
+    const decrease = screen.getByRole("button", { name: /^−50 ms/ });
 
     expect(figure(container)).not.toHaveAttribute("data-direction");
 
@@ -79,6 +80,20 @@ describe("the offset field", () => {
 
     expect(screen.getByText("Offset in milliseconds")).toHaveClass("visually-hidden");
     expect(screen.getByText("facts").closest(".offset-field__row")).not.toBeNull();
+  });
+});
+
+describe("the nudge controls' accessible names", () => {
+  it.each(SUPPORTED_LANGUAGES)("begin with the visible text in %s", async (language) => {
+    await setupI18n(language);
+    const { container } = renderWithI18n(<StatefulOffsetField />);
+    const buttons = [...container.querySelectorAll(".offset-field__nudge button")];
+
+    expect(buttons).toHaveLength(2);
+    for (const button of buttons) {
+      expect(button.textContent).not.toBe("");
+      expect(button.getAttribute("aria-label")!.startsWith(button.textContent!)).toBe(true);
+    }
   });
 });
 
