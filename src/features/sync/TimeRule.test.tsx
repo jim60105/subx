@@ -35,6 +35,7 @@ describe("the time rule", () => {
     vi.restoreAllMocks();
   });
 
+  // @covers sync-workflow/time-rule-scrolls-real-cues#only-cues-in-the-window-are-drawn
   it("draws only the cues and the seconds in the window of a long subtitle", () => {
     // Without a measured width the window is 10 s either side: [1_990 s, 2_010 s].
     const { container } = renderRule(LONG_SUBTITLE, 2_000_000, 0);
@@ -61,6 +62,7 @@ describe("the time rule", () => {
     expect(ticks(container)[0]).toHaveStyle({ left: "0px" });
   });
 
+  // @covers sync-workflow/time-rule-scrolls-real-cues#cue-under-the-needle-is-marked
   it("marks only the cue whose shifted interval holds the position", () => {
     const cues = [cue(1_000, 2_000), cue(3_000, 4_000), cue(5_000, 6_000)];
     // Shifted by +2 s, the first cue spans [3 s, 4 s); the second cue's
@@ -73,6 +75,7 @@ describe("the time rule", () => {
     expect(active[0]).toHaveStyle({ left: px(3_000) });
   });
 
+  // @covers sync-workflow/time-rule-scrolls-real-cues#clamped-cue-has-no-shifted-bar
   it("draws a cue clamped to zero length with its original bar only", () => {
     const { container } = renderRule([cue(200, 800), cue(2_000, 3_000)], 0, -1_000);
 
@@ -80,7 +83,7 @@ describe("the time rule", () => {
     expect(bars(container, "shifted").map((bar) => bar.style.left)).toEqual([px(1_000)]);
   });
 
-  // @covers sync-workflow/offset-is-shown-as-a-nudgeable-figure-with-a-schematic-preview#preview-follows-the-sign-of-the-offset
+  // @covers sync-workflow/offset-is-shown-as-a-nudgeable-figure-with-a-time-rule#preview-follows-the-sign-of-the-offset
   it("draws the shifted bar later than, at and earlier than the original with the sign of the offset", () => {
     const cues = [cue(5_000, 7_000)];
     const originals: string[] = [];
@@ -100,7 +103,7 @@ describe("the time rule", () => {
     expect(originals[2]).toBe(originals[0]);
   });
 
-  // @covers sync-workflow/offset-is-shown-as-a-nudgeable-figure-with-a-schematic-preview#preview-is-schematic-and-hidden-from-assistive-technology
+  // @covers sync-workflow/offset-is-shown-as-a-nudgeable-figure-with-a-time-rule#preview-is-schematic-and-hidden-from-assistive-technology
   it("stays out of the accessibility tree and is drawn from cue times only on the offset step", () => {
     const cues = [cue(1_000, 2_500), cue(4_000, 6_000)];
     const session: PreviewSession = {

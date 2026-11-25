@@ -21,7 +21,7 @@ describe("the offset field", () => {
     await setupI18n("en");
   });
 
-  // @covers sync-workflow/offset-is-shown-as-a-nudgeable-figure-with-a-schematic-preview#nudge-controls-step-the-offset
+  // @covers sync-workflow/offset-is-shown-as-a-nudgeable-figure-with-a-time-rule#nudge-controls-step-the-offset
   it("steps the offset with the nudge controls and keeps the figure and field in agreement", async () => {
     const user = userEvent.setup();
     const { container } = renderWithI18n(<StatefulOffsetField />);

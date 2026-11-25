@@ -545,6 +545,7 @@ describe("the time rule in the player", () => {
     expect(rule?.nextElementSibling).toHaveClass("sync-player__transport");
   });
 
+  // @covers sync-workflow/time-rule-scrolls-real-cues#rule-is-absent-without-playable-media-or-cues
   it.each([
     ["without media", makeSession({ status: "none" })],
     ["while opening", makeSession({ status: "opening" })],
