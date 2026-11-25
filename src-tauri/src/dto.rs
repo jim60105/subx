@@ -129,7 +129,7 @@ pub struct MatchOperationDto {
     pub subtitle_name: String,
     pub target_path: String,
     pub confidence: u32,
-    /// The path-detected primary code from subx-core's `LanguageDetector`.
+    /// The language tag in the resulting file name, else the path-detected primary code.
     pub language: Option<String>,
     /// The AI's reasoning, shown verbatim (design D7).
     pub reasoning: Vec<String>,

@@ -123,6 +123,15 @@
   border-inline-start-color: var(--accent);
 }
 
+/* The whole pairing row toggles its selection (design D3, D4). */
+.review-ledger__row[data-kind="pair"] {
+  cursor: pointer;
+}
+
+.review-ledger__row[data-kind="pair"]:hover {
+  background: var(--paper-2);
+}
+
 .review-ledger__row input {
   margin: 0.2em 0 0;
 }
@@ -184,6 +193,8 @@
 }
 
 .review-ledger__reasoning summary {
+  /* Only the label is the disclosure; the space beside it belongs to the row. */
+  width: fit-content;
   color: var(--ink-3);
   cursor: pointer;
 }
