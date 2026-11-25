@@ -8,9 +8,10 @@
 //! The engine's own loader is not used: it concatenates samples and ignores
 //! timestamps, so a track that starts late would play early.
 //!
-//! The output is an anonymous temporary file (`tempfile::tempfile_in`): it has
-//! no name on Unix and is delete-on-close on Windows, so dropping its last
-//! handle frees it and a crash leaves no named file behind.
+//! The output is an anonymous temporary file (`tempfile::tempfile_in`): on
+//! Linux it never has a name (`O_TMPFILE`), other Unix systems unlink it right
+//! after creating it, and Windows opens it delete-on-close. Dropping its last
+//! handle frees it, and a crash leaves no named file behind.
 
 use std::fs::File;
 use std::io::{self, BufWriter, Seek, SeekFrom, Write};
