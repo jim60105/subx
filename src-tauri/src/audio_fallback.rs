@@ -888,6 +888,7 @@ mod tests {
             .any(|&sample| sample.unsigned_abs() > 100)
     }
 
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#encoder-priming-is-trimmed
     #[test]
     fn encoder_priming_is_trimmed() {
         let media = fixture("priming.mp4");
@@ -902,6 +903,7 @@ mod tests {
         );
     }
 
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#delay-becomes-silence
     #[test]
     fn a_delay_becomes_silence() {
         let frames = timed(&fixture("late.mp4"));
@@ -920,6 +922,7 @@ mod tests {
         assert_eq!(Placement::new(&map, 44100).lead, 87142, "exactly");
     }
 
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#hostile-delay-is-bounded
     #[test]
     fn a_hostile_delay_ends_the_decoding() {
         let error = decoded(&fixture("priming.mp4"), |_, _| {
@@ -944,6 +947,7 @@ mod tests {
         );
     }
 
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#selected-track-decides
     #[test]
     fn the_selected_track_decides() {
         let first = timed(&fixture("two.mp4"));
@@ -962,6 +966,7 @@ mod tests {
         assert!(sound_within(&video_first, 14976, 3000), "the audio follows");
     }
 
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#short-delay-is-not-absorbed-as-jitter
     #[test]
     fn a_short_delay_is_not_absorbed_as_jitter() {
         let placement = Placement::new(&edit(1000, 48000, 10, 0, None), 48000);
@@ -984,6 +989,7 @@ mod tests {
         assert!(frames[480..].iter().all(|&sample| sample == 7));
     }
 
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#trim-and-delay-compose
     #[test]
     fn trim_and_delay_compose() {
         let placement = Placement::new(&edit(1000, 48000, 500, 1024, None), 48000);
@@ -1006,6 +1012,7 @@ mod tests {
         assert_eq!(frames.len(), 24000 + 1024);
     }
 
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#timescales-are-kept-apart
     #[test]
     fn timescales_are_kept_apart() {
         let placement = Placement::new(&edit(1000, 48000, 30, 2400, None), 48000);
@@ -1019,6 +1026,7 @@ mod tests {
         assert_eq!(placement.place(4800), (1440 + 2400, 0));
     }
 
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#equal-audio-and-video-edits-keep-the-delay
     #[test]
     fn equal_audio_and_video_edits_keep_the_delay() {
         use crate::mp4_timing::tests::{file, mdat, moov, trak_spec};
@@ -1067,6 +1075,7 @@ mod tests {
         frames_of(&writer.finish().unwrap().into_inner())
     }
 
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#media-past-the-edit-is-dropped
     #[test]
     fn media_past_the_edit_is_dropped() {
         let placement = Placement::new(&edit(1000, 48000, 100, 0, Some(500)), 48000);
@@ -1160,6 +1169,7 @@ mod tests {
         assert_eq!(frames.iter().filter(|&&sample| sample == 0).count(), 1000);
     }
 
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#hostile-delay-is-bounded
     #[test]
     fn a_hostile_delay_is_refused_before_it_is_written() {
         let mut writer = TimelineWriter::new(Cursor::new(Vec::new()), RATE, 1000).unwrap();
@@ -1188,6 +1198,7 @@ mod tests {
         assert_eq!(huge.place(u64::MAX).0, u64::MAX);
     }
 
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#hostile-delay-is-bounded
     #[test]
     fn cancelling_stops_the_leading_silence() {
         let token = Arc::new(());
@@ -1228,6 +1239,8 @@ mod tests {
         panic!("no output may be created")
     }
 
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#complex-edit-lists-are-refused
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#malformed-boxes-end-safely
     #[test]
     fn a_complex_edit_list_is_refused_before_any_output() {
         let dir = tempfile::tempdir().unwrap();

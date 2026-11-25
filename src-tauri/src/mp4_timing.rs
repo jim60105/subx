@@ -715,6 +715,7 @@ pub(crate) mod tests {
         );
     }
 
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#complex-edit-lists-are-refused
     #[test]
     fn complex_edit_lists_are_refused() {
         for edits in [
@@ -729,6 +730,7 @@ pub(crate) mod tests {
         }
     }
 
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#both-edit-list-versions-and-box-orders-are-read
     #[test]
     fn both_versions_and_box_orders_give_the_same_result() {
         let edits = vec![(1976, -1, 1, 0), (524, 1024, 1, 0)];
@@ -785,6 +787,7 @@ pub(crate) mod tests {
         file(&parts)
     }
 
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#late-first-fragment-is-refused
     #[test]
     fn a_late_first_fragment_is_refused() {
         for version in [0, 1] {
@@ -871,6 +874,7 @@ pub(crate) mod tests {
         assert!(map_of(to_end, 0).is_ok(), "size 0 at the top level");
     }
 
+    // @covers sync-workflow/mp4-preview-audio-keeps-presentation-time#malformed-boxes-end-safely
     #[test]
     fn malformed_boxes_end_safely() {
         let good = || {
