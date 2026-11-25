@@ -326,6 +326,7 @@ mod tests {
         AtomicBool::new(false)
     }
 
+    // @covers sync-workflow/preview-audio-is-decoded-onto-the-media-timeline#gap-becomes-silence
     #[test]
     fn a_gap_becomes_silence_and_the_packet_keeps_its_timestamp() {
         let mut writer = writer();
@@ -344,6 +345,7 @@ mod tests {
             .all(|&sample| sample == 2));
     }
 
+    // @covers sync-workflow/preview-audio-is-decoded-onto-the-media-timeline#jitter-is-absorbed
     #[test]
     fn jitter_within_the_tolerance_is_absorbed() {
         let mut writer = writer();
@@ -365,6 +367,7 @@ mod tests {
         }
     }
 
+    // @covers sync-workflow/preview-audio-is-decoded-onto-the-media-timeline#overlap-is-trimmed
     #[test]
     fn an_overlap_beyond_the_tolerance_is_trimmed() {
         let mut writer = writer();
@@ -383,6 +386,7 @@ mod tests {
         assert_eq!(*frames.last().unwrap(), 499);
     }
 
+    // @covers sync-workflow/preview-audio-failures-are-reported-and-leave-no-file#oversized-output-is-refused
     #[test]
     fn oversized_output_is_refused_before_writing_past_the_limit() {
         let max_data_bytes = 1000;
@@ -431,6 +435,7 @@ mod tests {
         }
     }
 
+    // @covers sync-workflow/preview-audio-failures-are-reported-and-leave-no-file#write-failure-is-reported
     #[test]
     fn a_write_failure_is_reported() {
         assert!(TimelineWriter::new(Failing { on_write: true }, RATE, 100).is_err());
@@ -445,6 +450,7 @@ mod tests {
         assert!(writer.finish().is_err(), "a failed flush is reported");
     }
 
+    // @covers sync-workflow/preview-audio-failures-are-reported-and-leave-no-file#cancellation-releases-the-partial-file
     #[test]
     fn cancellation_stops_silence_filling() {
         let mut writer = writer();
@@ -505,6 +511,7 @@ mod tests {
         bytes
     }
 
+    // @covers sync-workflow/preview-audio-is-decoded-onto-the-media-timeline#late-start-becomes-silence
     #[test]
     fn a_late_start_becomes_silence() {
         let file = decode_to_wav(&fixture("late.mkv"), &no_cancel()).expect("decoded");
@@ -548,6 +555,7 @@ mod tests {
         std::fs::write(path, bytes).unwrap();
     }
 
+    // @covers sync-workflow/preview-audio-is-decoded-onto-the-media-timeline#channels-are-mixed-to-mono
     #[test]
     fn channels_are_mixed_to_mono() {
         let dir = tempfile::tempdir().unwrap();
@@ -583,6 +591,7 @@ mod tests {
         error
     }
 
+    // @covers sync-workflow/preview-audio-failures-are-reported-and-leave-no-file#undecodable-audio-is-reported
     #[test]
     fn undecodable_audio_is_reported() {
         let dir = tempfile::tempdir().unwrap();
@@ -605,6 +614,7 @@ mod tests {
         assert!(matches!(error, AudioFallbackError::Unreadable(_)), "{error:?}");
     }
 
+    // @covers sync-workflow/preview-audio-failures-are-reported-and-leave-no-file#cancellation-releases-the-partial-file
     #[test]
     fn cancellation_releases_the_partial_file() {
         let preset = expect_failure(&fixture("late.mkv"), &AtomicBool::new(true), |_| {});
@@ -617,6 +627,7 @@ mod tests {
         assert!(matches!(mid_job, AudioFallbackError::Cancelled), "{mid_job:?}");
     }
 
+    // @covers sync-workflow/preview-audio-failures-are-reported-and-leave-no-file#write-failure-is-reported
     #[test]
     fn a_write_failure_during_decoding_is_reported() {
         let error = expect_failure(&fixture("late.mkv"), &no_cancel(), |output| {
@@ -627,6 +638,7 @@ mod tests {
 
     /// Unix only: on Windows the file is delete-on-close instead, which a
     /// directory listing cannot observe while the handle is open.
+    // @covers sync-workflow/preview-audio-belongs-to-its-session#prepared-audio-has-no-name
     #[cfg(unix)]
     #[test]
     fn prepared_audio_has_no_name() {

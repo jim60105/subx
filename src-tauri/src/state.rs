@@ -1148,6 +1148,7 @@ mod preview_state_tests {
         test_http::get(url).await.map(|reply| reply.status)
     }
 
+    // @covers sync-workflow/preview-audio-belongs-to-its-session#concurrent-preparation-is-refused
     #[tokio::test(flavor = "multi_thread")]
     async fn concurrent_preparation_is_refused() {
         let dir = tempfile::tempdir().expect("a temp dir");
@@ -1167,6 +1168,7 @@ mod preview_state_tests {
         assert_eq!(status_of(&url).await, Some(200));
     }
 
+    // @covers sync-workflow/preview-audio-belongs-to-its-session#stale-session-is-refused
     #[tokio::test(flavor = "multi_thread")]
     async fn stale_session_is_refused() {
         let dir = tempfile::tempdir().expect("a temp dir");
@@ -1185,6 +1187,7 @@ mod preview_state_tests {
         ));
     }
 
+    // @covers sync-workflow/preview-audio-failures-are-reported-and-leave-no-file#write-failure-is-reported
     #[tokio::test(flavor = "multi_thread")]
     async fn a_write_failure_returns_no_url_and_frees_the_slot() {
         let dir = tempfile::tempdir().expect("a temp dir");
@@ -1204,6 +1207,7 @@ mod preview_state_tests {
         start(&state, &session.session_id);
     }
 
+    // @covers sync-workflow/preview-audio-belongs-to-its-session#repeated-preparation-reuses-the-file
     #[tokio::test(flavor = "multi_thread")]
     async fn repeated_preparation_reuses_the_file() {
         let dir = tempfile::tempdir().expect("a temp dir");
@@ -1232,6 +1236,7 @@ mod preview_state_tests {
         }
     }
 
+    // @covers sync-workflow/preview-audio-belongs-to-its-session#closing-removes-the-audio
     #[tokio::test(flavor = "multi_thread")]
     async fn closing_removes_the_audio() {
         for ending in [Ending::Close, Ending::Replace, Ending::Shutdown] {
@@ -1268,6 +1273,7 @@ mod preview_state_tests {
         }
     }
 
+    // @covers sync-workflow/preview-audio-belongs-to-its-session#releasing-keeps-the-session
     #[tokio::test(flavor = "multi_thread")]
     async fn releasing_keeps_the_session() {
         let dir = tempfile::tempdir().expect("a temp dir");
@@ -1306,6 +1312,7 @@ mod preview_state_tests {
         assert_eq!(status_of(&again).await, Some(200));
     }
 
+    // @covers sync-workflow/preview-audio-belongs-to-its-session#superseded-job-cannot-publish
     #[tokio::test(flavor = "multi_thread")]
     async fn superseded_job_cannot_publish() {
         let dir = tempfile::tempdir().expect("a temp dir");

@@ -303,6 +303,7 @@ mod tests {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/late.mkv")
     }
 
+    // @covers sync-workflow/preview-audio-belongs-to-its-session#prepared-audio-is-served
     #[tokio::test(flavor = "multi_thread")]
     async fn prepared_audio_is_served() {
         let state = Arc::new(PreviewState::default());

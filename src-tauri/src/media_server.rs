@@ -1161,6 +1161,7 @@ mod tests {
         assert_no_cors(&whole);
     }
 
+    // @covers sync-workflow/preview-audio-belongs-to-its-session#ranges-are-served-from-the-open-file
     #[tokio::test(flavor = "multi_thread")]
     async fn ranges_are_served_from_the_open_file() {
         let content = patterned(4 * 1024 * 1024);
