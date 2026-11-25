@@ -35,6 +35,7 @@ export type {
   MatchStage,
   MatchedVideoDto,
   PingResponse,
+  PreviewAudioDto,
   PreviewCueDto,
   PreviewSessionDto,
   RelocationModeDto,

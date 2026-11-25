@@ -12,15 +12,23 @@ use std::time::Duration;
 use subx_core::core::formats::Subtitle;
 use tauri::State;
 
+use subx_core::error::SubXError;
+
+use crate::audio_fallback::{self, AudioFallbackError};
 use crate::commands::sync::load_subtitle;
-use crate::dto::{PreviewCueDto, PreviewSessionDto};
+use crate::dto::{PreviewAudioDto, PreviewCueDto, PreviewSessionDto};
 use crate::error::ErrorDto;
-use crate::state::{AppState, PreviewState};
+use crate::state::{AppState, AudioStart, PreviewState};
 
 /// The media is not a readable regular file.
 pub(crate) const CODE_MEDIA_UNREADABLE: &str = "preview.media_unreadable";
 /// The loopback server could not start or publish.
 pub(crate) const CODE_SERVER_UNAVAILABLE: &str = "preview.server_unavailable";
+/// The media has no audio the fallback can decode, or its WAV would be too large.
+pub(crate) const CODE_AUDIO_UNSUPPORTED: &str = "preview.audio_unsupported";
+/// The session is not open, its audio is already being prepared, or the job
+/// was cancelled or superseded.
+pub(crate) const CODE_CANCELLED: &str = "preview.cancelled";
 
 // ─── Command wrappers ───────────────────────────────────────────────────────
 
@@ -49,7 +57,63 @@ pub async fn close_preview(session_id: String, state: State<'_, AppState>) -> Re
     Ok(())
 }
 
+/// Decodes the open session's audio to a WAV and returns its loopback URL.
+#[tauri::command]
+#[specta::specta]
+pub async fn prepare_preview_audio(
+    session_id: String,
+    state: State<'_, AppState>,
+) -> Result<PreviewAudioDto, ErrorDto> {
+    prepare_preview_audio_impl(state.preview_state(), session_id).await
+}
+
+/// Gives the session's audio up without closing the session; idempotent.
+#[tauri::command]
+#[specta::specta]
+pub async fn release_preview_audio(
+    session_id: String,
+    state: State<'_, AppState>,
+) -> Result<(), ErrorDto> {
+    state.preview_state().release_audio(&session_id);
+    Ok(())
+}
+
 // ─── Implementations ────────────────────────────────────────────────────────
+
+/// Decoding reads the whole container and writes a temporary file, so it runs
+/// on the blocking pool; the session's slot decides whether its result is
+/// still wanted (design D3, D4).
+async fn prepare_preview_audio_impl(
+    state: Arc<PreviewState>,
+    session_id: String,
+) -> Result<PreviewAudioDto, ErrorDto> {
+    let (media, cancel) = match state.begin_audio(&session_id)? {
+        AudioStart::Ready(url) => return Ok(PreviewAudioDto { url }),
+        AudioStart::Start { media, cancel } => (media, cancel),
+    };
+    let job = Arc::clone(&cancel);
+    let outcome = tokio::task::spawn_blocking(move || audio_fallback::decode_to_wav(&media, &job))
+        .await
+        .unwrap_or_else(|_| {
+            Err(AudioFallbackError::Unsupported(
+                "the decoding task panicked".to_string(),
+            ))
+        });
+    let url = state.finish_audio(&session_id, &cancel, outcome)?;
+    Ok(PreviewAudioDto { url })
+}
+
+/// The error code of a failed audio preparation (design D2).
+pub(crate) fn audio_error(err: AudioFallbackError) -> ErrorDto {
+    match err {
+        AudioFallbackError::Unsupported(detail) => ErrorDto::new(CODE_AUDIO_UNSUPPORTED, detail),
+        AudioFallbackError::Unreadable(detail) => ErrorDto::new(CODE_MEDIA_UNREADABLE, detail),
+        AudioFallbackError::Cancelled => {
+            ErrorDto::new(CODE_CANCELLED, "the audio preparation was cancelled")
+        }
+        AudioFallbackError::Io(err) => ErrorDto::from(SubXError::from(err)),
+    }
+}
 
 /// `FormatManager` is neither `Send` nor `Sync` and parsing touches the disk,
 /// so the loader runs on the blocking pool.
@@ -232,6 +296,69 @@ mod tests {
                 200,
                 "the open session stays open"
             );
+        }
+    }
+
+    fn late_mkv() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/late.mkv")
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn prepared_audio_is_served() {
+        let state = Arc::new(PreviewState::default());
+        let session = open_preview_impl(state.clone(), late_mkv())
+            .await
+            .expect("open");
+
+        let audio = prepare_preview_audio_impl(state.clone(), session.session_id.clone())
+            .await
+            .expect("prepared");
+
+        let reply = test_http::get(&audio.url).await.expect("answers");
+        assert_eq!(reply.status, 200);
+        assert_eq!(reply.header("content-type"), Some("audio/wav"));
+        assert_eq!(&reply.body[..4], b"RIFF");
+        assert_eq!(&reply.body[8..12], b"WAVE");
+        assert_eq!(status_of(&session.url).await, 200, "the media still works");
+
+        let again = prepare_preview_audio_impl(state.clone(), session.session_id.clone())
+            .await
+            .expect("prepared again");
+        assert_eq!(again.url, audio.url, "the same file is reused");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn undecodable_media_reports_unsupported_audio() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = Arc::new(PreviewState::default());
+        let session = open_preview_impl(state.clone(), write(dir.path(), "a.mp4", b"not media"))
+            .await
+            .expect("open");
+
+        let error = prepare_preview_audio_impl(state.clone(), session.session_id.clone())
+            .await
+            .expect_err("nothing to decode");
+
+        assert_eq!(error.code, CODE_AUDIO_UNSUPPORTED);
+        let stale = prepare_preview_audio_impl(state, "preview-0".to_string())
+            .await
+            .expect_err("not open");
+        assert_eq!(stale.code, CODE_CANCELLED);
+    }
+
+    #[test]
+    fn audio_errors_map_to_their_codes() {
+        let cases = [
+            (AudioFallbackError::Unsupported("x".into()), "preview.audio_unsupported"),
+            (AudioFallbackError::Unreadable("x".into()), "preview.media_unreadable"),
+            (AudioFallbackError::Cancelled, "preview.cancelled"),
+            (
+                AudioFallbackError::Io(std::io::Error::other("disk full")),
+                "core.io",
+            ),
+        ];
+        for (error, code) in cases {
+            assert_eq!(audio_error(error).code, code);
         }
     }
 }

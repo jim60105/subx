@@ -50,6 +50,8 @@ pub fn specta_builder<R: Runtime>() -> Builder<R> {
             crate::commands::preview::load_preview_cues,
             crate::commands::preview::open_preview,
             crate::commands::preview::close_preview,
+            crate::commands::preview::prepare_preview_audio,
+            crate::commands::preview::release_preview_audio,
             crate::commands::translate::list_translate_inputs,
             crate::commands::translate::preview_translation,
             crate::commands::translate::execute_translation,

@@ -15,7 +15,10 @@ use subx_core::core::matcher::{MatchEngine, MatchOperation};
 use tokio::sync::{watch, Mutex};
 use tokio::task::AbortHandle;
 
-use crate::commands::preview::{CODE_MEDIA_UNREADABLE, CODE_SERVER_UNAVAILABLE};
+use crate::audio_fallback::AudioFallbackError;
+use crate::commands::preview::{
+    audio_error, CODE_CANCELLED, CODE_MEDIA_UNREADABLE, CODE_SERVER_UNAVAILABLE,
+};
 use crate::dto::PreviewSessionDto;
 use crate::error::ErrorDto;
 use crate::media_server::{self, Entry, MediaServer};
@@ -771,11 +774,30 @@ struct PreviewInner {
 
 struct PreviewSession {
     id: String,
-    // Not read yet: the audio fallback (`add-sync-audio-fallback`) derives its
-    // decoded copy from the session's media.
-    #[allow(dead_code)]
     media_path: PathBuf,
     media_token: String,
+    audio: AudioSlot,
+}
+
+/// The session's decoded audio (design D3). The server's entry owns the WAV,
+/// so revoking the token is what gives it up.
+enum AudioSlot {
+    Empty,
+    /// A decoding job is running; the flag cancels it and identifies it.
+    Running(Arc<AtomicBool>),
+    Ready { token: String, url: String },
+}
+
+/// What [`PreviewState::begin_audio`] asks the caller to do.
+pub enum AudioStart {
+    /// The audio is already prepared at this URL.
+    Ready(String),
+    /// Decode `media`, checking `cancel`, then call
+    /// [`PreviewState::finish_audio`] with the same flag.
+    Start {
+        media: PathBuf,
+        cancel: Arc<AtomicBool>,
+    },
 }
 
 impl PreviewState {
@@ -815,8 +837,11 @@ impl PreviewState {
                 id: id.clone(),
                 media_path: media,
                 media_token: published.token,
+                audio: AudioSlot::Empty,
             });
-            replaced = previous.and_then(|session| revoke(&inner, &session));
+            replaced = previous
+                .map(|session| retire(inner.server.as_ref(), session))
+                .unwrap_or_default();
             PreviewSessionDto {
                 session_id: id,
                 url: published.url,
@@ -838,31 +863,161 @@ impl PreviewState {
                 .is_some_and(|session| session.id == session_id);
             if matches {
                 let session = inner.session.take().expect("checked above");
-                revoke(&inner, &session)
+                retire(inner.server.as_ref(), session)
             } else {
-                None
+                Vec::new()
             }
         };
         drop(revoked);
     }
 
-    /// Drops the session and the server, ending every stream. Meant for
-    /// process exit; a later `open` would start a fresh server.
+    /// Retires the session and drops the server, ending every stream. Meant
+    /// for process exit; a later `open` would start a fresh server.
     pub fn shutdown(&self) {
-        let (session, server) = {
+        let (revoked, server) = {
             let mut inner = self.lock();
-            (inner.session.take(), inner.server.take())
+            let server = inner.server.take();
+            let revoked = inner
+                .session
+                .take()
+                .map(|session| retire(server.as_ref(), session))
+                .unwrap_or_default();
+            (revoked, server)
         };
-        drop(session);
+        drop(revoked);
         drop(server);
+    }
+
+    /// Claims the session's audio slot (design D3). A session that is not
+    /// open, or whose job is already running, is refused with
+    /// `preview.cancelled`; prepared audio is handed back as is.
+    pub fn begin_audio(&self, session_id: &str) -> Result<AudioStart, ErrorDto> {
+        let mut inner = self.lock();
+        let session = inner
+            .session
+            .as_mut()
+            .filter(|session| session.id == session_id)
+            .ok_or_else(|| cancelled("the preview session is not open"))?;
+        match &session.audio {
+            AudioSlot::Running(_) => Err(cancelled("the audio is already being prepared")),
+            AudioSlot::Ready { url, .. } => Ok(AudioStart::Ready(url.clone())),
+            AudioSlot::Empty => {
+                let cancel = Arc::new(AtomicBool::new(false));
+                session.audio = AudioSlot::Running(Arc::clone(&cancel));
+                Ok(AudioStart::Start {
+                    media: session.media_path.clone(),
+                    cancel,
+                })
+            }
+        }
+    }
+
+    /// Settles the job `job` started by [`Self::begin_audio`]. Only the job
+    /// that still owns the open session's slot may publish; any other result
+    /// is dropped, after the lock, with `preview.cancelled`.
+    pub fn finish_audio(
+        &self,
+        session_id: &str,
+        job: &Arc<AtomicBool>,
+        outcome: Result<std::fs::File, AudioFallbackError>,
+    ) -> Result<String, ErrorDto> {
+        // A file-system call, so made before the lock.
+        let outcome = outcome.and_then(|file| match file.metadata() {
+            Ok(metadata) => Ok((file, metadata.len())),
+            Err(err) => Err(AudioFallbackError::Io(err)),
+        });
+
+        let mut discarded = None;
+        let result = {
+            let mut inner = self.lock();
+            let PreviewInner { server, session } = &mut *inner;
+            let owner = session.as_mut().filter(|session| {
+                session.id == session_id
+                    && matches!(&session.audio, AudioSlot::Running(flag) if Arc::ptr_eq(flag, job))
+            });
+            match (owner, server.as_ref()) {
+                (Some(session), Some(server)) => match outcome {
+                    Err(err) => {
+                        session.audio = AudioSlot::Empty;
+                        Err(audio_error(err))
+                    }
+                    Ok((file, len)) => match server.publish_file(file, len, "audio/wav") {
+                        Ok(published) => {
+                            session.audio = AudioSlot::Ready {
+                                token: published.token,
+                                url: published.url.clone(),
+                            };
+                            Ok(published.url)
+                        }
+                        Err(err) => {
+                            session.audio = AudioSlot::Empty;
+                            Err(audio_error(AudioFallbackError::Io(err)))
+                        }
+                    },
+                },
+                _ => {
+                    discarded = Some(outcome);
+                    Err(cancelled("the audio job was superseded"))
+                }
+            }
+        };
+        // Closing a large temporary file is not done under the lock.
+        drop(discarded);
+        result
+    }
+
+    /// Gives the session's audio up without closing the session: cancels a
+    /// running job, revokes a prepared URL. An unknown session does nothing.
+    pub fn release_audio(&self, session_id: &str) {
+        let revoked = {
+            let mut inner = self.lock();
+            let PreviewInner { server, session } = &mut *inner;
+            match session.as_mut().filter(|session| session.id == session_id) {
+                Some(session) => release_slot(server.as_ref(), &mut session.audio),
+                None => None,
+            }
+        };
+        drop(revoked);
+    }
+
+    /// A weak handle to the session's prepared WAV, for tests that prove
+    /// nothing keeps it alive.
+    #[cfg(test)]
+    fn audio_file(&self, session_id: &str) -> Option<std::sync::Weak<std::fs::File>> {
+        let inner = self.lock();
+        let session = inner.session.as_ref().filter(|session| session.id == session_id)?;
+        match &session.audio {
+            AudioSlot::Ready { token, .. } => inner.server.as_ref()?.file_of(token),
+            _ => None,
+        }
     }
 }
 
-fn revoke(inner: &PreviewInner, session: &PreviewSession) -> Option<Entry> {
-    inner
-        .server
-        .as_ref()
-        .and_then(|server| server.revoke(&session.media_token))
+/// Empties an audio slot: sets a running job's cancel flag, revokes a
+/// prepared token. The caller drops the returned entry after the lock.
+fn release_slot(server: Option<&MediaServer>, slot: &mut AudioSlot) -> Option<Entry> {
+    match std::mem::replace(slot, AudioSlot::Empty) {
+        AudioSlot::Empty => None,
+        AudioSlot::Running(cancel) => {
+            cancel.store(true, Ordering::SeqCst);
+            None
+        }
+        AudioSlot::Ready { token, .. } => server.and_then(|server| server.revoke(&token)),
+    }
+}
+
+/// Ends a closed, replaced or shut-down session: cancels its audio job and
+/// revokes both of its tokens. The caller drops the returned entries after
+/// releasing the lock, so no file is closed under it.
+fn retire(server: Option<&MediaServer>, mut session: PreviewSession) -> Vec<Entry> {
+    let mut revoked = Vec::new();
+    revoked.extend(release_slot(server, &mut session.audio));
+    revoked.extend(server.and_then(|server| server.revoke(&session.media_token)));
+    revoked
+}
+
+fn cancelled(detail: &str) -> ErrorDto {
+    ErrorDto::new(CODE_CANCELLED, detail)
 }
 
 fn server_unavailable(err: io::Error) -> ErrorDto {
@@ -962,6 +1117,218 @@ mod preview_state_tests {
         let second = state.open(media(dir.path())).expect("open");
         assert_ne!(first.session_id, second.session_id);
         assert!(first.session_id.starts_with("preview-"));
+    }
+
+    // ─── Audio (design D3) ──────────────────────────────────────────────────
+
+    fn wav() -> std::fs::File {
+        let mut file = tempfile::tempfile().expect("a temp file");
+        std::io::Write::write_all(&mut file, b"RIFF....WAVE").expect("write");
+        file
+    }
+
+    fn start(state: &PreviewState, session_id: &str) -> Arc<AtomicBool> {
+        match state.begin_audio(session_id).expect("begin") {
+            AudioStart::Start { cancel, .. } => cancel,
+            AudioStart::Ready(url) => panic!("unexpectedly ready at {url}"),
+        }
+    }
+
+    /// Opens a session and prepares its audio, returning both.
+    fn prepared(state: &PreviewState, dir: &Path) -> (PreviewSessionDto, String) {
+        let session = state.open(media(dir)).expect("open");
+        let job = start(state, &session.session_id);
+        let url = state
+            .finish_audio(&session.session_id, &job, Ok(wav()))
+            .expect("published");
+        (session, url)
+    }
+
+    async fn status_of(url: &str) -> Option<u16> {
+        test_http::get(url).await.map(|reply| reply.status)
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn concurrent_preparation_is_refused() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = PreviewState::default();
+        let session = state.open(media(dir.path())).expect("open");
+        let job = start(&state, &session.session_id);
+
+        let Err(second) = state.begin_audio(&session.session_id) else {
+            panic!("a second job must be refused");
+        };
+        assert_eq!(second.code, "preview.cancelled");
+        assert!(!job.load(Ordering::SeqCst), "the running job is unaffected");
+
+        let url = state
+            .finish_audio(&session.session_id, &job, Ok(wav()))
+            .expect("the running job still publishes");
+        assert_eq!(status_of(&url).await, Some(200));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn stale_session_is_refused() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = PreviewState::default();
+        assert!(state.begin_audio("preview-0").is_err(), "nothing is open");
+
+        let first = state.open(media(dir.path())).expect("open");
+        let second = state.open(media(dir.path())).expect("open");
+        let Err(error) = state.begin_audio(&first.session_id) else {
+            panic!("a replaced session must be refused");
+        };
+        assert_eq!(error.code, "preview.cancelled");
+        assert!(matches!(
+            state.begin_audio(&second.session_id),
+            Ok(AudioStart::Start { .. })
+        ));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn a_write_failure_returns_no_url_and_frees_the_slot() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = PreviewState::default();
+        let session = state.open(media(dir.path())).expect("open");
+        let job = start(&state, &session.session_id);
+
+        let error = state
+            .finish_audio(
+                &session.session_id,
+                &job,
+                Err(AudioFallbackError::Io(io::Error::other("disk full"))),
+            )
+            .expect_err("no URL");
+
+        assert_eq!(error.code, "core.io");
+        start(&state, &session.session_id);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn repeated_preparation_reuses_the_file() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = PreviewState::default();
+        let (session, url) = prepared(&state, dir.path());
+
+        match state.begin_audio(&session.session_id).expect("begin") {
+            AudioStart::Ready(again) => assert_eq!(again, url),
+            AudioStart::Start { .. } => panic!("prepared audio must not be decoded again"),
+        }
+    }
+
+    /// The three ways a session ends.
+    #[derive(Debug, Clone, Copy)]
+    enum Ending {
+        Close,
+        Replace,
+        Shutdown,
+    }
+
+    fn end(state: &PreviewState, session: &PreviewSessionDto, dir: &Path, ending: Ending) {
+        match ending {
+            Ending::Close => state.close(&session.session_id),
+            Ending::Replace => drop(state.open(media(dir)).expect("open")),
+            Ending::Shutdown => state.shutdown(),
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn closing_removes_the_audio() {
+        for ending in [Ending::Close, Ending::Replace, Ending::Shutdown] {
+            let dir = tempfile::tempdir().expect("a temp dir");
+            let state = PreviewState::default();
+
+            // Prepared audio: its URL stops serving and its file is freed.
+            let (session, url) = prepared(&state, dir.path());
+            let weak = state
+                .audio_file(&session.session_id)
+                .expect("an open WAV");
+            assert_eq!(status_of(&url).await, Some(200));
+            end(&state, &session, dir.path(), ending);
+            assert!(weak.upgrade().is_none(), "{ending:?}: a handle remains");
+            let status = status_of(&url).await;
+            match ending {
+                // The server itself is gone, so nothing answers at all.
+                Ending::Shutdown => assert!(
+                    !matches!(status, Some(200..=299)),
+                    "{ending:?}: {status:?}"
+                ),
+                _ => assert_eq!(status, Some(404), "{ending:?}"),
+            }
+
+            // A running job: cancelled, and its late result is dropped.
+            let session = state.open(media(dir.path())).expect("open");
+            let job = start(&state, &session.session_id);
+            end(&state, &session, dir.path(), ending);
+            assert!(job.load(Ordering::SeqCst), "{ending:?}: the job is cancelled");
+            let error = state
+                .finish_audio(&session.session_id, &job, Ok(wav()))
+                .expect_err("a retired session cannot publish");
+            assert_eq!(error.code, "preview.cancelled", "{ending:?}");
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn releasing_keeps_the_session() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = PreviewState::default();
+
+        // Ready.
+        let (session, url) = prepared(&state, dir.path());
+        let weak = state
+            .audio_file(&session.session_id)
+            .expect("an open WAV");
+        state.release_audio(&session.session_id);
+        assert!(weak.upgrade().is_none(), "a handle remains");
+        assert_eq!(status_of(&url).await, Some(404));
+        assert_eq!(status_of(&session.url).await, Some(200), "the media still works");
+
+        // Running.
+        let job = start(&state, &session.session_id);
+        state.release_audio(&session.session_id);
+        assert!(job.load(Ordering::SeqCst), "the job is cancelled");
+        let error = state
+            .finish_audio(&session.session_id, &job, Ok(wav()))
+            .expect_err("a released job cannot publish");
+        assert_eq!(error.code, "preview.cancelled");
+
+        // Absent, twice, and for an unknown session.
+        state.release_audio(&session.session_id);
+        state.release_audio(&session.session_id);
+        state.release_audio("preview-0");
+        assert_eq!(status_of(&session.url).await, Some(200));
+
+        // Prepared again.
+        let job = start(&state, &session.session_id);
+        let again = state
+            .finish_audio(&session.session_id, &job, Ok(wav()))
+            .expect("published again");
+        assert_eq!(status_of(&again).await, Some(200));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn superseded_job_cannot_publish() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = PreviewState::default();
+        let session = state.open(media(dir.path())).expect("open");
+        let first = start(&state, &session.session_id);
+        state.release_audio(&session.session_id);
+        let second = start(&state, &session.session_id);
+
+        let error = state
+            .finish_audio(&session.session_id, &first, Ok(wav()))
+            .expect_err("the released job is superseded");
+        assert_eq!(error.code, "preview.cancelled");
+        assert!(!second.load(Ordering::SeqCst), "the new job is unaffected");
+        assert!(
+            state.begin_audio(&session.session_id).is_err(),
+            "the new job still holds the slot"
+        );
+
+        let url = state
+            .finish_audio(&session.session_id, &second, Ok(wav()))
+            .expect("the new job publishes");
+        assert_eq!(status_of(&url).await, Some(200));
     }
 
     /// A poisoned lock must not take the preview down for the rest of the run.

@@ -433,6 +433,14 @@ pub struct PreviewSessionDto {
     pub url: String,
 }
 
+/// The loopback URL of a session's decoded audio, a mono 16-bit WAV on the
+/// media's timeline.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PreviewAudioDto {
+    pub url: String,
+}
+
 /// Where a translation run writes its output (design Context, D4).
 ///
 /// `Suffix` is the default: `<stem>.<target-language>.<ext>` beside the input
