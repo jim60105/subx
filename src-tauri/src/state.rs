@@ -791,12 +791,13 @@ impl PreviewState {
 
     /// [`Self::open`] with the file check injected, the seam that proves the
     /// check runs without the lock.
-    pub fn open_with(
+    pub(crate) fn open_with(
         &self,
         media: PathBuf,
         check: impl FnOnce(&Path) -> io::Result<()>,
     ) -> Result<PreviewSessionDto, ErrorDto> {
-        check(&media).map_err(|err| ErrorDto::new(CODE_MEDIA_UNREADABLE, err.to_string()))?;
+        check(&media)
+            .map_err(|err| ErrorDto::new(CODE_MEDIA_UNREADABLE, err.to_string()))?;
 
         let replaced;
         let dto = {
@@ -806,7 +807,10 @@ impl PreviewState {
             }
             let server = inner.server.as_ref().expect("started above");
             let published = server.publish(media.clone()).map_err(server_unavailable)?;
-            let id = format!("preview-{}", NEXT_PREVIEW_ID.fetch_add(1, Ordering::Relaxed));
+            let id = format!(
+                "preview-{}",
+                NEXT_PREVIEW_ID.fetch_add(1, Ordering::Relaxed)
+            );
             let previous = inner.session.replace(PreviewSession {
                 id: id.clone(),
                 media_path: media,
@@ -828,7 +832,11 @@ impl PreviewState {
     pub fn close(&self, session_id: &str) {
         let revoked = {
             let mut inner = self.lock();
-            if inner.session.as_ref().is_some_and(|session| session.id == session_id) {
+            let matches = inner
+                .session
+                .as_ref()
+                .is_some_and(|session| session.id == session_id);
+            if matches {
                 let session = inner.session.take().expect("checked above");
                 revoke(&inner, &session)
             } else {
@@ -920,7 +928,8 @@ mod preview_state_tests {
         let dir = tempfile::tempdir().expect("a temp dir");
         let state = PreviewState::default();
         let before = state.open(media(dir.path())).expect("open");
-        assert_eq!(test_http::get(&before.url).await.map(|reply| reply.status), Some(200));
+        let served = test_http::get(&before.url).await.map(|reply| reply.status);
+        assert_eq!(served, Some(200));
 
         state.shutdown();
         // Refused, reset, or answered without serving: never a success.
