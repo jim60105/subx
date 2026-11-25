@@ -45,6 +45,7 @@ import * as convertApi from "./convert/convertWizardApi";
 import * as matchApi from "./match/matchWizardApi";
 import * as previewApi from "./sync/previewApi";
 import * as syncApi from "./sync/syncWizardApi";
+import { resetPendingCancelForTests } from "./sync/useSyncWizard";
 import * as translateApi from "./translate/translateWizardApi";
 
 const MATCH_PLAN: MatchPlanDto = {
@@ -173,6 +174,7 @@ function expectPlacement(forward: string, panelButtons: string[]): void {
 
 beforeEach(async () => {
   await setupI18n("en");
+  resetPendingCancelForTests();
   vi.mocked(pickers.subscribeToDroppedPaths).mockResolvedValue(() => {});
   vi.mocked(pickers.pickFiles).mockResolvedValue(["/m/one.srt"]);
   vi.mocked(pickers.pickFolder).mockResolvedValue(["/m"]);

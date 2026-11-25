@@ -14,6 +14,7 @@ import * as pickers from "../../platform/filePickers";
 import * as previewApi from "./previewApi";
 import * as api from "./syncWizardApi";
 import { resetPreviewQueueForTests } from "./usePreviewSession";
+import { resetPendingCancelForTests } from "./useSyncWizard";
 
 const MEDIA = "/m/episode.mkv";
 const SUBTITLE = "/m/episode.srt";
@@ -118,6 +119,7 @@ beforeEach(async () => {
     overwritten: false,
   });
   resetPreviewQueueForTests();
+  resetPendingCancelForTests();
   vi.mocked(previewApi.loadPreviewCues).mockResolvedValue([]);
   vi.mocked(previewApi.openPreview).mockResolvedValue(PREVIEW_SESSION);
   vi.mocked(previewApi.closePreview).mockResolvedValue(undefined);

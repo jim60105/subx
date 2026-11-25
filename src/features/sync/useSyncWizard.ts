@@ -96,6 +96,18 @@ function cancelQuietly(): Promise<void> {
 }
 
 /**
+ * The most recent cancel request, shared by every wizard instance: a run
+ * started from a freshly mounted wizard must still wait for the cancel the
+ * previous one sent on its way out.
+ */
+let pendingCancel: Promise<void> = Promise.resolve();
+
+/** Test isolation only: forgets a cancel left pending by an earlier test. */
+export function resetPendingCancelForTests(): void {
+  pendingCancel = Promise.resolve();
+}
+
+/**
  * The default output path, mirroring the crate's `create_default_output_path`.
  *
  * Display only — the backend recomputes it with the crate's own function when
@@ -155,9 +167,6 @@ export function useSyncWizard(): SyncWizard {
   // the re-render cannot send a request the backend would refuse as
   // `sync.detection_in_progress`.
   const detectingRef = useRef(false);
-  // The most recent cancel request. A detection waits for it before starting,
-  // so the backend's abort cannot land on the run that follows it.
-  const pendingCancelRef = useRef<Promise<void>>(Promise.resolve());
   // The selected paths, read synchronously by the setters: one drop may set
   // both slots in a single tick, and the setters stay identity-stable for the
   // drop subscription that calls them.
@@ -180,6 +189,20 @@ export function useSyncWizard(): SyncWizard {
       cancelled = true;
     };
   }, []);
+
+  // Leaving the screen mid-run abandons the detection exactly as Cancel does;
+  // the late result is dropped by the generation bump. Nothing is set in
+  // React state: the component is going away. A run still waiting on the
+  // previous cancel also counts as running; its extra cancel is harmless.
+  useEffect(
+    () => () => {
+      if (!detectingRef.current) return;
+      pendingCancel = cancelQuietly();
+      detectionGenRef.current += 1;
+      detectingRef.current = false;
+    },
+    [],
+  );
 
   // A detection and an offset belong to the pair that produced them.
   const resetReview = useCallback(() => {
@@ -247,7 +270,7 @@ export function useSyncWizard(): SyncWizard {
     detectingRef.current = true;
     setIsDetecting(true);
     setDetectError(undefined);
-    await pendingCancelRef.current;
+    await pendingCancel;
     // Whoever made this run stale (cancel, restart) has already cleared the
     // detecting state.
     if (!isCurrent()) return;
@@ -276,7 +299,7 @@ export function useSyncWizard(): SyncWizard {
     // not cancel a command just because nobody awaits it. `cancel_sync_detection`
     // aborts the task and bumps the backend epoch, which is what guarantees a
     // cancelled detection never surfaces a result (design D2).
-    pendingCancelRef.current = cancelQuietly();
+    pendingCancel = cancelQuietly();
     detectionGenRef.current += 1;
     stopDetecting();
     setDetectError(undefined);
@@ -346,7 +369,7 @@ export function useSyncWizard(): SyncWizard {
 
   const restart = useCallback(() => {
     setPendingOverwrite(null);
-    pendingCancelRef.current = cancelQuietly();
+    pendingCancel = cancelQuietly();
     detectionGenRef.current += 1;
     stopDetecting();
     mediaRef.current = null;
