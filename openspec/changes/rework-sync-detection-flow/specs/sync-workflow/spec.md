@@ -38,7 +38,7 @@ The detect step SHALL offer local offline detection and skipping it; the shared 
 #### Scenario: Configured manual method makes skipping primary
 
 - **WHEN** the detect step renders with media and `sync.default_method = manual`
-- **THEN** skip is the `next` action and start detection is the `secondary` action, and with any other method they are the other way round
+- **THEN** skip is the `next` action and start detection is the `secondary` action, and with any other method they are the other way round, unless a kept offset is offered
 
 #### Scenario: Detected offset beyond the maximum can be reduced
 
@@ -103,6 +103,30 @@ The detect step SHALL be in exactly one of three states: ask, detecting, or fail
 
 - **WHEN** the detect step's stylesheet is read under reduced motion
 - **THEN** the illustration's animation is none
+
+### Requirement: Keep the current offset
+
+When the offset step has been visited for the current files, the detect step SHALL offer a forward action naming the current offset that returns to the offset step with the offset and detection facts intact. It SHALL be absent on the first visit and after either file changes.
+
+#### Scenario: Keeping returns with the review intact
+
+- **WHEN** the user goes back from the offset step with an edited offset after a detection and chooses to keep it
+- **THEN** the offset step shows that offset and the same detected offset, confidence and warnings
+
+#### Scenario: Keep is primary when asked again
+
+- **WHEN** the ask state is shown after a visit to the offset step
+- **THEN** keep is the `next` action and skip, followed by start detection when there is media, are the `secondary` actions
+
+#### Scenario: Keep is offered after a failure
+
+- **WHEN** a detection fails after a visit to the offset step
+- **THEN** retry is the `next` action, skip and keep are the `secondary` actions, and keep returns with the review intact
+
+#### Scenario: Keep is hidden without a review
+
+- **WHEN** the detect step is shown for the first time, after a file change, or after the wizard restarts
+- **THEN** no keep action is offered
 
 ### Requirement: Offset reset rules
 
