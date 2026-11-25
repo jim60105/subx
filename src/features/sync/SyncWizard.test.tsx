@@ -802,6 +802,7 @@ describe("the offset step preview", () => {
 });
 
 describe("keyboard focus when detection starts", () => {
+  // @covers sync-workflow/starting-detection-keeps-keyboard-focus#start-from-the-primary-position
   it("moves focus to Cancel when detection starts from the primary position", async () => {
     const run = deferred<SyncDetectionDto>();
     vi.mocked(api.detectSyncOffset).mockReturnValue(run.promise);
@@ -816,6 +817,7 @@ describe("keyboard focus when detection starts", () => {
     await act(async () => run.resolve(DETECTION));
   });
 
+  // @covers sync-workflow/starting-detection-keeps-keyboard-focus#start-from-a-secondary-position
   it("moves focus to Cancel when detection starts from a secondary position", async () => {
     const user = userEvent.setup();
     renderWizard();

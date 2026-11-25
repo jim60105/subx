@@ -277,6 +277,7 @@ describe("the proposed output path", () => {
 });
 
 describe("leaving the wizard", () => {
+  // @covers sync-workflow/leaving-the-wizard-cancels-a-running-detection#navigating-away-mid-detection-cancels-the-run
   it("cancels a running detection when the wizard is unmounted", async () => {
     const run = deferred<SyncDetectionDto>();
     vi.mocked(api.detectSyncOffset).mockReturnValue(run.promise);
@@ -297,6 +298,7 @@ describe("leaving the wizard", () => {
     }
   });
 
+  // @covers sync-workflow/leaving-the-wizard-cancels-a-running-detection#a-new-wizard-waits-for-the-previous-cancel
   it("makes a newly mounted wizard wait for the previous wizard's cancel", async () => {
     vi.mocked(api.detectSyncOffset).mockReturnValueOnce(new Promise(() => {}));
     const first = await onDetectStep();
@@ -319,6 +321,7 @@ describe("leaving the wizard", () => {
     await waitFor(() => expect(second.result.current.step).toBe("offset"));
   });
 
+  // @covers sync-workflow/leaving-the-wizard-cancels-a-running-detection#unmounting-while-idle-sends-nothing
   it("sends no cancel when the wizard is unmounted with no detection running", async () => {
     const { unmount } = await onDetectStep();
 

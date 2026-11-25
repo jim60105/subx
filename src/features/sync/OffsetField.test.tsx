@@ -84,6 +84,7 @@ describe("the offset field", () => {
 });
 
 describe("the nudge controls' accessible names", () => {
+  // @covers sync-workflow/nudge-controls-accessible-names-begin-with-their-visible-text#names-begin-with-the-visible-text-in-each-locale
   it.each(SUPPORTED_LANGUAGES)("begin with the visible text in %s", async (language) => {
     await setupI18n(language);
     const { container } = renderWithI18n(<StatefulOffsetField />);

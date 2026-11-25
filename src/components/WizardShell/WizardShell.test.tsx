@@ -312,6 +312,7 @@ describe("secondary takeFocus", () => {
   const wrapped = (ui: ReactElement) => <I18nextProvider i18n={i18n}>{ui}</I18nextProvider>;
   const button = (name: string) => screen.getByRole("button", { name });
 
+  // @covers app-shell/secondary-action-can-take-keyboard-focus#focus-moves-from-a-control-that-became-disabled
   it("moves focus from a control that became disabled", () => {
     const onClick = vi.fn();
     const { rerender } = renderWithI18n(
@@ -342,6 +343,7 @@ describe("secondary takeFocus", () => {
     expect(document.activeElement).toBe(button("Cancel"));
   });
 
+  // @covers app-shell/secondary-action-can-take-keyboard-focus#focus-moves-when-the-focused-control-is-removed
   it("moves focus when the focused control is removed", () => {
     const { rerender } = renderWithI18n(
       <WizardShell steps={STEPS} activeStep={1} secondary={[{ label: "Skip" }, { label: "Start" }]}>
@@ -361,6 +363,7 @@ describe("secondary takeFocus", () => {
     expect(document.activeElement).toBe(button("Cancel"));
   });
 
+  // @covers app-shell/secondary-action-can-take-keyboard-focus#focus-outside-the-action-bar-is-not-taken
   it("does not take focus from outside the action bar", () => {
     const { rerender } = renderWithI18n(
       <WizardShell steps={STEPS} activeStep={1} secondary={{ label: "Skip" }}>
@@ -381,6 +384,7 @@ describe("secondary takeFocus", () => {
     expect(document.activeElement).toBe(field);
   });
 
+  // @covers app-shell/secondary-action-can-take-keyboard-focus#a-mark-that-stays-does-not-take-focus-again
   it("does not take focus again while the mark stays", () => {
     const { rerender } = renderWithI18n(
       <WizardShell
