@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { baseName } from "../../platform/fileKind";
 import type { MatchPlanDto } from "../../types/ipc";
-import { groupOperationsByLanguage } from "./languageGroups";
+import { groupOperationsByLanguage, platformLanguageName } from "./languageGroups";
 import {
   buildLedger,
   filterLedger,
@@ -139,7 +139,7 @@ function UnmatchedRow({ row }: { row: Exclude<LedgerRow, { kind: "pair" }> }) {
  * referenced by id only — the plan itself stays in the backend.
  */
 export function ReviewStep({ plan, selectedIds, onToggle, onToggleLanguage }: ReviewStepProps) {
-  const { t } = useTranslation("match");
+  const { t, i18n } = useTranslation("match");
   const [filter, setFilter] = useState<ReviewFilter>("all");
   const rows = useMemo(() => buildLedger(plan), [plan]);
   const counts = ledgerCounts(rows);
@@ -184,7 +184,10 @@ export function ReviewStep({ plan, selectedIds, onToggle, onToggleLanguage }: Re
               const language =
                 group.code === null
                   ? t("review.languages.other")
-                  : t(`review.languages.${group.code}`, { defaultValue: group.code });
+                  : // A hand-written label wins; the platform names any other code.
+                    t(`review.languages.${group.code}`, {
+                      defaultValue: platformLanguageName(group.code, i18n.language),
+                    });
 
               return (
                 <button

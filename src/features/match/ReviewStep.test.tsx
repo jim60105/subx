@@ -57,6 +57,59 @@ describe("ReviewStep language quick-select", () => {
   });
 });
 
+describe("ReviewStep language names", () => {
+  function languagePlan(languages: string[]): MatchPlanDto {
+    return {
+      ...PLAN,
+      videos: [
+        {
+          videoName: "show.mkv",
+          matches: languages.map((language, id) => ({
+            id,
+            subtitleName: `show.${id}.srt`,
+            targetPath: `/m/show.${language}.srt`,
+            confidence: 90,
+            language,
+            reasoning: [],
+          })),
+        },
+      ],
+    };
+  }
+
+  function languageControl(name: string): HTMLElement {
+    const bar = screen.getByRole("group", { name: i18n.t("match:review.languageBarLabel") });
+    return within(bar).getByRole("checkbox", { name });
+  }
+
+  it.each(["en", "zh-TW"] as const)("names a code without a translated label in %s", async (language) => {
+    await setupI18n(language);
+    renderReview(languagePlan(["th"]), new Set());
+
+    const thai = new Intl.DisplayNames([language], { type: "language", fallback: "none" }).of("th");
+    expect(thai).toBeDefined();
+    expect(thai).not.toBe("th");
+    expect(
+      languageControl(i18n.t("match:review.languageSelection", { language: thai, count: 1 })),
+    ).toBeInTheDocument();
+  });
+
+  it("names codes the platform cannot name with the code itself", async () => {
+    await setupI18n("en");
+    renderReview(languagePlan(["qqq", "x_y"]), new Set());
+
+    expect(languageControl("Toggle qqq (1 file)")).toBeInTheDocument();
+    expect(languageControl("Toggle x_y (1 file)")).toBeInTheDocument();
+  });
+
+  it("keeps the hand-written label for sc", async () => {
+    await setupI18n("en");
+    renderReview(languagePlan(["sc"]), new Set());
+
+    expect(languageControl("Toggle Simplified Chinese (1 file)")).toBeInTheDocument();
+  });
+});
+
 function op(id: number, confidence: number, extra: Partial<MatchOperationDto> = {}): MatchOperationDto {
   return {
     id,

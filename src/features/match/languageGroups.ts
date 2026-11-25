@@ -30,3 +30,15 @@ export function groupOperationsByLanguage(plan: MatchPlanDto): LanguageGroup[] {
   if (undetected.length > 0) result.push({ code: null, operationIds: undetected });
   return result;
 }
+
+/**
+ * The platform's name for a plain two- or three-letter code, else the code itself.
+ *
+ * The pattern keeps `Intl.DisplayNames#of` from throwing on malformed codes.
+ * Callers must prefer hand-written labels: `tc` and `sc` are not BCP 47
+ * Chinese (`sc` is Sardinian to `Intl`).
+ */
+export function platformLanguageName(code: string, locale: string): string {
+  if (!/^[a-z]{2,3}$/.test(code)) return code;
+  return new Intl.DisplayNames([locale], { type: "language", fallback: "none" }).of(code) ?? code;
+}

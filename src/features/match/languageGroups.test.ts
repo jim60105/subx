@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MatchPlanDto } from "../../types/ipc";
-import { groupOperationsByLanguage } from "./languageGroups";
+import { groupOperationsByLanguage, platformLanguageName } from "./languageGroups";
 
 function planWithLanguages(languagesByVideo: (string | null)[][]): MatchPlanDto {
   let id = 0;
@@ -59,5 +59,18 @@ describe("groupOperationsByLanguage", () => {
     expect(groups.map(({ code }) => code)).toEqual(["tc", "en", null]);
     expect(groupedIds).toHaveLength(planIds.length);
     expect(new Set(groupedIds)).toEqual(new Set(planIds));
+  });
+});
+
+describe("platformLanguageName", () => {
+  it.each(["en", "zh-TW"])("names a code without a hand-written label in %s", (locale) => {
+    const expected = new Intl.DisplayNames([locale], { type: "language", fallback: "none" }).of("th");
+
+    expect(platformLanguageName("th", locale)).toBe(expected);
+    expect(platformLanguageName("th", locale)).not.toBe("th");
+  });
+
+  it.each(["qqq", "x_y", "sc-en"])("returns %s verbatim", (code) => {
+    expect(platformLanguageName(code, "en")).toBe(code);
   });
 });
