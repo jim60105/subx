@@ -56,9 +56,33 @@ fn language_in_target_name(detector: &LanguageDetector, op: &MatchOperation) -> 
 }
 ```
 
-`strip_counter(tag: &str) -> &str`: remove trailing ASCII digits; if any were removed and the remainder ends in `.`, `-` or `_` with something before it, return what precedes that separator; otherwise return `tag` unchanged. (`tc.2`→`tc`, `en-2`→`en`, `2`→`2`, `tc2`→`tc2`.) The `.n` form is the collision counter of `apply_unique_target_paths`.
+```rust
+/// Drops a trailing counter (`tc.2`, `en-2`); a bare number or `tc2` is kept.
+fn strip_counter(tag: &str) -> &str {
+    let head = tag.trim_end_matches(|c: char| c.is_ascii_digit());
+    if head.len() == tag.len() {
+        return tag;
+    }
+    match head.strip_suffix(['.', '-', '_']) {
+        Some(stem) if !stem.is_empty() => stem,
+        _ => tag,
+    }
+}
 
-`is_language_code(code: &str) -> bool`: not in `NON_LANGUAGE_TAGS`; split on `-`/`_`, the first part is 2-3 ASCII letters and every further part is 1-8 ASCII alphanumerics.
+fn is_language_code(code: &str) -> bool {
+    if NON_LANGUAGE_TAGS.contains(&code) {
+        return false;
+    }
+    let mut parts = code.split(['-', '_']);
+    let primary_ok = parts
+        .next()
+        .is_some_and(|p| (2..=3).contains(&p.len()) && p.chars().all(|c| c.is_ascii_alphabetic()));
+    primary_ok
+        && parts.all(|p| (1..=8).contains(&p.len()) && p.chars().all(|c| c.is_ascii_alphanumeric()))
+}
+```
+
+The `.n` form is the collision counter of `apply_unique_target_paths`. A numeric region is dropped with it (`es-419` becomes `es`), which is accepted.
 
 Call these on the `op` already passed to `build_plan_dto`; by then the archive rewrite and the uniqueness pass are done. Update the doc comment on `MatchOperationDto::language` (`src-tauri/src/dto.rs:132`) to: `The language tag in the resulting file name, else the path-detected primary code.` and regenerate bindings.
 
@@ -88,8 +112,10 @@ Alternative rejected: adding locale keys per language; the AI's code set is open
 
 In `PairRow`, on the `<li>`:
 
-- `onClick`: return when `(event.target as Element).closest("input, summary, button, a, select, textarea, label")` is not null; return when `window.getSelection()` exists and is not collapsed; otherwise `onToggle(operation.id)`.
-- `onMouseDown`: `if (event.detail > 1) event.preventDefault();` so a second rapid click does not select a word and then get swallowed by the selection guard.
+- `onMouseDown`: store `{ x: event.clientX, y: event.clientY }` in a `useRef`.
+- `onClick`: return when `(event.target as Element).closest("input, summary, button, a, select, textarea, label")` is not null; return when the pointer moved more than 4 px on either axis since the stored press **and** `window.getSelection()?.isCollapsed === false`; otherwise `onToggle(operation.id)`.
+
+Both conditions are needed. Selection alone would swallow a click on already selected text (engines differ on whether the press or the release collapses it) and the second half of a double click (which selects a word). Movement alone would swallow a slightly shaky click. A double click therefore toggles twice; native word selection is left alone.
 
 No `role`, `tabIndex`, or key handler on the `<li>`. Keyboard users keep the native checkbox (Space) and summary (Enter/Space); their synthesized clicks bubble from `input`/`summary` and are ignored by the first check. Any future control in a row is ignored for the same reason. Unmatched rows get no handler.
 
@@ -106,5 +132,4 @@ In `ReviewStep.css`: `.review-ledger__row[data-kind="pair"] { cursor: pointer; }
 - [The base-name rule mirrors a private engine function] -> If upstream changes it, the prefix stops matching and the result degrades to today's path detection; unit tests feed engine-shaped names, and one test runs the real engine.
 - [A short non-language AI suffix such as `new` is taken for a language] -> Shown as its own control, still selectable; the prompt restricts suffixes to languages or numbers.
 - [A video base name ending in `.<digits>` that collides is renumbered by the engine (`show.2.mkv` -> `show.3.srt`)] -> Prefix does not match; path fallback.
-- [A stale selection elsewhere could block a toggle] -> The press that starts the click collapses it first.
 - [Accidental toggles are easier] -> The count beside Continue and the hover background make them visible; a second click reverts.

@@ -4,7 +4,7 @@
 
 ### Requirement: Operation language follows the resulting file name
 
-The backend SHALL report each operation's language as the normalized language tag its resulting file name carries between the video's base name and the subtitle extension. Only when that name carries no language tag SHALL it report the language detected from the subtitle's source path, or none when neither yields one.
+The backend SHALL report each operation's language as the normalized language tag its resulting file name carries between the video's base name and the subtitle extension. A language tag is a code of two or three letters with optional subtags, other than `und`, `cc`, and `sdh`. Only when that name carries no language tag SHALL it report the language detected from the subtitle's source path, or none when neither yields one.
 
 #### Scenario: The tag in the resulting name decides the language
 
@@ -35,6 +35,11 @@ The backend SHALL report each operation's language as the normalized language ta
 
 - **WHEN** one subtitle whose source path is detected as English and one whose source path carries no marker will become `show.2.srt` and `show.forced.srt` beside `show.mkv`
 - **THEN** the first operation reports `en` and the second reports no language
+
+#### Scenario: Excluded tags are not languages
+
+- **WHEN** unmarked subtitles will become `show.und.srt`, `show.cc.srt`, and `show.sdh.srt` beside `show.mkv`
+- **THEN** none of their operations reports a language
 
 ### Requirement: Quick-select names languages without a hand-written label
 
@@ -79,10 +84,15 @@ Activating the pointer's primary button anywhere on a pairing row SHALL toggle t
 - **WHEN** the user drags to select text inside a pairing row
 - **THEN** no operation's selection changes
 
+#### Scenario: An existing selection does not block a click
+
+- **WHEN** text in a row is already selected and the user clicks that row without moving the pointer
+- **THEN** that operation's selection toggles once
+
 #### Scenario: A double click is two toggles
 
 - **WHEN** the user double-clicks a pairing's subtitle name
-- **THEN** the operation's selection toggles twice and no word becomes selected
+- **THEN** the operation's selection toggles twice
 
 #### Scenario: Unmatched rows do not toggle
 
