@@ -41,7 +41,10 @@
   transition: left var(--motion-base) var(--ease-out);
 }
 
+/* Above an overlapping cue that comes later in the file, but under the labels,
+   which follow the belt in the document. */
 .time-rule__bar[data-row="shifted"][data-active="true"] {
+  z-index: 1;
   background: var(--accent);
 }
 

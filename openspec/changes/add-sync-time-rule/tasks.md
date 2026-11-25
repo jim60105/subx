@@ -16,8 +16,8 @@ Boundaries: edit only the files named below; no `src-tauri/`, `usePreviewSession
 ## 3. Documentation and integration
 
 - [x] 3.1 Update the sync sentence in `README.md` to mention the preview and extend the `[Unreleased]` entry in `CHANGELOG.md`. Verify: `grep -n -i preview README.md CHANGELOG.md`.
-- [ ] 3.2 Run `openspec validate add-sync-time-rule --strict` and `npm run verify`. Expected: both exit 0, 0 unverified scenarios, 0 dangling annotations.
-- [ ] 3.3 With `agent-browser` fill "Observed" in `visual-review.md`, light and dark at 1100×720 and 860×600. Verify: every row has an observation.
+- [x] 3.2 Run `openspec validate add-sync-time-rule --strict` and `npm run verify`. Expected: both exit 0, 0 unverified scenarios, 0 dangling annotations.
+- [x] 3.3 With `agent-browser` fill "Observed" in `visual-review.md`, light and dark at 1100×720 and 860×600. Verify: every row has an observation.
 
 ## Workflow follow-up
 
