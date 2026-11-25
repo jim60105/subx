@@ -9,7 +9,7 @@
 
 ### Requirement: Offset is shown as a nudgeable figure with a time rule
 
-The offset SHALL be shown in seconds as a prominent figure with a decrease and an increase control that each change it by one nudge step, alongside the editable millisecond field. A time rule SHALL draw the original and shifted cue times; it SHALL be hidden from assistive technology, not respond to dragging, and SHALL NOT draw audio data. The sentence explaining the sign SHALL remain available to assistive technology.
+The offset SHALL be shown in seconds as a prominent figure with a decrease and an increase control that each change it by one nudge step, alongside the editable millisecond field. A time rule, where shown, SHALL draw the original and shifted cue times; it SHALL be hidden from assistive technology, not respond to dragging, and SHALL NOT draw audio data. The sentence explaining the sign SHALL remain available to assistive technology.
 
 #### Scenario: Nudge controls step the offset
 
