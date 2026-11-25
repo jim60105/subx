@@ -23,11 +23,12 @@ import { AiSettingsSection } from "../../src/features/settings/AiSettingsSection
 import { ConnectionTestPanel } from "../../src/features/settings/ConnectionTestPanel";
 import { PreferencesSection } from "../../src/features/settings/PreferencesSection";
 import "../../src/features/settings/SettingsScreen.css";
-import { formatSeconds, OffsetField } from "../../src/features/sync/OffsetField";
+import { formatSeconds } from "../../src/features/sync/OffsetField";
 import { SyncApplyStep } from "../../src/features/sync/SyncApplyStep";
 import { SyncDetectStep } from "../../src/features/sync/SyncDetectStep";
 import { SyncInputsStep } from "../../src/features/sync/SyncInputsStep";
-import { SyncOffsetStep } from "../../src/features/sync/SyncOffsetStep";
+import { SyncOffsetStep, SyncOffsetView } from "../../src/features/sync/SyncOffsetStep";
+import type { PreviewMedia, PreviewSession } from "../../src/features/sync/usePreviewSession";
 import { SYNC_STEPS } from "../../src/features/sync/useSyncWizard";
 import type { DetectPhase } from "../../src/features/sync/useSyncWizard";
 import { TranslateOptionsStep } from "../../src/features/translate/TranslateOptionsStep";
@@ -671,17 +672,80 @@ function TranslateRunView() {
   );
 }
 
-/** `?ms=` seeds the offset so a screenshot can pin a positive, zero or negative value. */
-function SyncOffsetView() {
+/**
+ * Cues in the first seconds of any reviewer-supplied media, with markup to
+ * strip. The first two overlap from 0, so `?ms=0` shows both on a paused stage.
+ */
+const HARNESS_CUES = [
+  { startMs: 0, endMs: 4_000, text: "{\\an8}<i>The first line</i> of the subtitle" },
+  { startMs: 0, endMs: 2_500, text: "Two speakers\\Nat the same time" },
+  { startMs: 4_500, endMs: 7_000, text: "- A cue of its own" },
+  { startMs: 8_000, endMs: 12_000, text: "A longer cue that runs for a while, long enough to wrap on a narrow window" },
+];
+
+/** The fixture media state `?media=` asks for; `?src=` is any playable URL. */
+function harnessMedia(): PreviewMedia {
+  const url = params.get("src") ?? "";
+  switch (pinned("media", ["video", "preparing", "audio", "none", "unavailable"] as const)) {
+    case "preparing":
+      return { status: "preparing", reason: "failed" };
+    case "audio":
+      return { status: "audio", url };
+    case "none":
+      return { status: "none" };
+    case "unavailable":
+      return {
+        status: "unavailable",
+        error: {
+          code: "preview.audio_unsupported",
+          message: "the media has no audio stream",
+          hintCode: null,
+        },
+        canReturn: true,
+      };
+    default:
+      return { status: "video", url };
+  }
+}
+
+/**
+ * Sync step 3 inside the wizard frame with a fixture preview session: `?media=video|preparing|audio|none|unavailable`,
+ * `?cue-error=1`, `?src=<http url>` for the media to play, and `?ms=` to seed
+ * the offset. Without `src` the media element has no source.
+ */
+function SyncOffsetHarness() {
+  const { t } = useTranslation("sync");
   const initial = Number(params.get("ms") ?? "750");
   const [offsetMs, setOffsetMs] = useState(Number.isFinite(initial) ? initial : 0);
+  const [session] = useState<PreviewSession>(() => ({
+    media: harnessMedia(),
+    cues: HARNESS_CUES,
+    cueError:
+      params.get("cue-error") === "1"
+        ? { code: "core.subtitle_format", message: "unexpected end of the cue at line 12", hintCode: null }
+        : undefined,
+    onMediaError: noop,
+    requestAudio: noop,
+    returnToVideo: noop,
+  }));
+  const exceedsMax = Math.abs(offsetMs) > SYNC_DEFAULTS.maxOffsetMs;
+  // Inside the real wizard frame: the stage's height comes from the panel.
   return (
-    <OffsetField
-      offsetMs={offsetMs}
-      maxOffsetMs={SYNC_DEFAULTS.maxOffsetMs}
-      exceedsMax={Math.abs(offsetMs) > SYNC_DEFAULTS.maxOffsetMs}
-      onChange={setOffsetMs}
-    />
+    <WizardShell
+      steps={SYNC_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }))}
+      activeStep={2}
+      back={{ label: t("offset.back"), onClick: noop }}
+      next={{ label: t("offset.continue"), disabled: exceedsMax, onClick: noop }}
+    >
+      <SyncOffsetView
+        session={session}
+        defaults={SYNC_DEFAULTS}
+        detection={{ offsetMs: 750, confidence: 82, warnings: [] }}
+        offsetMs={offsetMs}
+        offsetExceedsMax={exceedsMax}
+        onOffsetChange={setOffsetMs}
+      />
+    </WizardShell>
   );
 }
 
@@ -840,7 +904,7 @@ export const VIEWS: Record<string, () => JSX.Element> = {
   "translate-sources": () => <TranslateSourcesView scanning={params.get("scanning") === "1"} />,
   "translate-options": () => <TranslateOptionsView />,
   "translate-run": () => <TranslateRunView />,
-  "sync-offset": () => <SyncOffsetView />,
+  "sync-offset": () => <SyncOffsetHarness />,
   "sync-apply": () => <SyncApplyView />,
   "sync-detect": () => <SyncDetectView />,
   settings: () => <SettingsView />,
@@ -918,6 +982,8 @@ export const VIEWS: Record<string, () => JSX.Element> = {
   ),
   SyncOffsetStep: () => (
     <SyncOffsetStep
+      mediaPath={null}
+      subtitlePath={null}
       defaults={SYNC_DEFAULTS}
       detection={null}
       offsetMs={0}

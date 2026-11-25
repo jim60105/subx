@@ -11,7 +11,7 @@
 
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { act, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../App";
 import { KIND_CAPTIONS } from "../components/DropZone/DropZone";
@@ -30,6 +30,7 @@ import { SyncApplyStep } from "../features/sync/SyncApplyStep";
 import { SyncDetectStep } from "../features/sync/SyncDetectStep";
 import { SyncInputsStep } from "../features/sync/SyncInputsStep";
 import { SyncOffsetStep } from "../features/sync/SyncOffsetStep";
+import * as previewApi from "../features/sync/previewApi";
 import { TranslateOptionsStep } from "../features/translate/TranslateOptionsStep";
 import { TranslateReportStep } from "../features/translate/TranslateReportStep";
 import { TranslateRunStep } from "../features/translate/TranslateRunStep";
@@ -50,6 +51,8 @@ import {
   TRANSLATE_SCAN,
   TRANSLATE_SOURCES,
 } from "../test/screenFixtures";
+
+vi.mock("../features/sync/previewApi");
 
 /** The upper-cased language tags the review fixture puts on its ledger rows. */
 const REVIEW_LANGUAGE_TAGS = [
@@ -163,6 +166,11 @@ beforeEach(async () => {
     if (command === "test_ai_connection") return { ok: true, latencyMs: 12 };
     throw new Error(`unexpected command: ${command}`);
   });
+  vi.mocked(previewApi.loadPreviewCues).mockResolvedValue([]);
+  vi.mocked(previewApi.openPreview).mockResolvedValue({ sessionId: "s1", url: "http://127.0.0.1:9/s1" });
+  vi.mocked(previewApi.closePreview).mockResolvedValue(undefined);
+  vi.mocked(previewApi.releasePreviewAudio).mockResolvedValue(undefined);
+  vi.mocked(previewApi.preparePreviewAudio).mockResolvedValue("http://127.0.0.1:9/s1/audio");
 });
 
 afterEach(async () => {
@@ -395,6 +403,8 @@ const SCREENS = [
     render: () =>
       renderWithI18n(
         <SyncOffsetStep
+          mediaPath="/m/episode.mkv"
+          subtitlePath="/m/episode.srt"
           defaults={SYNC_DEFAULTS}
           detection={{
             offsetMs: 1_500,
