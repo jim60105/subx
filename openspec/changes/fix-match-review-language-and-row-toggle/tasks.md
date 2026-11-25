@@ -17,8 +17,8 @@ Boundaries: edit only the files named below. Do not touch `useMatchWizard.ts`, `
 
 ## 3. Integration
 
-- [ ] 3.1 Run `npm run verify`. Expected: exit status 0.
-- [ ] 3.2 With the `agent-browser` skill (headless Chromium) open the preview harness `?view=match-review` under `npm run dev`, exercise row, checkbox, and disclosure clicks, keyboard Space on the checkbox, Enter on the summary, and a drag over a file name; confirm the selected count changes only for row and checkbox toggles. For row 5 of the review use a fixture edit to `th` that is not committed. Fill "Observed" in `visual-review.md`. Verify: every row has an observation and `git status` shows no change under `scripts/preview/`.
+- [x] 3.1 Run `npm run verify`. Expected: exit status 0.
+- [x] 3.2 With the `agent-browser` skill (headless Chromium) open the preview harness `?view=match-review` under `npm run dev`, exercise row, checkbox, and disclosure clicks, keyboard Space on the checkbox, Enter on the summary, and a drag over a file name; confirm the selected count changes only for row and checkbox toggles. For row 5 of the review use a fixture edit to `th` that is not committed. Fill "Observed" in `visual-review.md`. Verify: every row has an observation and `git status` shows no change under `scripts/preview/`.
 
 ## Workflow follow-up
 
