@@ -17,14 +17,14 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use subx_core::config::ConfigService;
 use subx_core::core::input::{CollectedFiles, InputPathHandler};
 use subx_core::core::language::LanguageDetector;
-use subx_core::config::ConfigService;
+use subx_core::core::lock::acquire_subx_lock;
 use subx_core::core::matcher::engine::{
     apply_unique_target_paths, ConflictResolution, FileRelocationMode, MatchConfig, OperationError,
     OperationOutcome,
 };
-use subx_core::core::lock::acquire_subx_lock;
 use subx_core::core::matcher::{FileDiscovery, MatchEngine, MatchOperation, MediaFileType};
 use subx_core::core::ComponentFactory;
 use subx_core::error::SubXError;
@@ -121,14 +121,18 @@ pub async fn execute_selected(
 
 /// Builds the AI provider for an analysis. Injected so tests can script one.
 pub trait AiProviderFactory: Send + Sync {
-    fn create_provider(&self, service: &dyn ConfigService) -> Result<Box<dyn AIProvider>, ErrorDto>;
+    fn create_provider(&self, service: &dyn ConfigService)
+        -> Result<Box<dyn AIProvider>, ErrorDto>;
 }
 
 /// The production factory: builds the provider from the shared config.
 struct ProductionAiFactory;
 
 impl AiProviderFactory for ProductionAiFactory {
-    fn create_provider(&self, service: &dyn ConfigService) -> Result<Box<dyn AIProvider>, ErrorDto> {
+    fn create_provider(
+        &self,
+        service: &dyn ConfigService,
+    ) -> Result<Box<dyn AIProvider>, ErrorDto> {
         // Reload first: the user may have just configured the provider on the
         // Settings screen, and `ProductionConfigService` caches the file.
         service.reload().map_err(ErrorDto::from)?;
@@ -316,7 +320,10 @@ async fn execute_selected_impl(
 
     // Take the plan out only once the lock is held: a plan is executed once, and
     // consuming it here drops its engine and `CollectedFiles` when we return.
-    let plan = match_state.take_plan_if(plan_id).await.ok_or_else(stale_plan)?;
+    let plan = match_state
+        .take_plan_if(plan_id)
+        .await
+        .ok_or_else(stale_plan)?;
     // `_collected` owns the archive-extraction temp dirs; it MUST stay in scope
     // across the execution `.await`, or an archive-sourced copy's source path is
     // deleted before the copy runs.
@@ -401,9 +408,7 @@ fn collect_input_files(paths: &[PathBuf]) -> Result<CollectedFiles, ErrorDto> {
 }
 
 /// Splits the collected files into `(path, name)` videos and subtitles.
-fn classify(
-    collected: &CollectedFiles,
-) -> Result<(Vec<ScannedFile>, Vec<ScannedFile>), ErrorDto> {
+fn classify(collected: &CollectedFiles) -> Result<(Vec<ScannedFile>, Vec<ScannedFile>), ErrorDto> {
     let file_paths: &[PathBuf] = collected;
     let media = FileDiscovery::new()
         .scan_file_list(file_paths)
@@ -615,7 +620,11 @@ fn target_path(op: &MatchOperation) -> PathBuf {
     match &op.relocation_target_path {
         Some(target) if relocates => target.clone(),
         _ => {
-            let parent = op.subtitle_file.path.parent().unwrap_or_else(|| Path::new("."));
+            let parent = op
+                .subtitle_file
+                .path
+                .parent()
+                .unwrap_or_else(|| Path::new("."));
             parent.join(&op.new_subtitle_name)
         }
     }
@@ -676,8 +685,11 @@ fn stale_plan() -> ErrorDto {
 /// CLI, or another window) is mid-execution. Distinct from a hard failure so the
 /// UI can offer a plain retry; the plan is untouched.
 fn execution_locked() -> ErrorDto {
-    ErrorDto::new(CODE_EXECUTION_LOCKED, "another subx operation holds the lock")
-        .with_hint(HINT_EXECUTION_LOCKED)
+    ErrorDto::new(
+        CODE_EXECUTION_LOCKED,
+        "another subx operation holds the lock",
+    )
+    .with_hint(HINT_EXECUTION_LOCKED)
 }
 
 #[cfg(test)]
@@ -711,7 +723,10 @@ mod tests {
 
     #[async_trait]
     impl AIProvider for ScriptedAi {
-        async fn analyze_content(&self, request: AnalysisRequest) -> subx_core::Result<MatchResult> {
+        async fn analyze_content(
+            &self,
+            request: AnalysisRequest,
+        ) -> subx_core::Result<MatchResult> {
             let video_id = parse_entry_id(&request.video_files[0]);
             let matches = request
                 .subtitle_files
@@ -758,7 +773,10 @@ mod tests {
         async fn analyze_content(&self, _r: AnalysisRequest) -> subx_core::Result<MatchResult> {
             unimplemented!("execution never analyzes")
         }
-        async fn verify_match(&self, _v: VerificationRequest) -> subx_core::Result<ConfidenceScore> {
+        async fn verify_match(
+            &self,
+            _v: VerificationRequest,
+        ) -> subx_core::Result<ConfidenceScore> {
             unimplemented!("execution never verifies")
         }
     }
@@ -785,7 +803,9 @@ mod tests {
             &self,
             _service: &dyn ConfigService,
         ) -> Result<Box<dyn AIProvider>, ErrorDto> {
-            Err(map_provider_error(SubXError::config("no provider configured")))
+            Err(map_provider_error(SubXError::config(
+                "no provider configured",
+            )))
         }
     }
 
@@ -1244,7 +1264,10 @@ mod tests {
 
         // Occupy the single analysis slot with a task that never finishes.
         let blocker = tokio::spawn(std::future::pending::<()>());
-        state.try_begin_analysis().await.expect("the slot starts free");
+        state
+            .try_begin_analysis()
+            .await
+            .expect("the slot starts free");
         state.set_running(blocker.abort_handle()).await;
 
         let error = analyze_sources_impl(
@@ -1272,7 +1295,10 @@ mod tests {
             std::future::pending::<()>().await;
             flag.store(true, Ordering::SeqCst);
         });
-        state.try_begin_analysis().await.expect("the slot starts free");
+        state
+            .try_begin_analysis()
+            .await
+            .expect("the slot starts free");
         state.set_running(task.abort_handle()).await;
         state
             .store_plan(ActivePlan::new(
@@ -1298,7 +1324,11 @@ mod tests {
 
     // ─── Execution ──────────────────────────────────────────────────────────
 
-    async fn store_plan(state: &Arc<MatchState>, engine: MatchEngine, ops: Vec<MatchOperation>) -> String {
+    async fn store_plan(
+        state: &Arc<MatchState>,
+        engine: MatchEngine,
+        ops: Vec<MatchOperation>,
+    ) -> String {
         let plan = ActivePlan::new(engine, ops, CollectedFiles::new(Vec::new()));
         let id = plan.id().to_string();
         state.store_plan(plan).await;
@@ -1359,7 +1389,10 @@ mod tests {
             .expect("execution must succeed");
 
         assert_eq!(report.success_count, 1);
-        assert!(video_dir.join("v.srt").exists(), "the copy must land by the video");
+        assert!(
+            video_dir.join("v.srt").exists(),
+            "the copy must land by the video"
+        );
         assert!(subtitle.exists(), "copy mode must preserve the original");
     }
 
@@ -1493,7 +1526,11 @@ mod tests {
 
     #[test]
     fn the_engine_destination_decides_the_guarded_path() {
-        let mut op = rename_op(Path::new("/media/v.mkv"), Path::new("/media/s.srt"), "v.srt");
+        let mut op = rename_op(
+            Path::new("/media/v.mkv"),
+            Path::new("/media/s.srt"),
+            "v.srt",
+        );
         op.relocation_target_path = Some(PathBuf::from("/elsewhere/v.srt"));
         assert_eq!(
             target_path(&op),
@@ -1582,7 +1619,10 @@ mod tests {
     fn a_lock_failure_is_a_distinct_retryable_code() {
         let error = execution_locked();
         assert_eq!(error.code, "match.execution_locked");
-        assert_eq!(error.hint_code.as_deref(), Some("match.execution_locked.hint"));
+        assert_eq!(
+            error.hint_code.as_deref(),
+            Some("match.execution_locked.hint")
+        );
     }
 
     #[tokio::test]
@@ -1650,7 +1690,10 @@ mod tests {
     fn analysis_errors_split_transport_from_the_rest() {
         let retryable = map_analysis_error(SubXError::AiService("down".to_string()));
         assert_eq!(retryable.code, "match.ai_unavailable");
-        assert_eq!(retryable.hint_code.as_deref(), Some("match.ai_unavailable.hint"));
+        assert_eq!(
+            retryable.hint_code.as_deref(),
+            Some("match.ai_unavailable.hint")
+        );
 
         let other = map_analysis_error(SubXError::config("bad"));
         assert_eq!(other.code, "core.config");

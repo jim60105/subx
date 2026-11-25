@@ -20,10 +20,10 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use subx_core::core::input::{CollectedFiles, InputPathHandler};
 use subx_core::config::ConfigService;
 use subx_core::core::file_manager::FileManager;
 use subx_core::core::formats::converter::{ConversionConfig, ConversionResult, FormatConverter};
+use subx_core::core::input::{CollectedFiles, InputPathHandler};
 use subx_core::core::matcher::{FileDiscovery, MediaFileType};
 use subx_core::error::SubXError;
 use tauri::ipc::Channel;
@@ -260,7 +260,10 @@ async fn run_batch(
 ) -> Result<ConversionReportDto, ErrorDto> {
     // A plan is converted once; consuming it here drops its `CollectedFiles`
     // when we return, which is what deletes the archive-extraction temp dirs.
-    let plan = convert_state.take_plan_if(plan_id).await.ok_or_else(stale_plan)?;
+    let plan = convert_state
+        .take_plan_if(plan_id)
+        .await
+        .ok_or_else(stale_plan)?;
     let format_id = plan.target_format().to_string();
     let keep_original = plan.keep_original();
     // `_collected` owns the archive-extraction temp dirs; it MUST stay in scope
@@ -311,7 +314,10 @@ async fn run_batch(
         // hand-built `item_ids` cannot convert one either.
         if let Some(reason) = &item.skip_reason {
             let mut skipped = outcome(item, &name, ConversionStatusDto::Skipped);
-            skipped.error = Some(ErrorDto::new(reason.clone(), "the item is excluded from the plan"));
+            skipped.error = Some(ErrorDto::new(
+                reason.clone(),
+                "the item is excluded from the plan",
+            ));
             outcomes.push(skipped);
             continue;
         }
@@ -323,7 +329,15 @@ async fn run_batch(
             file_name: name.clone(),
         });
         outcomes.push(
-            convert_one(&conversion, &mut manager, item, &format_id, keep_original, &name).await,
+            convert_one(
+                &conversion,
+                &mut manager,
+                item,
+                &format_id,
+                keep_original,
+                &name,
+            )
+            .await,
         );
     }
 
@@ -532,7 +546,11 @@ fn display_name(path: &Path) -> String {
 }
 
 /// A blank outcome for one item, filled in by the caller.
-fn outcome(item: &ConvertPlanItem, name: &str, status: ConversionStatusDto) -> ConversionOutcomeDto {
+fn outcome(
+    item: &ConvertPlanItem,
+    name: &str,
+    status: ConversionStatusDto,
+) -> ConversionOutcomeDto {
     ConversionOutcomeDto {
         input_name: name.to_string(),
         output_path: item.output.display().to_string(),
@@ -599,8 +617,11 @@ fn conversion_rejected(result: &ConversionResult) -> ErrorDto {
 }
 
 fn no_subtitles() -> ErrorDto {
-    ErrorDto::new(CODE_NO_SUBTITLES, "the sources hold no convertible subtitles")
-        .with_hint(HINT_NO_SUBTITLES)
+    ErrorDto::new(
+        CODE_NO_SUBTITLES,
+        "the sources hold no convertible subtitles",
+    )
+    .with_hint(HINT_NO_SUBTITLES)
 }
 
 fn stale_plan() -> ErrorDto {
@@ -609,7 +630,10 @@ fn stale_plan() -> ErrorDto {
 }
 
 fn conversion_in_progress() -> ErrorDto {
-    ErrorDto::new(CODE_CONVERSION_IN_PROGRESS, "a conversion is already running")
+    ErrorDto::new(
+        CODE_CONVERSION_IN_PROGRESS,
+        "a conversion is already running",
+    )
 }
 
 #[cfg(test)]
@@ -829,7 +853,10 @@ mod tests {
 
         let item = item_named(&plan, "episode.srt");
         assert!(item.output_exists, "the existing output must be flagged");
-        assert_eq!(item.skip_reason, None, "an overwrite is allowed, not skipped");
+        assert_eq!(
+            item.skip_reason, None,
+            "an overwrite is allowed, not skipped"
+        );
     }
 
     // @covers convert-workflow/conversion-options-with-exact-output-path-preview#input-already-in-the-target-format-is-auto-excluded
@@ -848,7 +875,10 @@ mod tests {
         .expect("the preview must succeed");
 
         let item = item_named(&plan, "episode.srt");
-        assert_eq!(item.skip_reason.as_deref(), Some(CODE_ALREADY_TARGET_FORMAT));
+        assert_eq!(
+            item.skip_reason.as_deref(),
+            Some(CODE_ALREADY_TARGET_FORMAT)
+        );
         assert!(
             !item.output_exists,
             "a skipped item must not also read as an overwrite: {item:?}"
@@ -1012,7 +1042,11 @@ mod tests {
         .await
         .unwrap();
 
-        assert_eq!(report.outcomes.len(), 1, "only the selected item is reported");
+        assert_eq!(
+            report.outcomes.len(),
+            1,
+            "only the selected item is reported"
+        );
         assert!(dir.path().join("wanted.vtt").exists());
         assert!(
             !dir.path().join("skipped.vtt").exists(),
@@ -1054,7 +1088,11 @@ mod tests {
     #[tokio::test]
     async fn one_unparsable_file_does_not_stop_the_others() {
         let dir = TempDir::new().unwrap();
-        fs::write(dir.path().join("broken.srt"), "this is not a subtitle at all").unwrap();
+        fs::write(
+            dir.path().join("broken.srt"),
+            "this is not a subtitle at all",
+        )
+        .unwrap();
         fs::write(dir.path().join("good.srt"), SRT).unwrap();
         let service = service();
         let state = Arc::new(ConvertState::default());
@@ -1096,7 +1134,11 @@ mod tests {
     #[tokio::test]
     async fn a_failed_conversion_leaves_an_existing_output_untouched() {
         let dir = TempDir::new().unwrap();
-        fs::write(dir.path().join("broken.srt"), "this is not a subtitle at all").unwrap();
+        fs::write(
+            dir.path().join("broken.srt"),
+            "this is not a subtitle at all",
+        )
+        .unwrap();
         let existing = dir.path().join("broken.vtt");
         fs::write(&existing, "WEBVTT\n\nthe previous, good output\n").unwrap();
         let service = service();
@@ -1139,7 +1181,11 @@ mod tests {
     #[tokio::test]
     async fn originals_are_removed_only_for_the_items_that_succeeded() {
         let dir = TempDir::new().unwrap();
-        fs::write(dir.path().join("broken.srt"), "this is not a subtitle at all").unwrap();
+        fs::write(
+            dir.path().join("broken.srt"),
+            "this is not a subtitle at all",
+        )
+        .unwrap();
         fs::write(dir.path().join("good.srt"), SRT).unwrap();
         let service = service();
         let state = Arc::new(ConvertState::default());
@@ -1370,7 +1416,10 @@ mod tests {
 
         assert_eq!(report.outcomes[0].status, ConversionStatusDto::Skipped);
         assert_eq!(
-            report.outcomes[0].error.as_ref().map(|error| error.code.as_str()),
+            report.outcomes[0]
+                .error
+                .as_ref()
+                .map(|error| error.code.as_str()),
             Some(CODE_ALREADY_TARGET_FORMAT)
         );
         assert!(

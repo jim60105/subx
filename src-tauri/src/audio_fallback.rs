@@ -43,7 +43,8 @@ const HEADER_BYTES: u64 = 44;
 /// Silence is written in chunks of at most this many frames, with the cancel
 /// flag checked before each one.
 const SILENCE_CHUNK_FRAMES: u64 = 8192;
-static SILENCE: [u8; (SILENCE_CHUNK_FRAMES * 2) as usize] = [0; (SILENCE_CHUNK_FRAMES * 2) as usize];
+static SILENCE: [u8; (SILENCE_CHUNK_FRAMES * 2) as usize] =
+    [0; (SILENCE_CHUNK_FRAMES * 2) as usize];
 
 /// Why the audio could not be prepared. Mapped to error codes by
 /// `commands::preview::audio_error`.

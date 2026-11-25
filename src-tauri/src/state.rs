@@ -9,8 +9,8 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, PoisonError};
 
-use subx_core::core::input::CollectedFiles;
 use subx_core::config::ConfigService;
+use subx_core::core::input::CollectedFiles;
 use subx_core::core::matcher::{MatchEngine, MatchOperation};
 use tokio::sync::{watch, Mutex};
 use tokio::task::AbortHandle;
@@ -785,7 +785,10 @@ enum AudioSlot {
     Empty,
     /// A decoding job is running; the flag cancels it and identifies it.
     Running(Arc<AtomicBool>),
-    Ready { token: String, url: String },
+    Ready {
+        token: String,
+        url: String,
+    },
 }
 
 /// What [`PreviewState::begin_audio`] asks the caller to do.
@@ -818,8 +821,7 @@ impl PreviewState {
         media: PathBuf,
         check: impl FnOnce(&Path) -> io::Result<()>,
     ) -> Result<PreviewSessionDto, ErrorDto> {
-        check(&media)
-            .map_err(|err| ErrorDto::new(CODE_MEDIA_UNREADABLE, err.to_string()))?;
+        check(&media).map_err(|err| ErrorDto::new(CODE_MEDIA_UNREADABLE, err.to_string()))?;
 
         let replaced;
         let dto = {
@@ -985,7 +987,10 @@ impl PreviewState {
     #[cfg(test)]
     fn audio_file(&self, session_id: &str) -> Option<std::sync::Weak<std::fs::File>> {
         let inner = self.lock();
-        let session = inner.session.as_ref().filter(|session| session.id == session_id)?;
+        let session = inner
+            .session
+            .as_ref()
+            .filter(|session| session.id == session_id)?;
         match &session.audio {
             AudioSlot::Ready { token, .. } => inner.server.as_ref()?.file_of(token),
             _ => None,
@@ -1073,7 +1078,10 @@ mod preview_state_tests {
         );
 
         release_tx.send(()).expect("release");
-        blocked.join().expect("the open thread").expect("the open finishes");
+        blocked
+            .join()
+            .expect("the open thread")
+            .expect("the open finishes");
     }
 
     /// The exit hook's effect: the old URL stops serving, and a later open
@@ -1095,7 +1103,9 @@ mod preview_state_tests {
         );
 
         let after = state.open(media(dir.path())).expect("a later open");
-        let reply = test_http::get(&after.url).await.expect("the new server answers");
+        let reply = test_http::get(&after.url)
+            .await
+            .expect("the new server answers");
         assert_eq!(reply.status, 200);
         assert_eq!(reply.body, b"0123456789");
     }
@@ -1245,19 +1255,16 @@ mod preview_state_tests {
 
             // Prepared audio: its URL stops serving and its file is freed.
             let (session, url) = prepared(&state, dir.path());
-            let weak = state
-                .audio_file(&session.session_id)
-                .expect("an open WAV");
+            let weak = state.audio_file(&session.session_id).expect("an open WAV");
             assert_eq!(status_of(&url).await, Some(200));
             end(&state, &session, dir.path(), ending);
             assert!(weak.upgrade().is_none(), "{ending:?}: a handle remains");
             let status = status_of(&url).await;
             match ending {
                 // The server itself is gone, so nothing answers at all.
-                Ending::Shutdown => assert!(
-                    !matches!(status, Some(200..=299)),
-                    "{ending:?}: {status:?}"
-                ),
+                Ending::Shutdown => {
+                    assert!(!matches!(status, Some(200..=299)), "{ending:?}: {status:?}")
+                }
                 _ => assert_eq!(status, Some(404), "{ending:?}"),
             }
 
@@ -1265,7 +1272,10 @@ mod preview_state_tests {
             let session = state.open(media(dir.path())).expect("open");
             let job = start(&state, &session.session_id);
             end(&state, &session, dir.path(), ending);
-            assert!(job.load(Ordering::SeqCst), "{ending:?}: the job is cancelled");
+            assert!(
+                job.load(Ordering::SeqCst),
+                "{ending:?}: the job is cancelled"
+            );
             let error = state
                 .finish_audio(&session.session_id, &job, Ok(wav()))
                 .expect_err("a retired session cannot publish");
@@ -1281,13 +1291,15 @@ mod preview_state_tests {
 
         // Ready.
         let (session, url) = prepared(&state, dir.path());
-        let weak = state
-            .audio_file(&session.session_id)
-            .expect("an open WAV");
+        let weak = state.audio_file(&session.session_id).expect("an open WAV");
         state.release_audio(&session.session_id);
         assert!(weak.upgrade().is_none(), "a handle remains");
         assert_eq!(status_of(&url).await, Some(404));
-        assert_eq!(status_of(&session.url).await, Some(200), "the media still works");
+        assert_eq!(
+            status_of(&session.url).await,
+            Some(200),
+            "the media still works"
+        );
 
         // Running.
         let job = start(&state, &session.session_id);
@@ -1399,7 +1411,10 @@ mod translate_state_tests {
     #[tokio::test]
     async fn a_reserved_slot_rejects_a_second_execution() {
         let state = TranslateState::default();
-        let rx = state.try_begin_execution().await.expect("the first run reserves the slot");
+        let rx = state
+            .try_begin_execution()
+            .await
+            .expect("the first run reserves the slot");
 
         assert!(state.try_begin_execution().await.is_err());
         assert!(!*rx.borrow(), "a fresh run starts uncancelled");
@@ -1524,7 +1539,10 @@ mod sync_state_tests {
         assert!(!state.commit(abandoned).await);
         state.finish_detection(abandoned).await;
 
-        assert!(state.is_running().await, "the newer detection still holds the slot");
+        assert!(
+            state.is_running().await,
+            "the newer detection still holds the slot"
+        );
         assert!(
             state.try_begin_detection().await.is_err(),
             "no third detection may start alongside it"
@@ -1578,10 +1596,16 @@ mod convert_state_tests {
     #[tokio::test]
     async fn a_reserved_slot_rejects_a_second_execution() {
         let state = ConvertState::default();
-        let flag = state.try_begin_execution().await.expect("the first run reserves the slot");
+        let flag = state
+            .try_begin_execution()
+            .await
+            .expect("the first run reserves the slot");
 
         assert!(state.try_begin_execution().await.is_err());
-        assert!(!flag.load(Ordering::SeqCst), "a fresh run starts uncancelled");
+        assert!(
+            !flag.load(Ordering::SeqCst),
+            "a fresh run starts uncancelled"
+        );
 
         state.finish_execution().await;
         assert!(!state.is_running().await);
@@ -1627,7 +1651,8 @@ mod match_state_tests {
                 enable_content_analysis: false,
                 backup_enabled: false,
                 relocation_mode: subx_core::core::matcher::engine::FileRelocationMode::None,
-                conflict_resolution: subx_core::core::matcher::engine::ConflictResolution::AutoRename,
+                conflict_resolution:
+                    subx_core::core::matcher::engine::ConflictResolution::AutoRename,
                 ai_model: "m".to_string(),
                 max_subtitle_bytes: 1,
             },
@@ -1663,7 +1688,9 @@ mod match_state_tests {
     async fn finish_releases_the_slot_without_storing() {
         let state = MatchState::default();
         state.try_begin_analysis().await.unwrap();
-        state.set_running(tokio::spawn(std::future::pending::<()>()).abort_handle()).await;
+        state
+            .set_running(tokio::spawn(std::future::pending::<()>()).abort_handle())
+            .await;
 
         state.finish_analysis().await;
 
