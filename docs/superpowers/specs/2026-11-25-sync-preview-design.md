@@ -90,7 +90,8 @@ Step 2 has three states.
 Rules:
 
 - Skip enters step 3 with offset 0 and no detection facts. Without media, Skip
-  is the only forward action and the reason is shown.
+  is the only forward action on a first visit (Keep joins it after a visit to
+  step 3) and the reason is shown.
 - Going back from step 3 keeps the offset until the user skips (reset to 0) or
   a detection succeeds (overwritten). A failed or cancelled detection leaves it.
   Keep returns to step 3 with the offset and detection facts intact.
