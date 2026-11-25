@@ -13,7 +13,7 @@ The Sync wizard SHALL accept exactly one media file (video or audio) and one sub
 
 #### Scenario: Subtitle-only restricts to manual offset
 
-- **WHEN** the user has selected only a subtitle file
+- **WHEN** the user has selected only a subtitle file and has not visited the offset step for it
 - **THEN** the detect step offers skipping as its only forward action, shows no sensitivity control, and explains why detection is unavailable
 
 #### Scenario: Drops outside the files step are ignored
@@ -96,7 +96,7 @@ The detect step SHALL be in exactly one of three states: ask, detecting, or fail
 
 #### Scenario: Failure offers retry and skip
 
-- **WHEN** detection fails
+- **WHEN** detection fails before any visit to the offset step
 - **THEN** the step shows the error, retry is the `next` action and starts a new detection with the current sensitivity, and skip is the `secondary` action and enters the offset step
 
 #### Scenario: Waiting illustration honours reduced motion

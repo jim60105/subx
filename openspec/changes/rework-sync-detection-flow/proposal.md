@@ -7,7 +7,7 @@ The sync wizard asks for a method on step 2, may ask for the offset there, and d
 ## What Changes
 
 - Steps become Files, Detect, Offset, Save.
-- Step 2 asks whether to detect (Ask, Detecting, Failed). Skip enters step 3 with offset 0; a successful detection enters step 3 with the detected offset. The method radio group and step 2's offset field are removed. Without media, Skip is the only forward action and the reason is shown.
+- Step 2 asks whether to detect (Ask, Detecting, Failed). Skip enters step 3 with offset 0; a successful detection enters step 3 with the detected offset. The method radio group and step 2's offset field are removed. On a first visit without media, Skip is the only forward action and the reason is shown.
 - When the user returns to step 2 after a visit to step 3, a third forward choice keeps the current offset and detection facts.
 - `sync.default_method = manual` makes Skip the primary action.
 - Offset editing, detection facts and warnings exist on step 3 only; a limit violation blocks Continue there.
