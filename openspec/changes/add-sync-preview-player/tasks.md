@@ -9,7 +9,7 @@ Boundaries: edit only the files named below. No `src-tauri/` file, `OffsetField`
 
 ## 2. Session
 
-- [ ] 2.1 Create `previewApi.ts` (with a wrapper test modelled on `syncWizardApi.test.ts`) and `usePreviewSession.ts` per D2 and D3. `renderHook` tests with `previewApi` mocked: every transition of `PreviewMedia`; "Failed audio playback releases the audio"; "Leaving closes the session" at hook level; "Late open is closed" asserting the order close(first) before open(second); a StrictMode double mount ends with one open session; cues loading, failing and late. Verify: `npx vitest run src/features/sync/usePreviewSession.test.ts src/features/sync/previewApi.test.ts`.
+- [ ] 2.1 Create `previewApi.ts` (with a wrapper test modelled on `syncWizardApi.test.ts`) and `usePreviewSession.ts` per D2 and D3. `renderHook` tests with `previewApi` mocked: every transition of `PreviewMedia`, including audio error → return to video → video error → failed preparation giving `canReturn: false`; a `requestAudio` after that return prepares only once the pending release has settled; "Failed audio playback releases the audio"; "Leaving closes the session" at hook level; "Late open is closed" asserting the order close(first) before open(second); a StrictMode double mount ends with one open session; cues loading, failing and late. Verify: `npx vitest run src/features/sync/usePreviewSession.test.ts src/features/sync/previewApi.test.ts`.
 
 ## 3. Player
 
