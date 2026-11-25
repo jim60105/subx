@@ -252,6 +252,30 @@ release that changes `flatpak/manifest.json`.
 8. If a file-manager network mount is available, repeat steps 4 to 6 with files
    under `/run/user/<uid>/gvfs/`.
 
+## Manual packaged-preview check
+
+Not a waiver: the automated tests only check the package configuration. Whether
+a package actually produces sound is a human check, run before publishing a
+release that changes the media configuration in `flatpak/manifest.json`,
+`src-tauri/tauri.conf.json` or the release workflow's Linux dependencies.
+
+1. Run a release workflow dispatch and confirm every build job succeeds. It is
+   the only proof that the AppImage still builds with the media framework
+   bundled. If it fails in the GStreamer plugin step, try adding
+   `libgstreamer1.0-dev` and `libgstreamer-plugins-base1.0-dev` to the Linux
+   dependency step first.
+2. Flatpak: install the bundle with `flatpak install --user ./subx.flatpak`.
+   `flatpak info --show-permissions im.chenj.subx` lists `pulseaudio` under
+   `sockets=`.
+3. In the Flatpak, open the sync wizard, select a video with sound and a
+   subtitle, skip detection, and play the preview on the offset step. Sound is
+   audible, and seeking moves the picture and the sound together.
+4. Repeat step 3 with a file the WebView cannot play, so that the preview
+   switches to audio mode. The decoded sound is audible and seeking works.
+5. AppImage: run the AppImage built by the dispatch and repeat steps 3 and 4.
+6. On macOS and Windows, repeat steps 3 and 4 with the release build. Record
+   "unverified" for any platform the check was not run on.
+
 ## Adding a feature
 
 A new change proposal carries the annotation obligation forward automatically
