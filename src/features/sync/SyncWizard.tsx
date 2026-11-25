@@ -96,7 +96,7 @@ export function SyncWizard() {
     };
     if (wizard.detectPhase === "detecting") {
       // The primary position stays occupied, disabled, for the whole run.
-      secondary = { label: t("detect.cancel"), onClick: wizard.cancelDetection };
+      secondary = { label: t("detect.cancel"), onClick: wizard.cancelDetection, takeFocus: true };
       next = { label: t("detect.detecting"), disabled: true };
     } else {
       back = { label: t("detect.back"), onClick: wizard.backToInputs };

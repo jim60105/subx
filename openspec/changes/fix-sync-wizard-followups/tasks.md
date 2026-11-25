@@ -22,8 +22,8 @@ Scenario IDs below are the `// @covers` values, derived by `scripts/check-spec-c
 
 ## 3. Sync detecting state moves focus to Cancel (design D3, spec sync-workflow)
 
-- [ ] 3.1 In `src/features/sync/SyncWizard.tsx`, change only the detecting-branch `secondary` assignment to the line in design D3. Verify: the existing `npx vitest run src/features/sync/SyncWizard.test.tsx src/features/actionPlacement.test.tsx` passes with no assertion edits.
-- [ ] 3.2 In `src/features/sync/SyncWizard.test.tsx`, add two tests. Each uses a `deferred` detection, so the run stays pending, and resolves it with `act` at the end:
+- [x] 3.1 In `src/features/sync/SyncWizard.tsx`, change only the detecting-branch `secondary` assignment to the line in design D3. Verify: the existing `npx vitest run src/features/sync/SyncWizard.test.tsx src/features/actionPlacement.test.tsx` passes with no assertion edits.
+- [x] 3.2 In `src/features/sync/SyncWizard.test.tsx`, add two tests. Each uses a `deferred` detection, so the run stays pending, and resolves it with `act` at the end:
   - `// @covers sync-workflow/starting-detection-keeps-keyboard-focus#start-from-the-primary-position`: `reachDetect(user)`, then `primary().focus()` inside `act`, then `await user.keyboard("{Enter}")`. Expect `document.activeElement` toBe `within(actionBar()).getByRole("button", { name: "Cancel" })`.
   - `// @covers sync-workflow/starting-detection-keeps-keyboard-focus#start-from-a-secondary-position`: `reachOffset(user)` with the default mock. Click Back. Then set `detectSyncOffset` to return a deferred, focus the `Start detection` secondary button, and press Enter. Expect focus on Cancel.
 

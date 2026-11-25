@@ -798,3 +798,34 @@ describe("the offset step preview", () => {
     expect(within(actionBar()).getByRole("button", { name: "Continue" })).toBeEnabled();
   });
 });
+
+describe("keyboard focus when detection starts", () => {
+  it("moves focus to Cancel when detection starts from the primary position", async () => {
+    const run = deferred<SyncDetectionDto>();
+    vi.mocked(api.detectSyncOffset).mockReturnValue(run.promise);
+    const user = userEvent.setup();
+    renderWizard();
+    await reachDetect(user);
+
+    act(() => primary().focus());
+    await user.keyboard("{Enter}");
+
+    expect(document.activeElement).toBe(within(actionBar()).getByRole("button", { name: "Cancel" }));
+    await act(async () => run.resolve(DETECTION));
+  });
+
+  it("moves focus to Cancel when detection starts from a secondary position", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachOffset(user);
+    await user.click(within(actionBar()).getByRole("button", { name: "Back" }));
+    const run = deferred<SyncDetectionDto>();
+    vi.mocked(api.detectSyncOffset).mockReturnValue(run.promise);
+
+    act(() => within(actionBar()).getByRole("button", { name: "Start detection" }).focus());
+    await user.keyboard("{Enter}");
+
+    expect(document.activeElement).toBe(within(actionBar()).getByRole("button", { name: "Cancel" }));
+    await act(async () => run.resolve(DETECTION));
+  });
+});
