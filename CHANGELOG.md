@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Match: clicking anywhere on a pairing in the review step selects or deselects it; the checkbox and the reasoning disclosure keep their own behaviour, and dragging to select text does not change the selection.
+
+### Fixed
+- Match: the quick-select language controls and each row's language tag follow the language in the resulting file name (also after a cached analysis) instead of putting every pairing under Other, and a language without a translated name, such as Thai, is labelled with its name in the interface language.
+
 ## [1.0.0] - 2026-11-16
 
 First stable release. The app gets a new editorial look (paper-and-ink colours, a bundled serif typeface, numbered tasks on the home screen and a breadcrumb in the title bar), and every task wizard now shows exactly what will happen to your files before anything runs.
