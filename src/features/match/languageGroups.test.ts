@@ -63,6 +63,7 @@ describe("groupOperationsByLanguage", () => {
 });
 
 describe("platformLanguageName", () => {
+  // @covers match-workflow/quick-select-names-languages-without-a-hand-written-label#a-code-without-a-translated-label-is-localized
   it.each(["en", "zh-TW"])("names a code without a hand-written label in %s", (locale) => {
     const expected = new Intl.DisplayNames([locale], { type: "language", fallback: "none" }).of("th");
 
@@ -70,6 +71,7 @@ describe("platformLanguageName", () => {
     expect(platformLanguageName("th", locale)).not.toBe("th");
   });
 
+  // @covers match-workflow/quick-select-names-languages-without-a-hand-written-label#a-code-the-platform-cannot-name-is-shown-verbatim
   it.each(["qqq", "x_y", "sc-en"])("returns %s verbatim", (code) => {
     expect(platformLanguageName(code, "en")).toBe(code);
   });

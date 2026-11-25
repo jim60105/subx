@@ -1013,6 +1013,7 @@ mod tests {
         Some(value.to_string())
     }
 
+    // @covers match-workflow/operation-language-follows-the-resulting-file-name#the-tag-in-the-resulting-name-decides-the-language
     #[test]
     fn the_tag_in_the_resulting_name_decides_the_language() {
         assert_eq!(
@@ -1021,6 +1022,7 @@ mod tests {
         );
     }
 
+    // @covers match-workflow/operation-language-follows-the-resulting-file-name#a-language-the-path-detector-does-not-know-is-reported
     #[test]
     fn a_language_the_path_detector_does_not_know_is_reported() {
         assert_eq!(
@@ -1029,6 +1031,7 @@ mod tests {
         );
     }
 
+    // @covers match-workflow/operation-language-follows-the-resulting-file-name#the-resulting-name-outranks-the-source-path
     #[test]
     fn the_resulting_name_outranks_the_source_path() {
         assert_eq!(
@@ -1037,6 +1040,7 @@ mod tests {
         );
     }
 
+    // @covers match-workflow/operation-language-follows-the-resulting-file-name#spellings-of-one-language-share-one-code
     #[test]
     fn spellings_of_one_language_share_one_code() {
         assert_eq!(
@@ -1049,6 +1053,7 @@ mod tests {
         );
     }
 
+    // @covers match-workflow/operation-language-follows-the-resulting-file-name#text-belonging-to-the-video-name-is-not-a-language
     #[test]
     fn text_belonging_to_the_video_name_is_not_a_language() {
         assert_eq!(
@@ -1057,6 +1062,7 @@ mod tests {
         );
     }
 
+    // @covers match-workflow/operation-language-follows-the-resulting-file-name#a-suffix-that-is-not-a-language-falls-back-to-the-source-path
     #[test]
     fn a_suffix_that_is_not_a_language_falls_back_to_the_source_path() {
         assert_eq!(
@@ -1068,6 +1074,7 @@ mod tests {
         );
     }
 
+    // @covers match-workflow/operation-language-follows-the-resulting-file-name#excluded-tags-are-not-languages
     #[test]
     fn excluded_tags_are_not_languages() {
         assert_eq!(

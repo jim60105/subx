@@ -83,6 +83,7 @@ describe("ReviewStep language names", () => {
     return within(bar).getByRole("checkbox", { name });
   }
 
+  // @covers match-workflow/quick-select-names-languages-without-a-hand-written-label#a-code-without-a-translated-label-is-localized
   it.each(["en", "zh-TW"] as const)("names a code without a translated label in %s", async (language) => {
     await setupI18n(language);
     renderReview(languagePlan(["th"]), new Set());
@@ -95,6 +96,7 @@ describe("ReviewStep language names", () => {
     ).toBeInTheDocument();
   });
 
+  // @covers match-workflow/quick-select-names-languages-without-a-hand-written-label#a-code-the-platform-cannot-name-is-shown-verbatim
   it("names codes the platform cannot name with the code itself", async () => {
     await setupI18n("en");
     renderReview(languagePlan(["qqq", "x_y"]), new Set());
@@ -357,6 +359,7 @@ describe("ReviewStep whole-row toggle", () => {
     return element;
   }
 
+  // @covers match-workflow/whole-row-selection-toggle#clicking-row-content-toggles-the-row
   it.each([".review-ledger__video", ".review-ledger__name", ".review-ledger__to"])(
     "clicking %s toggles that row once",
     async (selector) => {
@@ -370,6 +373,7 @@ describe("ReviewStep whole-row toggle", () => {
     },
   );
 
+  // @covers match-workflow/whole-row-selection-toggle#clicking-the-checkbox-toggles-exactly-once
   it("clicking the checkbox toggles exactly once", async () => {
     const user = userEvent.setup();
     const { onToggle } = renderWithToggle();
@@ -380,6 +384,7 @@ describe("ReviewStep whole-row toggle", () => {
     expect(onToggle).toHaveBeenCalledWith(0);
   });
 
+  // @covers match-workflow/whole-row-selection-toggle#clicking-the-checkbox-toggles-exactly-once
   it("pressing Space on the focused checkbox toggles exactly once", async () => {
     const user = userEvent.setup();
     const { onToggle } = renderWithToggle();
@@ -391,6 +396,7 @@ describe("ReviewStep whole-row toggle", () => {
     expect(onToggle).toHaveBeenCalledWith(0);
   });
 
+  // @covers match-workflow/whole-row-selection-toggle#the-disclosure-does-not-change-selection
   it("the disclosure opens and closes without changing selection", async () => {
     const user = userEvent.setup();
     const { onToggle } = renderWithToggle();
@@ -408,6 +414,7 @@ describe("ReviewStep whole-row toggle", () => {
     expect(onToggle).not.toHaveBeenCalled();
   });
 
+  // @covers match-workflow/whole-row-selection-toggle#revealed-reasoning-text-belongs-to-the-row
   it("clicking reasoning text in a low row toggles it", async () => {
     const user = userEvent.setup();
     const { onToggle } = renderWithToggle();
@@ -418,6 +425,7 @@ describe("ReviewStep whole-row toggle", () => {
     expect(onToggle).toHaveBeenCalledWith(1);
   });
 
+  // @covers match-workflow/whole-row-selection-toggle#revealed-reasoning-text-belongs-to-the-row
   it("clicking revealed reasoning text toggles the row and keeps the disclosure open", async () => {
     const user = userEvent.setup();
     const { onToggle } = renderWithToggle();
@@ -431,6 +439,8 @@ describe("ReviewStep whole-row toggle", () => {
     expect(details).toHaveAttribute("open");
   });
 
+  // @covers match-workflow/whole-row-selection-toggle#selecting-text-does-not-toggle
+  // @covers match-workflow/whole-row-selection-toggle#an-existing-selection-does-not-block-a-click
   it("a drag that selects text does not toggle", () => {
     const { onToggle } = renderWithToggle();
     const name = part("sub-0.srt", ".review-ledger__name");
@@ -445,6 +455,7 @@ describe("ReviewStep whole-row toggle", () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
+  // @covers match-workflow/whole-row-selection-toggle#selecting-text-does-not-toggle
   it("a vertical drag that selects text does not toggle", () => {
     const { onToggle } = renderWithToggle();
     const name = part("sub-0.srt", ".review-ledger__name");
@@ -483,6 +494,7 @@ describe("ReviewStep whole-row toggle", () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
+  // @covers match-workflow/whole-row-selection-toggle#a-double-click-is-two-toggles
   it("a double click toggles twice", async () => {
     const user = userEvent.setup();
     const { onToggle } = renderWithToggle();
@@ -493,6 +505,7 @@ describe("ReviewStep whole-row toggle", () => {
     expect(onToggle).toHaveBeenNthCalledWith(2, 0);
   });
 
+  // @covers match-workflow/whole-row-selection-toggle#unmatched-rows-do-not-toggle
   it("clicking an unmatched row changes nothing", async () => {
     const user = userEvent.setup();
     const { onToggle, container } = renderWithToggle();
@@ -506,6 +519,7 @@ describe("ReviewStep whole-row toggle", () => {
     expect(onToggle).not.toHaveBeenCalled();
   });
 
+  // @covers match-workflow/whole-row-selection-toggle#the-row-adds-no-keyboard-stop
   it("the row adds no keyboard stop and keeps the checkbox name", () => {
     renderWithToggle();
 
