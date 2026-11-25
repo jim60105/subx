@@ -20,7 +20,7 @@ Boundaries: edit only the files named below. No `src-tauri/` file, `OffsetField`
 
 ## 4. Integration
 
-- [ ] 4.1 Add an entry under `[Unreleased]` in `CHANGELOG.md`, creating `### Added` before the existing `### Changed`. Run `openspec validate add-sync-preview-player --strict` and `npm run verify`. Expected: both exit 0.
+- [x] 4.1 Add an entry under `[Unreleased]` in `CHANGELOG.md`, creating `### Added` before the existing `### Changed`. Run `openspec validate add-sync-preview-player --strict` and `npm run verify`. Expected: both exit 0.
 - [ ] 4.2 With `agent-browser` fill rows 1 to 5 of `visual-review.md` at 1100×720 and 860×600, light and dark. For row 6 run `npm run dev:app` if a display is available and report what was observed; otherwise write "unverified". Write "unverified" in row 7 unless run. Verify: every row has an observation.
 
 ## Workflow follow-up

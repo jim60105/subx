@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Sync: the offset step plays the chosen media with the shifted subtitle over it, with play/pause, position, seek and volume. Changing the offset moves the subtitle at once without interrupting playback. When the picture cannot be shown, or after choosing "No sound?", the sound is decoded and played instead; if neither works the reason is shown. The preview never blocks editing the offset or continuing.
+
 ### Changed
 - Match: clicking anywhere on a pairing in the review step selects or deselects it; the checkbox and the reasoning disclosure keep their own behaviour, and dragging to select text does not change the selection.
 - Sync: the steps are now Files, Detect, Offset and Save. Step 2 asks whether to detect the offset, shows the elapsed seconds while it listens, and offers retry or skip after a failure; step 3 is the only place the offset is edited. After visiting step 3, going back offers to keep the current offset. Changing either file resets the offset, and files dropped on the window are accepted on the first step only.
