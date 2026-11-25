@@ -177,6 +177,55 @@ describe("WizardShell", () => {
     expect(end?.lastElementChild).toHaveClass("wizard__button--primary");
   });
 
+  it("renders two secondary actions in declared order before the primary", async () => {
+    const user = userEvent.setup();
+    const skip = vi.fn();
+    const start = vi.fn();
+    const { container } = renderWithI18n(
+      <WizardShell
+        steps={STEPS}
+        activeStep={1}
+        back={{ label: "Back", onClick: vi.fn() }}
+        secondary={[
+          { label: "Skip", onClick: skip },
+          { label: "Start", onClick: start },
+        ]}
+        next={{ label: "Keep", onClick: vi.fn() }}
+      >
+        <p>content</p>
+      </WizardShell>,
+    );
+
+    const end = container.querySelector(".wizard__actions-end");
+    const labels = [...(end?.querySelectorAll("button") ?? [])].map((b) => b.textContent);
+    expect(labels).toEqual(["Skip", "Start", "Keep"]);
+    expect(end?.lastElementChild).toHaveClass("wizard__button--primary");
+
+    await user.click(screen.getByRole("button", { name: "Start" }));
+    expect(start).toHaveBeenCalledOnce();
+    expect(skip).not.toHaveBeenCalled();
+  });
+
+  /// A label that rounds a figure gets an accessible name that states it
+  /// exactly, still starting with the visible text (WCAG 2.5.3).
+  it("uses an action's accessible label as its accessible name", () => {
+    renderWithI18n(
+      <WizardShell
+        steps={STEPS}
+        activeStep={1}
+        secondary={{ label: "Keep +1.25 s", accessibleLabel: "Keep +1.25 s (1.254 seconds)" }}
+        next={{ label: "Go", accessibleLabel: "Go now" }}
+      >
+        <p>content</p>
+      </WizardShell>,
+    );
+
+    expect(screen.getByRole("button", { name: "Keep +1.25 s (1.254 seconds)" })).toHaveTextContent(
+      "Keep +1.25 s",
+    );
+    expect(screen.getByRole("button", { name: "Go now" })).toBeInTheDocument();
+  });
+
   /**
    * jsdom applies no stylesheets and cannot scroll, so the guarantee is
    * asserted structurally: the bar is a sibling of the scroll container rather
