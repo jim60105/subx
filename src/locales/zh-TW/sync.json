@@ -73,6 +73,9 @@
     "unit": "秒",
     "decrease": "減少 {{step}} 毫秒",
     "increase": "增加 {{step}} 毫秒",
+    "nudgeDown": "−{{step}} 毫秒",
+    "nudgeUp": "+{{step}} 毫秒",
+    "msUnit": "毫秒",
     "preview": {
       "original": "原本",
       "shifted": "套用後"

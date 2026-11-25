@@ -1,7 +1,7 @@
-import { useId } from "react";
+import { useId, useState } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
-import { OffsetPreview } from "./OffsetPreview";
 import "./OffsetField.css";
 
 /** How far one press of a nudge button moves the offset. */
@@ -21,35 +21,43 @@ interface OffsetFieldProps {
   maxOffsetMs: number | null;
   exceedsMax: boolean;
   onChange: (offsetMs: number) => void;
+  /** Shown at the inline end of the row, such as the detection facts. */
+  children?: ReactNode;
 }
 
 /**
- * The offset control, shared by the method and review steps.
+ * The offset control of the offset step: one row of the seconds figure, the
+ * nudge buttons, the millisecond field and whatever the step puts at its end.
  *
- * It is one field in two places on purpose: in manual mode the number entered
- * here *is* the reviewed value, and in automatic mode detection writes into the
- * very same field the user then edits. Milliseconds are the unit the boundary
- * speaks (design D3), so the input carries them directly and the seconds
- * reading below it is the human-readable echo rather than a second source of
- * truth to keep in step.
+ * Milliseconds are the unit the boundary speaks (design D3), so the input
+ * carries them directly and the seconds figure is the human-readable echo
+ * rather than a second source of truth to keep in step.
  *
- * The seconds figure is the largest element and the nudge buttons sit beside
- * it; the cue-bar preview below shows the direction instead of a sentence. The
- * figure and preview are visual only — the number input, its seconds echo and
- * the sign hint carry the same information to assistive technology.
+ * The figure is visual only and moves in the direction of each change; the
+ * number input, its seconds echo and the sign hint carry the same information
+ * to assistive technology.
  */
-export function OffsetField({ offsetMs, maxOffsetMs, exceedsMax, onChange }: OffsetFieldProps) {
+export function OffsetField({ offsetMs, maxOffsetMs, exceedsMax, onChange, children }: OffsetFieldProps) {
   const { t } = useTranslation("sync");
   const hintId = useId();
 
+  // The direction of the last change; none until the value first changes.
+  const [previousMs, setPreviousMs] = useState(offsetMs);
+  const [direction, setDirection] = useState<"up" | "down" | undefined>(undefined);
+  if (offsetMs !== previousMs) {
+    setPreviousMs(offsetMs);
+    setDirection(offsetMs > previousMs ? "up" : "down");
+  }
+
   return (
     <div className="offset-field">
-      <div className="offset-field__headline">
-        <span className="offset-field__figure serif" aria-hidden="true">
-          {formatSeconds(offsetMs)}
-        </span>
-        <span className="offset-field__unit serif" aria-hidden="true">
-          {t("offset.unit")}
+      <div className="offset-field__row">
+        <span className="offset-field__reading" aria-hidden="true">
+          {/* A new element per value restarts the motion. */}
+          <span key={offsetMs} className="offset-field__figure serif" data-direction={direction}>
+            {formatSeconds(offsetMs)}
+          </span>
+          <span className="offset-field__unit serif">{t("offset.unit")}</span>
         </span>
         <div className="offset-field__nudge">
           <button
@@ -59,7 +67,7 @@ export function OffsetField({ offsetMs, maxOffsetMs, exceedsMax, onChange }: Off
             aria-describedby={hintId}
             onClick={() => onChange(offsetMs - NUDGE_STEP_MS)}
           >
-            −
+            {t("offset.nudgeDown", { step: NUDGE_STEP_MS })}
           </button>
           <button
             type="button"
@@ -68,23 +76,28 @@ export function OffsetField({ offsetMs, maxOffsetMs, exceedsMax, onChange }: Off
             aria-describedby={hintId}
             onClick={() => onChange(offsetMs + NUDGE_STEP_MS)}
           >
-            +
+            {t("offset.nudgeUp", { step: NUDGE_STEP_MS })}
           </button>
         </div>
+        <label className="offset-field__label">
+          <span className="visually-hidden">{t("offset.label")}</span>
+          <input
+            type="number"
+            className="offset-field__input"
+            value={offsetMs}
+            step={10}
+            aria-invalid={exceedsMax}
+            aria-describedby={hintId}
+            onChange={(event) => onChange(Number(event.target.value))}
+          />
+          <span className="offset-field__input-unit" aria-hidden="true">
+            {t("offset.msUnit")}
+          </span>
+        </label>
+        {children !== undefined && children !== null && children !== false && (
+          <div className="offset-field__end">{children}</div>
+        )}
       </div>
-      <OffsetPreview offsetMs={offsetMs} />
-      <label className="offset-field__label">
-        <span className="offset-field__label-text">{t("offset.label")}</span>
-        <input
-          type="number"
-          className="offset-field__input"
-          value={offsetMs}
-          step={10}
-          aria-invalid={exceedsMax}
-          aria-describedby={hintId}
-          onChange={(event) => onChange(Number(event.target.value))}
-        />
-      </label>
       <p className="offset-field__seconds visually-hidden">
         {t("offset.seconds", { seconds: (offsetMs / 1000).toFixed(3) })}
       </p>

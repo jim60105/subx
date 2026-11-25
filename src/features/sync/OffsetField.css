@@ -1,23 +1,60 @@
 .offset-field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  border-bottom: 1px solid var(--hair);
+  gap: var(--space-2);
 }
 
-.offset-field__headline {
+/* One row: figure, nudges, field, then the step's own facts at the end. */
+.offset-field__row {
   display: flex;
-  gap: var(--space-3);
+  flex-wrap: nowrap;
+  gap: var(--space-5);
+  align-items: center;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--hair);
+}
+
+.offset-field__reading {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
   align-items: baseline;
 }
 
 .offset-field__figure {
+  display: inline-block;
   font-size: var(--text-4xl);
   line-height: 1;
   letter-spacing: -0.02em;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
+}
+
+/* The global reduced-motion rule ends these at once. */
+.offset-field__figure[data-direction="up"] {
+  animation: offset-figure-up var(--motion-fast) var(--ease-out);
+}
+
+.offset-field__figure[data-direction="down"] {
+  animation: offset-figure-down var(--motion-fast) var(--ease-out);
+}
+
+@keyframes offset-figure-up {
+  from {
+    transform: translateY(6px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes offset-figure-down {
+  from {
+    transform: translateY(-6px);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 .offset-field__unit {
@@ -28,33 +65,29 @@
 
 .offset-field__nudge {
   display: flex;
+  flex-shrink: 0;
   gap: var(--space-2);
-  align-self: center;
-  margin-inline-start: auto;
 }
 
 .offset-field__nudge-button {
   justify-content: center;
-  min-width: var(--control-height);
-  padding: 0;
+  min-width: 5.5rem;
+  padding: 0 var(--space-3);
   font-family: var(--font-mono);
+  white-space: nowrap;
 }
 
 .offset-field__label {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.offset-field__label-text {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--ink);
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
 }
 
 .offset-field__input {
-  max-width: 12rem;
-  padding: var(--space-2) var(--space-3);
+  width: 7rem;
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   color: var(--ink);
@@ -67,6 +100,17 @@
   border-color: var(--del);
 }
 
+.offset-field__input-unit {
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.offset-field__end {
+  min-width: 0;
+  margin-inline-start: auto;
+}
+
 .offset-field__error {
   padding-block: var(--space-1);
   padding-inline-start: var(--space-3);
@@ -74,4 +118,22 @@
   font-size: var(--text-sm);
   color: var(--del);
   border-inline-start: 2px solid var(--del);
+}
+
+@media (max-width: 900px) {
+  .offset-field__row {
+    gap: var(--space-4);
+  }
+
+  .offset-field__figure {
+    font-size: var(--text-3xl);
+  }
+
+  .offset-field__nudge-button {
+    min-width: 4.5rem;
+  }
+
+  .offset-field__input {
+    width: 5.5rem;
+  }
 }

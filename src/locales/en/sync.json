@@ -73,6 +73,9 @@
     "unit": "s",
     "decrease": "Decrease by {{step}} ms",
     "increase": "Increase by {{step}} ms",
+    "nudgeDown": "−{{step}} ms",
+    "nudgeUp": "+{{step}} ms",
+    "msUnit": "ms",
     "preview": {
       "original": "Original",
       "shifted": "Shifted"
