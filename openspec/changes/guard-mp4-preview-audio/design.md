@@ -36,11 +36,21 @@ Video edits are not consulted. An equal edit on both tracks is no desync between
 
 Boxes are walked with `Seek`; payloads are never loaded whole. Sizes: 32-bit; `1` → 64-bit follows; `0` → to the end of file, top level only. A size below its header or beyond its parent → `Malformed`. At most 100 000 boxes per container and 4096 `trak`s, and 1024 `elst` entries, each limit exceeded → `Malformed`; entry count must fit the box. More than one `moov`, `edts`, `elst`, `mvhd`, `mdhd` or `tkhd` where one belongs, a missing `mvhd`, `mdhd` or `tkhd`, a zero timescale, an unknown version, or an out-of-range `track_index` → `Malformed`. The top-level walk always reaches the end of file for a non-fragmented file, because a second `moov` must be noticed; `mdat` is skipped by seeking. For a fragmented file it also stops at the first matching `moof` after `moov`. Versions 0 and 1 of `mvhd`, `mdhd`, `tkhd`, `elst`, `tfdt` are read.
 
+At most 200 000 boxes are visited in total. Fields, big-endian, offsets after the box header and the 4-byte version/flags:
+
+| Box | version 0 | version 1 |
+|---|---|---|
+| `mvhd`, `mdhd` | timescale u32 at 8 | timescale u32 at 16 |
+| `tkhd` | track id u32 at 8 | track id u32 at 16 |
+| `elst` | entry count u32 at 0; 12-byte entries: duration u32, media_time i32, rate i16, i16 | count u32 at 0; 20-byte entries: duration u64, media_time i64, rate i16, i16 |
+| `tfhd` | track id u32 at 0 (any version) | same |
+| `tfdt` | u32 at 0 | u64 at 0 |
+
 ### D3 Use
 
-`decode_into` opens a second `File` and calls `leading_trim` after choosing the track and before creating the temporary file. `Malformed` → `AudioFallbackError::Unsupported`; `Io` → `Unreadable`, except `UnexpectedEof`, which is `Malformed`; `Unsupported` → new variant `AudioFallbackError::Timing(String)`, mapped to `preview.audio_timing_unsupported`. `preview.audio_unsupported` would wrongly say the format cannot be decoded.
+`decode_with` opens a second `File` in a `BufReader` and calls `leading_trim` with `track.id as usize` (the `trak` position, see Context) after choosing the track and before calling `make`. `Malformed` → `AudioFallbackError::Unsupported`; `Io` → `Unreadable`, except `UnexpectedEof`, which is `Malformed`; `Unsupported` → new variant `AudioFallbackError::Timing(String)`, mapped to `preview.audio_timing_unsupported`. `preview.audio_unsupported` would wrongly say the format cannot be decoded.
 
-`TimelineWriter::push` takes `start_frame: i64`. The start is `(ts - trim)` in media ticks (signed), then × rate ÷ timescale with `i128`, rounded down. A negative start drops exactly that many leading frames, regardless of the jitter tolerance, before the existing comparison. Other containers pass trim 0.
+`TimelineWriter::push` takes `start_frame: i64`. The start is `(ts - trim)` in media ticks (signed), then × rate ÷ timescale with `i128`, truncated toward zero. A negative start drops exactly that many leading frames, regardless of the jitter tolerance, before the existing comparison. Other containers pass trim 0.
 
 ### D4 Fixtures
 
@@ -50,4 +60,5 @@ Same generation rules as `add-sync-audio-fallback` D5: `ffmpeg -i tone.wav -ar 4
 
 - [Some valid files are refused] → sound-only preview is unavailable with a specific message; offset editing continues.
 - [A fragmented file with a gap after its first fragment is not detected] → recorded; reported to the owner.
+- [A fragmented file that also has samples in `moov` has a first `tfdt` after them] → refused although playable; rare, and refusal is the safe side.
 - [HE-AAC output rate may differ from the declared rate] → already refused by the rate check of `add-sync-audio-fallback`.
