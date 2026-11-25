@@ -12,6 +12,7 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::ffi::OsStr;
+use std::fs::File;
 use std::io::{self, SeekFrom};
 use std::net::{Ipv4Addr, SocketAddr};
 use std::path::{Path, PathBuf};
@@ -56,12 +57,23 @@ pub struct Published {
 /// One published file.
 ///
 /// Returned by [`MediaServer::revoke`] so the caller decides where it is
-/// dropped: a later change attaches temporary files to an entry, and deleting
-/// those must happen outside any lock (design D4).
+/// dropped: an entry may own an anonymous temporary file, and closing that
+/// must happen outside any lock (design D4).
 pub struct Entry {
-    path: PathBuf,
+    source: Source,
     content_type: &'static str,
     revoked: watch::Sender<bool>,
+}
+
+/// What an entry serves.
+#[derive(Clone)]
+enum Source {
+    /// Reopened per request, so a file replaced since publish is noticed.
+    Path(PathBuf),
+    /// An open file with no name to reopen it by (the audio fallback's WAV).
+    /// The entry owns it; each running stream holds a clone of the `Arc`
+    /// until it ends, so revocation frees it once its streams have stopped.
+    File { file: Arc<File>, len: u64 },
 }
 
 /// The published files, keyed by token.
@@ -83,10 +95,10 @@ impl Registry {
     /// subscribed under the lock, while the entry is still present: `revoke`
     /// removes the entry under the same lock before signalling, so a request
     /// either misses the entry or observes its revocation.
-    fn lookup(&self, token: &str) -> Option<(PathBuf, &'static str, watch::Receiver<bool>)> {
+    fn lookup(&self, token: &str) -> Option<(Source, &'static str, watch::Receiver<bool>)> {
         self.lock().get(token).map(|entry| {
             (
-                entry.path.clone(),
+                entry.source.clone(),
                 entry.content_type,
                 entry.revoked.subscribe(),
             )
@@ -134,11 +146,32 @@ impl MediaServer {
     /// Publishes `path` under a fresh token. Registry insert only; no
     /// file-system access, so a slow mount cannot stall the caller's lock.
     pub fn publish(&self, path: PathBuf) -> io::Result<Published> {
+        let content_type = content_type_of(&path);
+        self.insert(Source::Path(path), content_type)
+    }
+
+    /// Publishes an open file of `len` bytes under a fresh token (design D3a).
+    /// The entry takes ownership of the file; memory only, no file-system
+    /// access.
+    pub fn publish_file(
+        &self,
+        file: File,
+        len: u64,
+        content_type: &'static str,
+    ) -> io::Result<Published> {
+        let source = Source::File {
+            file: Arc::new(file),
+            len,
+        };
+        self.insert(source, content_type)
+    }
+
+    fn insert(&self, source: Source, content_type: &'static str) -> io::Result<Published> {
         let token = new_token()?;
         let (revoked, _) = watch::channel(false);
         let entry = Entry {
-            content_type: content_type_of(&path),
-            path,
+            source,
+            content_type,
             revoked,
         };
         self.registry.lock().insert(token.clone(), entry);
@@ -146,6 +179,16 @@ impl MediaServer {
             url: format!("http://127.0.0.1:{}/{token}", self.addr.port()),
             token,
         })
+    }
+
+    /// A weak handle to a published open file, for tests that prove nothing
+    /// keeps it alive after revocation.
+    #[cfg(test)]
+    pub(crate) fn file_of(&self, token: &str) -> Option<Weak<File>> {
+        match &self.registry.lock().get(token)?.source {
+            Source::File { file, .. } => Some(Arc::downgrade(file)),
+            Source::Path(_) => None,
+        }
     }
 
     /// Removes the entry and signals its running streams to stop. The caller
@@ -245,22 +288,28 @@ async fn respond<B>(request: Request<B>, registry: &Weak<Registry>, port: u16) -
         (None, Some(token)) => token,
         _ => return status_only(StatusCode::NOT_FOUND),
     };
-    let Some((path, content_type, revoked)) = registry
+    let Some((source, content_type, revoked)) = registry
         .upgrade()
         .and_then(|registry| registry.lookup(token))
     else {
         return status_only(StatusCode::NOT_FOUND);
     };
 
-    // Re-checked per request: the file may have been replaced since publish.
-    let metadata = match tokio::fs::metadata(&path).await {
-        Ok(metadata) if metadata.is_file() => metadata,
-        _ => return status_only(StatusCode::NOT_FOUND),
+    let (reader, len) = match source {
+        Source::Path(path) => {
+            // Re-checked per request: the file may have been replaced since
+            // publish.
+            let metadata = match tokio::fs::metadata(&path).await {
+                Ok(metadata) if metadata.is_file() => metadata,
+                _ => return status_only(StatusCode::NOT_FOUND),
+            };
+            let Ok(file) = tokio::fs::File::open(&path).await else {
+                return status_only(StatusCode::NOT_FOUND);
+            };
+            (Reader::Path(file), metadata.len())
+        }
+        Source::File { file, len } => (Reader::File(file), len),
     };
-    let Ok(file) = tokio::fs::File::open(&path).await else {
-        return status_only(StatusCode::NOT_FOUND);
-    };
-    let len = metadata.len();
 
     // RFC 9110 defines `Range` for GET only.
     if head {
@@ -276,7 +325,7 @@ async fn respond<B>(request: Request<B>, registry: &Weak<Registry>, port: u16) -
             StatusCode::OK,
             content_type,
             len,
-            stream(file, 0, len, revoked),
+            stream(reader, 0, len, revoked),
         ),
         RangeOutcome::Partial { start, end } => {
             let length = end - start + 1;
@@ -284,7 +333,7 @@ async fn respond<B>(request: Request<B>, registry: &Weak<Registry>, port: u16) -
                 StatusCode::PARTIAL_CONTENT,
                 content_type,
                 length,
-                stream(file, start, length, revoked),
+                stream(reader, start, length, revoked),
             );
             response.headers_mut().insert(
                 header::CONTENT_RANGE,
@@ -338,10 +387,60 @@ fn success(
     response
 }
 
-/// A body streaming `length` bytes of `file` from `start`.
-fn stream(file: tokio::fs::File, start: u64, length: u64, revoked: watch::Receiver<bool>) -> Body {
+/// Where a stream's bytes come from.
+enum Reader {
+    /// A file opened for this request, read sequentially after one seek.
+    Path(tokio::fs::File),
+    /// The entry's open file, shared by every stream of it. Each chunk is a
+    /// positioned read, so concurrent streams never move each other's offset.
+    File(Arc<File>),
+}
+
+impl Reader {
+    async fn start_at(&mut self, start: u64) -> io::Result<()> {
+        match self {
+            Self::Path(file) => file.seek(SeekFrom::Start(start)).await.map(drop),
+            Self::File(_) => Ok(()),
+        }
+    }
+
+    /// Reads up to `want` bytes at `offset` into `buffer`.
+    async fn read(&mut self, buffer: &mut Vec<u8>, offset: u64, want: usize) -> io::Result<usize> {
+        match self {
+            Self::Path(file) => file.read(&mut buffer[..want]).await,
+            Self::File(file) => {
+                // The blocking read holds its own clone of the `Arc`: if the
+                // stream is revoked meanwhile, the file stays open until this
+                // one read returns, and no longer.
+                let file = Arc::clone(file);
+                let mut chunk = std::mem::take(buffer);
+                let (chunk, read) = tokio::task::spawn_blocking(move || {
+                    let read = read_at(&file, &mut chunk[..want], offset);
+                    (chunk, read)
+                })
+                .await
+                .map_err(io::Error::other)?;
+                *buffer = chunk;
+                read
+            }
+        }
+    }
+}
+
+#[cfg(unix)]
+fn read_at(file: &File, buffer: &mut [u8], offset: u64) -> io::Result<usize> {
+    std::os::unix::fs::FileExt::read_at(file, buffer, offset)
+}
+
+#[cfg(windows)]
+fn read_at(file: &File, buffer: &mut [u8], offset: u64) -> io::Result<usize> {
+    std::os::windows::fs::FileExt::seek_read(file, buffer, offset)
+}
+
+/// A body streaming `length` bytes of `reader` from `start`.
+fn stream(reader: Reader, start: u64, length: u64, revoked: watch::Receiver<bool>) -> Body {
     let (sender, body) = Channel::<Bytes, io::Error>::new(CHANNEL_CAPACITY);
-    tokio::spawn(pump(file, start, length, revoked, sender));
+    tokio::spawn(pump(reader, start, length, revoked, sender));
     body.boxed()
 }
 
@@ -353,15 +452,16 @@ fn stream(file: tokio::fs::File, start: u64, length: u64, revoked: watch::Receiv
 /// body, so a client that has stopped reading keeps its connection until it
 /// reads again or goes away; the frames already queued are delivered first.
 async fn pump(
-    mut file: tokio::fs::File,
+    mut reader: Reader,
     start: u64,
     mut remaining: u64,
     mut revoked: watch::Receiver<bool>,
     mut sender: Sender<Bytes, io::Error>,
 ) {
-    if let Err(err) = file.seek(SeekFrom::Start(start)).await {
+    if let Err(err) = reader.start_at(start).await {
         return sender.abort(err);
     }
+    let mut offset = start;
     let mut buffer = vec![0u8; CHUNK];
     while remaining > 0 {
         let want = remaining.min(CHUNK as u64) as usize;
@@ -370,7 +470,7 @@ async fn pump(
         let read = tokio::select! {
             biased;
             _ = revoked.changed() => None,
-            read = file.read(&mut buffer[..want]) => Some(read),
+            read = reader.read(&mut buffer, offset, want) => Some(read),
         };
         let read = match read {
             None => return sender.abort(revoked_error()),
@@ -394,7 +494,10 @@ async fn pump(
         };
         match sent {
             None => return sender.abort(revoked_error()),
-            Some(Ok(())) => remaining -= read as u64,
+            Some(Ok(())) => {
+                remaining -= read as u64;
+                offset += read as u64;
+            }
             // The client went away.
             Some(Err(_)) => return,
         }
@@ -1022,6 +1125,84 @@ mod tests {
 
         assert_eq!(reply.status, 206);
         assert_eq!(reply.body, content[start..]);
+    }
+
+    // ─── Open files (design D3a) ────────────────────────────────────────────
+
+    /// A started server publishing an anonymous file holding `content`.
+    fn serve_file(content: &[u8]) -> (MediaServer, Published) {
+        let mut file = tempfile::tempfile().expect("a temp file");
+        std::io::Write::write_all(&mut file, content).expect("write");
+        let server = MediaServer::start().expect("start");
+        let published = server
+            .publish_file(file, content.len() as u64, "audio/wav")
+            .expect("publish");
+        (server, published)
+    }
+
+    fn patterned(len: usize) -> Vec<u8> {
+        (0..len).map(|index| (index % 251) as u8).collect()
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn an_open_file_serves_a_range_and_the_whole_file() {
+        let content = hundred_bytes();
+        let (server, published) = serve_file(&content);
+
+        let partial = get_with(&server, &path_of(&published), "Range: bytes=10-19\r\n").await;
+        assert_eq!(partial.status, 206);
+        assert_eq!(partial.body, content[10..=19]);
+        assert_eq!(partial.header("content-range"), Some("bytes 10-19/100"));
+        assert_eq!(partial.header("content-type"), Some("audio/wav"));
+
+        let whole = get_with(&server, &path_of(&published), "").await;
+        assert_eq!(whole.status, 200);
+        assert_eq!(whole.body, content);
+        assert_no_cors(&whole);
+    }
+
+    // @covers sync-workflow/preview-audio-belongs-to-its-session#ranges-are-served-from-the-open-file
+    #[tokio::test(flavor = "multi_thread")]
+    async fn ranges_are_served_from_the_open_file() {
+        let content = patterned(4 * 1024 * 1024);
+        let (server, published) = serve_file(&content);
+        let path = path_of(&published);
+
+        let (first, second) = tokio::join!(
+            get_with(&server, &path, "Range: bytes=1000-3000000\r\n"),
+            get_with(&server, &path, "Range: bytes=7-2500000\r\n"),
+        );
+
+        assert_eq!(first.status, 206);
+        assert_eq!(first.body, content[1000..=3_000_000]);
+        assert_eq!(second.status, 206);
+        assert_eq!(second.body, content[7..=2_500_000]);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn revoking_an_open_file_ends_its_stream_and_frees_it() {
+        // Sparse and larger than any socket buffer, so the stream is still
+        // running when it is revoked.
+        let file = tempfile::tempfile().expect("a temp file");
+        file.set_len(LARGE).expect("sparse");
+        let server = MediaServer::start().expect("start");
+        let published = server.publish_file(file, LARGE, "audio/wav").expect("publish");
+        let weak = server.file_of(&published.token).expect("an open file");
+
+        let (mut stream, length, before) = start_stream(&server, &published).await;
+        assert_eq!(length, LARGE);
+        drop(server.revoke(&published.token).expect("published"));
+
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        while weak.upgrade().is_some() {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "a handle to the revoked file remains"
+            );
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        let after = drain(&mut stream).await;
+        assert!(((before + after) as u64) < length);
     }
 }
 

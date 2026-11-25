@@ -28,7 +28,7 @@ use crate::state::AppState;
 /// `mock_context` starts with an empty ACL, so every command under test has to
 /// be allowed explicitly. `the_allowlist_matches_the_declaration` keeps this
 /// list from drifting away from the builder.
-const COMMANDS: [&str; 25] = [
+const COMMANDS: [&str; 27] = [
     "ping",
     "get_build_info",
     "get_config",
@@ -50,6 +50,8 @@ const COMMANDS: [&str; 25] = [
     "load_preview_cues",
     "open_preview",
     "close_preview",
+    "prepare_preview_audio",
+    "release_preview_audio",
     "list_translate_inputs",
     "preview_translation",
     "execute_translation",
@@ -462,6 +464,44 @@ fn open_and_close_preview_answer_over_ipc_with_camel_cased_fields() {
     let closed = invoke(&view, "close_preview", json!({ "sessionId": session_id }))
         .expect("the close must succeed");
     assert_eq!(closed, Value::Null);
+}
+
+/// `prepare_preview_audio` takes the session id back and answers with the
+/// camel-cased audio URL; `release_preview_audio` resolves with no payload.
+#[test]
+fn prepare_and_release_preview_audio_answer_over_ipc() {
+    let app = app_with(service_with_key());
+    let view = webview(&app);
+    let media = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/late.mkv");
+
+    let session = invoke(
+        &view,
+        "open_preview",
+        json!({ "mediaPath": media.display().to_string() }),
+    )
+    .expect("the preview must open");
+    let session_id = session["sessionId"].as_str().expect("a sessionId string");
+
+    let audio = invoke(
+        &view,
+        "prepare_preview_audio",
+        json!({ "sessionId": session_id }),
+    )
+    .expect("the audio must be prepared");
+    assert!(
+        audio["url"]
+            .as_str()
+            .is_some_and(|url| url.starts_with("http://127.0.0.1:")),
+        "a loopback url: {audio}"
+    );
+
+    let released = invoke(
+        &view,
+        "release_preview_audio",
+        json!({ "sessionId": session_id }),
+    )
+    .expect("the release must succeed");
+    assert_eq!(released, Value::Null);
 }
 
 /// An unreadable media path crosses back as the preview's own code.

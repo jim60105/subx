@@ -58,6 +58,10 @@ export const commands = {
 	openPreview: (mediaPath: string) => __TAURI_INVOKE<PreviewSessionDto>("open_preview", { mediaPath }),
 	/**  Revokes the session's URL; a stale or repeated id is ignored. */
 	closePreview: (sessionId: string) => __TAURI_INVOKE<null>("close_preview", { sessionId }),
+	/**  Decodes the open session's audio to a WAV and returns its loopback URL. */
+	preparePreviewAudio: (sessionId: string) => __TAURI_INVOKE<PreviewAudioDto>("prepare_preview_audio", { sessionId }),
+	/**  Gives the session's audio up without closing the session; idempotent. */
+	releasePreviewAudio: (sessionId: string) => __TAURI_INVOKE<null>("release_preview_audio", { sessionId }),
 	/**
 	 *  Scans the given sources for the Step 1 cue-count preview, and hands back
 	 *  the configured default target language for Step 2 to prefill.
@@ -377,6 +381,14 @@ export type PingResponse = {
 	message: string,
 	/**  The GUI application version. */
 	appVersion: string,
+};
+
+/**
+ *  The loopback URL of a session's decoded audio, a mono 16-bit WAV on the
+ *  media's timeline.
+ */
+export type PreviewAudioDto = {
+	url: string,
 };
 
 /**

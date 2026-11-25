@@ -49,6 +49,14 @@ hyper = { version = "1", features = ["server", "http1"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 http-body-util = { version = "0.1", features = ["channel"] }
 getrandom = "0.4"
+# The sync preview's audio fallback (`audio_fallback.rs`) decodes the media's
+# audio itself, because the engine's loader ignores packet timestamps, holds
+# every sample in memory and cannot be cancelled. The same 0.5 release the
+# engine already resolves, so no new package enters Cargo.lock.
+symphonia = { version = "0.5", default-features = false, features = ["isomp4", "mkv", "ogg", "wav", "aac", "flac", "mp3", "pcm", "vorbis"] }
+# The decoded WAV is an anonymous temporary file (`tempfile::tempfile_in`), so
+# no named file outlives a crash. Tests use it for their scratch directories.
+tempfile = "3"
 
 [dependencies.tokio]
 # The wizard's analysis runs in a spawned task whose plan state is guarded by a
@@ -64,7 +72,6 @@ features = ["sync", "rt", "net", "fs", "io-util", "macros", "time"]
 # to reach the `#[tauri::command]` wrappers: they take `State<AppState>`, which
 # cannot exist without a running app.
 tauri = { version = "2", features = ["test"] }
-tempfile = "3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
 wiremock = "0.6"
 # Implements the crate's `#[async_trait]` `AIProvider` for the tests' scripted

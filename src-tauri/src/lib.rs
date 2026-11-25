@@ -1,3 +1,4 @@
+mod audio_fallback;
 mod bindings;
 mod build_info;
 mod commands;
