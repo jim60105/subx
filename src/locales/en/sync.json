@@ -1,8 +1,8 @@
 {
   "steps": {
     "inputs": "Files",
-    "method": "Method",
-    "detect": "Offset",
+    "detect": "Detect",
+    "offset": "Offset",
     "apply": "Save"
   },
   "inputs": {
@@ -23,22 +23,32 @@
       "browse": "Choose subtitle",
       "clear": "Remove subtitle"
     },
-    "subtitleOnly": "Without a video or audio file there is nothing to analyse, so this run is limited to entering an offset yourself.",
+    "subtitleOnly": "Without a video or audio file there is nothing to analyse, so detection will be skipped and you set the offset yourself.",
     "continue": "Continue"
   },
-  "method": {
-    "title": "How should the offset be found?",
-    "description": "Detection runs entirely on this computer. No account, no network request, no cost.",
-    "legend": "Offset method",
-    "auto": {
-      "name": "Detect it automatically",
-      "hint": "Listens for speech in the media file and compares it with the subtitle timing.",
-      "needsMedia": "Add a video or audio file to enable detection."
+  "detect": {
+    "ask": {
+      "title": "Detect the offset automatically?",
+      "description": "Speech in the media is compared with the subtitle timing on this computer. You can also skip and adjust it yourself from 0."
     },
-    "manual": {
-      "name": "Enter it myself",
-      "hint": "Shift every cue by an amount you already know."
+    "running": {
+      "title": "Listening",
+      "description": "Comparing speech with the subtitle timing. The next step opens when it finishes."
     },
+    "failed": {
+      "title": "No offset was detected",
+      "description": "Adjust the sensitivity and try again, or skip and adjust the offset yourself."
+    },
+    "needsMedia": "Add a video or audio file in the first step to enable detection. You can still skip and set the offset yourself.",
+    "elapsed": "{{seconds}} s",
+    "start": "Start detection",
+    "skip": "Skip",
+    "keep": "Keep {{offset}} s",
+    "keepLabel": "Keep {{offset}} s ({{seconds}} seconds)",
+    "cancel": "Cancel",
+    "detecting": "Detecting…",
+    "retry": "Try again",
+    "back": "Back",
     "sensitivity": {
       "label": "Speech sensitivity",
       "value": "{{percent}}%",
@@ -46,22 +56,16 @@
       "perRun": "This applies to this run only and does not change your saved settings.",
       "low": "Stricter",
       "high": "More sensitive"
-    },
-    "back": "Back",
-    "continue": "Continue"
+    }
   },
-  "detect": {
-    "title": "Review the offset",
+  "offset": {
+    "title": "Adjust the offset",
     "description": "The value below is what will be applied. Adjust it if the result is close but not exact.",
-    "running": "Analysing the audio… {{seconds}}s",
-    "retry": "Try again",
     "detected": "Detected offset",
     "confidence": "Confidence",
     "confidenceValue": "{{percent}}%",
     "back": "Back",
-    "continue": "Continue"
-  },
-  "offset": {
+    "continue": "Continue",
     "label": "Offset in milliseconds",
     "seconds": "{{seconds}} seconds",
     "hint": "A positive value delays the subtitles; a negative one makes them appear sooner.",

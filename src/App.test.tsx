@@ -217,7 +217,7 @@ describe("app shell", () => {
     await screen.findByTitle("/m/episode.srt");
     await userEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(
-      await screen.findByRole("heading", { name: "How should the offset be found?" }),
+      await screen.findByRole("heading", { name: "Detect the offset automatically?" }),
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: /Back to home/ }));

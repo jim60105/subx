@@ -179,6 +179,23 @@ describe("the translate batch bar", () => {
   });
 });
 
+describe("the sync detect step", () => {
+  const css = read("features", "sync", "SyncDetectStep.css");
+
+  /// The waiting illustration is decorative; under reduced motion it stays
+  /// still and the elapsed seconds carry the progress on their own.
+  it("stops the waiting illustration under reduced motion", () => {
+    const block = blockOf(css, "@media (prefers-reduced-motion: reduce)");
+
+    expect(declarationsOf(block, ".sync-detect__bar")).toMatch(/animation:\s*none/);
+    // The animation starts under the listening selector, which outranks the
+    // bare class, so the reduced-motion rule has to name it as well.
+    expect(block).toMatch(
+      /\.sync-detect__instrument\[data-listening="true"\] \.sync-detect__bar,\s*\.sync-detect__bar\s*\{[^}]*animation:\s*none/,
+    );
+  });
+});
+
 describe("the convert source list", () => {
   // `GroupedFileList` is built to be a pinned step's only scroller
   // (`flex: 1 1 0`). The convert step keeps natural height inside the

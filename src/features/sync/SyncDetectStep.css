@@ -6,6 +6,13 @@
 
 .sync-detect__intro {
   display: flex;
+  gap: var(--space-5);
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.sync-detect__lede {
+  display: flex;
   flex-direction: column;
   gap: var(--space-1);
 }
@@ -22,78 +29,123 @@
   color: var(--ink-2);
 }
 
-.sync-detect__running {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  align-items: center;
-  padding: var(--space-5);
-  border-bottom: 1px solid var(--hair);
+/* The seconds are the only figure while detecting: no percentage exists. */
+.sync-detect__clock {
+  flex-shrink: 0;
+  margin: 0;
+  font-size: var(--text-3xl);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  white-space: nowrap;
 }
 
-.sync-detect__status {
+/*
+ * One instrument for all three states: still hairline bars that turn to ink
+ * and move only while listening. A fixed height keeps the step from growing a
+ * scrollbar in the smallest window.
+ */
+.sync-detect__instrument {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+  height: 5rem;
+  padding: var(--space-3) 0;
+  border-block: 1px solid var(--hair);
+}
+
+.sync-detect__bar {
+  /* Per-bar height and stagger come from the inline style; these are the
+     fallbacks. */
+  --h: 0.5;
+  --n: 0;
+
+  flex: 1;
+  height: calc(var(--h) * 100%);
+  min-height: 2px;
+  background: var(--hair);
+  transform: scaleY(0.55);
+  transition: background-color var(--motion-base) var(--ease-out);
+}
+
+.sync-detect__instrument[data-listening="true"] .sync-detect__bar {
+  background: var(--ink);
+  animation: sync-detect-hear 1.1s var(--ease-out) calc(var(--n) * 37ms) infinite alternate;
+}
+
+@keyframes sync-detect-hear {
+  from {
+    transform: scaleY(0.22);
+  }
+
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The listening selector is named too: on its own, the bare class would
+     lose to the more specific rule that starts the animation. */
+  .sync-detect__instrument[data-listening="true"] .sync-detect__bar,
+  .sync-detect__bar {
+    animation: none;
+  }
+}
+
+.sync-detect__needs-media {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--ink-2);
 }
 
-.sync-detect__spinner {
-  width: 2rem;
-  height: 2rem;
-  background: var(--accent);
-  border-radius: 50%;
-  animation: sync-detect-pulse 1.4s var(--ease-out) infinite;
-}
-
-@keyframes sync-detect-pulse {
-  0%,
-  100% {
-    opacity: 0.35;
-    transform: scale(0.85);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sync-detect__spinner {
-    animation: none;
-  }
-}
-
-.sync-detect__error {
+.sync-detect__panel {
   display: flex;
   flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sync-detect__sensitivity {
+  display: flex;
   gap: var(--space-3);
   align-items: flex-start;
 }
 
-.sync-detect__facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-5);
-  padding: var(--space-3);
-  margin: 0;
-  border-bottom: 1px solid var(--hair);
+.sync-detect__sensitivity-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
 }
 
-.sync-detect__fact {
+.sync-detect__track {
   display: flex;
+  flex: 1 1 12rem;
   flex-direction: column;
   gap: var(--space-1);
 }
 
-.sync-detect__fact-name {
+.sync-detect__slider {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.sync-detect__ends {
+  display: flex;
+  justify-content: space-between;
   font-size: var(--text-xs);
   color: var(--ink-3);
 }
 
-.sync-detect__fact-value {
-  margin: 0;
+.sync-detect__sensitivity-value {
+  min-width: 3rem;
   font-family: var(--font-mono);
-  font-size: var(--text-lg);
-  color: var(--ink);
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+  text-align: right;
+}
+
+.sync-detect__sensitivity-note {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
 }

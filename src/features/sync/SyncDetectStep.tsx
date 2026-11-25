@@ -1,21 +1,36 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ErrorNotice } from "../../components/ErrorNotice/ErrorNotice";
-import type { SyncDefaultsDto, SyncDetectionDto, SyncMethodDto } from "../../types/ipc";
-import { OffsetField } from "./OffsetField";
+import type { SyncDefaultsDto } from "../../types/ipc";
+import type { DetectPhase } from "./useSyncWizard";
 import "./SyncDetectStep.css";
 
 interface SyncDetectStepProps {
-  method: SyncMethodDto;
+  phase: DetectPhase;
+  /** Automatic detection is unavailable without a media file to listen to. */
+  hasMedia: boolean;
   defaults: SyncDefaultsDto | null;
-  isDetecting: boolean;
-  detection: SyncDetectionDto | null;
+  defaultsError: unknown;
+  sensitivity: number | null;
   detectError: unknown;
-  offsetMs: number;
-  offsetExceedsMax: boolean;
-  onOffsetChange: (offsetMs: number) => void;
+  onSensitivityChange: (sensitivity: number) => void;
 }
+
+/** How many bars the waiting illustration draws. */
+const BAR_COUNT = 48;
+
+/**
+ * Fixed heights for the illustration's bars, a shape that reads as speech
+ * without claiming to be the file's audio. It never changes, so it is computed
+ * once rather than on every elapsed-second render.
+ */
+const BARS: readonly CSSProperties[] = Array.from({ length: BAR_COUNT }, (_, i) => ({
+  "--h": (Math.abs(Math.sin(i * 0.37) * Math.cos(i * 0.113)) * 0.8 + 0.08).toFixed(3),
+  // Staggers the listening animation so the bars do not move in unison.
+  "--n": i % 23,
+}) as CSSProperties);
 
 /**
  * Seconds since the detection began.
@@ -40,82 +55,96 @@ function useElapsedSeconds(running: boolean): number {
   return elapsed;
 }
 
+const INTRO_KEY: Record<DetectPhase, string> = {
+  ask: "ask",
+  detecting: "running",
+  failed: "failed",
+};
+
 /**
- * Step 3: run the detection, then review what to apply.
+ * Step 2: whether to detect the offset, the wait while it runs, and a failure.
  *
- * The offset lands in an editable field because fine-tuning it is the feature,
- * not a risk — what gets applied is the reviewed value, whether detection
- * produced it or the user typed it. Confidence and the engine's warnings are
- * shown rather than acted on: a threshold to refuse on would be product policy
- * the crate makes no claim about. Retrying and abandoning the detection are
- * the wizard's action bar.
+ * Every choice — start, skip, keep, retry, cancel — is the wizard's action bar;
+ * this step only shows the state. The sensitivity control is seeded from the
+ * shared configuration and never writes to it: the value travels with the one
+ * detection it belongs to. The illustration is decorative and the same in all
+ * three states; only while detecting does it move.
  */
 export function SyncDetectStep({
-  method,
+  phase,
+  hasMedia,
   defaults,
-  isDetecting,
-  detection,
+  defaultsError,
+  sensitivity,
   detectError,
-  offsetMs,
-  offsetExceedsMax,
-  onOffsetChange,
+  onSensitivityChange,
 }: SyncDetectStepProps) {
   const { t } = useTranslation("sync");
-  const elapsed = useElapsedSeconds(isDetecting);
-  // Manual mode never detects, so its entered value is already the reviewed one.
-  const reviewable = method === "manual" || detection !== null;
+  const sensitivityHintId = useId();
+  const detecting = phase === "detecting";
+  const elapsed = useElapsedSeconds(detecting);
+  const intro = INTRO_KEY[phase];
 
   return (
     <div className="sync-detect">
       <header className="sync-detect__intro">
-        <h2 className="sync-detect__title">{t("detect.title")}</h2>
-        <p className="sync-detect__description">{t("detect.description")}</p>
+        <div className="sync-detect__lede">
+          <h2 className="sync-detect__title">{t(`detect.${intro}.title`)}</h2>
+          <p className="sync-detect__description">{t(`detect.${intro}.description`)}</p>
+        </div>
+        {detecting && (
+          <p className="sync-detect__clock serif" role="status">
+            {t("detect.elapsed", { seconds: elapsed })}
+          </p>
+        )}
       </header>
 
-      {isDetecting && (
-        <div className="sync-detect__running">
-          <p className="sync-detect__status" role="status">
-            {t("detect.running", { seconds: elapsed })}
-          </p>
-          <span className="sync-detect__spinner" aria-hidden="true" />
-        </div>
-      )}
+      {defaultsError !== undefined && <ErrorNotice error={defaultsError} role="status" />}
 
-      {!isDetecting && detectError !== undefined && (
-        <div className="sync-detect__error">
-          <ErrorNotice error={detectError} role="status" />
-        </div>
-      )}
-
-      {!isDetecting && detection !== null && (
-        <dl className="sync-detect__facts">
-          <div className="sync-detect__fact">
-            <dt className="sync-detect__fact-name">{t("detect.detected")}</dt>
-            <dd className="sync-detect__fact-value">
-              {t("offset.seconds", { seconds: (detection.offsetMs / 1000).toFixed(3) })}
-            </dd>
-          </div>
-          <div className="sync-detect__fact">
-            <dt className="sync-detect__fact-name">{t("detect.confidence")}</dt>
-            <dd className="sync-detect__fact-value">
-              {t("detect.confidenceValue", { percent: detection.confidence })}
-            </dd>
-          </div>
-        </dl>
-      )}
-
-      {!isDetecting &&
-        detection?.warnings.map((warning, index) => (
-          <ErrorNotice key={`${warning.code}-${index}`} error={warning} role="status" />
+      <div className="sync-detect__instrument" aria-hidden="true" data-listening={detecting}>
+        {BARS.map((style, index) => (
+          <span key={index} className="sync-detect__bar" style={style} />
         ))}
+      </div>
 
-      {!isDetecting && reviewable && (
-        <OffsetField
-          offsetMs={offsetMs}
-          maxOffsetMs={defaults?.maxOffsetMs ?? null}
-          exceedsMax={offsetExceedsMax}
-          onChange={onOffsetChange}
-        />
+      {phase === "failed" && <ErrorNotice error={detectError} role="status" />}
+
+      {!detecting && !hasMedia && (
+        <p className="sync-detect__needs-media">{t("detect.needsMedia")}</p>
+      )}
+
+      {!detecting && hasMedia && (
+        <div className="sync-detect__panel">
+          <label className="sync-detect__sensitivity">
+            <span className="sync-detect__sensitivity-label">{t("detect.sensitivity.label")}</span>
+            {/* The end labels replace the sentence that explained the scale;
+                they are visual, and the sentence stays as the description. */}
+            <span className="sync-detect__track">
+              <input
+                type="range"
+                className="sync-detect__slider"
+                min={0}
+                max={100}
+                step={5}
+                value={sensitivity ?? 50}
+                disabled={defaults === null}
+                aria-describedby={sensitivityHintId}
+                onChange={(event) => onSensitivityChange(Number(event.target.value))}
+              />
+              <span className="sync-detect__ends" aria-hidden="true">
+                <span>{t("detect.sensitivity.low")}</span>
+                <span>{t("detect.sensitivity.high")}</span>
+              </span>
+            </span>
+            <span className="sync-detect__sensitivity-value">
+              {t("detect.sensitivity.value", { percent: sensitivity ?? 0 })}
+            </span>
+          </label>
+          <p id={sensitivityHintId} className="visually-hidden">
+            {t("detect.sensitivity.hint")}
+          </p>
+          <p className="sync-detect__sensitivity-note">{t("detect.sensitivity.perRun")}</p>
+        </div>
       )}
     </div>
   );
