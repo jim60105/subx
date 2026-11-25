@@ -20,10 +20,10 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use subx_core::core::sync::create_default_output_path;
 use subx_core::config::ConfigService;
 use subx_core::core::formats::manager::FormatManager;
 use subx_core::core::formats::Subtitle;
+use subx_core::core::sync::create_default_output_path;
 use subx_core::core::sync::{SyncEngine, SyncMethod};
 use tauri::State;
 
@@ -294,8 +294,14 @@ fn shift_subtitle(subtitle: &mut Subtitle, offset_seconds: f32) -> Result<(), Er
 
     for entry in &mut subtitle.entries {
         if offset_seconds >= 0.0 {
-            entry.start_time = entry.start_time.checked_add(magnitude).ok_or_else(overflowed)?;
-            entry.end_time = entry.end_time.checked_add(magnitude).ok_or_else(overflowed)?;
+            entry.start_time = entry
+                .start_time
+                .checked_add(magnitude)
+                .ok_or_else(overflowed)?;
+            entry.end_time = entry
+                .end_time
+                .checked_add(magnitude)
+                .ok_or_else(overflowed)?;
         } else {
             entry.start_time = entry.start_time.saturating_sub(magnitude);
             entry.end_time = entry.end_time.saturating_sub(magnitude);
@@ -453,8 +459,12 @@ mod tests {
     #[test]
     fn the_defaults_are_read_from_the_shared_configuration() {
         let service = service();
-        service.set_config_value("sync.vad.sensitivity", "0.4").unwrap();
-        service.set_config_value("sync.max_offset_seconds", "45.0").unwrap();
+        service
+            .set_config_value("sync.vad.sensitivity", "0.4")
+            .unwrap();
+        service
+            .set_config_value("sync.max_offset_seconds", "45.0")
+            .unwrap();
 
         let defaults = sync_defaults(&service).expect("the defaults must be readable");
 
@@ -471,7 +481,9 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let subtitle = subtitle_at(&dir, "episode.srt");
         let service = service();
-        service.set_config_value("sync.vad.sensitivity", "0.4").unwrap();
+        service
+            .set_config_value("sync.vad.sensitivity", "0.4")
+            .unwrap();
         let service: Arc<dyn ConfigService> = Arc::new(service);
 
         // The media file is nonsense, so the detection fails — but only *after*
@@ -597,7 +609,10 @@ mod tests {
         let result = apply_sync_offset_impl(&service(), &subtitle, 1_000, None, false)
             .expect("the apply must succeed");
 
-        assert_eq!(PathBuf::from(&result.output_path), dir.path().join("movie_synced.srt"));
+        assert_eq!(
+            PathBuf::from(&result.output_path),
+            dir.path().join("movie_synced.srt")
+        );
         assert!(!result.overwritten);
         assert_eq!(first_cue_ms(Path::new(&result.output_path)), (6_000, 8_000));
         assert_eq!(
@@ -651,7 +666,12 @@ mod tests {
             .iter()
             .enumerate()
             .map(|(index, &start)| {
-                format!("{}\n{} --> {}\ncue\n\n", index + 1, srt_time(start), srt_time(start + 1_000))
+                format!(
+                    "{}\n{} --> {}\ncue\n\n",
+                    index + 1,
+                    srt_time(start),
+                    srt_time(start + 1_000)
+                )
             })
             .collect();
         fs::write(&path, srt).expect("the fixture must be writable");
@@ -661,10 +681,13 @@ mod tests {
             assert_eq!(subtitle.entries.len(), STARTS_MS.len());
 
             // Exactly the conversion `apply_sync_offset_impl` performs.
-            shift_subtitle(&mut subtitle, offset_ms as f32 / 1000.0).expect("the shift must succeed");
+            shift_subtitle(&mut subtitle, offset_ms as f32 / 1000.0)
+                .expect("the shift must succeed");
 
             for (entry, &start) in subtitle.entries.iter().zip(STARTS_MS.iter()) {
-                for (applied, original) in [(entry.start_time, start), (entry.end_time, start + 1_000)] {
+                for (applied, original) in
+                    [(entry.start_time, start), (entry.end_time, start + 1_000)]
+                {
                     let previewed = (original as i64 + i64::from(offset_ms)).max(0) as f64;
                     let applied_ms = applied.as_nanos() as f64 / 1_000_000.0;
                     assert!(
@@ -693,7 +716,9 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let subtitle = subtitle_at(&dir, "movie.srt");
         let service = service();
-        service.set_config_value("sync.max_offset_seconds", "30.0").unwrap();
+        service
+            .set_config_value("sync.max_offset_seconds", "30.0")
+            .unwrap();
 
         let error = apply_sync_offset_impl(&service, &subtitle, 45_000, None, false)
             .expect_err("an over-limit offset must be rejected");
@@ -717,7 +742,11 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let subtitle = subtitle_at(&dir, "movie.srt");
         let output = dir.path().join("movie_synced.srt");
-        fs::write(&output, "1\n00:00:01,000 --> 00:00:02,000\nthe previous output\n\n").unwrap();
+        fs::write(
+            &output,
+            "1\n00:00:01,000 --> 00:00:02,000\nthe previous output\n\n",
+        )
+        .unwrap();
 
         let error = apply_sync_offset_impl(&service(), &subtitle, 1_000, None, false)
             .expect_err("an existing output must be refused");
@@ -855,7 +884,9 @@ mod tests {
 
         if cfg!(any(target_os = "macos", target_os = "windows")) {
             assert_eq!(
-                outcome.expect_err("one file must not be its own output").code,
+                outcome
+                    .expect_err("one file must not be its own output")
+                    .code,
                 CODE_OUTPUT_IS_INPUT
             );
             assert_eq!(
@@ -888,7 +919,11 @@ mod tests {
         assert_eq!(ratio_to_percent(0.4), 40);
         assert_eq!(ratio_to_percent(0.755), 76);
         assert_eq!(ratio_to_percent(1.0), 100);
-        assert_eq!(ratio_to_percent(f32::NAN), 0, "NaN must not cross as a percentage");
+        assert_eq!(
+            ratio_to_percent(f32::NAN),
+            0,
+            "NaN must not cross as a percentage"
+        );
         assert_eq!(ratio_to_percent(2.5), 100);
         assert_eq!(ratio_to_percent(-1.0), 0);
         assert_eq!(percent_to_ratio(40), 0.4);

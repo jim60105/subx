@@ -1,7 +1,9 @@
-import { screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactElement } from "react";
+import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithI18n, setupI18n } from "../../test/renderWithI18n";
+import { i18n, renderWithI18n, setupI18n } from "../../test/renderWithI18n";
 import { WizardShell, stepState } from "./WizardShell";
 import type { WizardStep } from "./WizardShell";
 
@@ -298,5 +300,118 @@ describe("WizardShell", () => {
     const next = screen.getByRole("button", { name: "Converting…" });
     expect(next).toBeDisabled();
     await userEvent.click(next);
+  });
+});
+
+describe("secondary takeFocus", () => {
+  beforeEach(async () => {
+    await setupI18n("en");
+  });
+
+  /** The tree `renderWithI18n` builds, so `rerender` updates rather than remounts. */
+  const wrapped = (ui: ReactElement) => <I18nextProvider i18n={i18n}>{ui}</I18nextProvider>;
+  const button = (name: string) => screen.getByRole("button", { name });
+
+  // @covers app-shell/secondary-action-can-take-keyboard-focus#focus-moves-from-a-control-that-became-disabled
+  it("moves focus from a control that became disabled", () => {
+    const onClick = vi.fn();
+    const { rerender } = renderWithI18n(
+      <WizardShell
+        steps={STEPS}
+        activeStep={1}
+        secondary={{ label: "Skip" }}
+        next={{ label: "Start", onClick }}
+      >
+        <p>content</p>
+      </WizardShell>,
+    );
+    act(() => button("Start").focus());
+
+    rerender(
+      wrapped(
+        <WizardShell
+          steps={STEPS}
+          activeStep={1}
+          secondary={{ label: "Cancel", takeFocus: true }}
+          next={{ label: "Working", disabled: true }}
+        >
+          <p>content</p>
+        </WizardShell>,
+      ),
+    );
+
+    expect(document.activeElement).toBe(button("Cancel"));
+  });
+
+  // @covers app-shell/secondary-action-can-take-keyboard-focus#focus-moves-when-the-focused-control-is-removed
+  it("moves focus when the focused control is removed", () => {
+    const { rerender } = renderWithI18n(
+      <WizardShell steps={STEPS} activeStep={1} secondary={[{ label: "Skip" }, { label: "Start" }]}>
+        <p>content</p>
+      </WizardShell>,
+    );
+    act(() => button("Start").focus());
+
+    rerender(
+      wrapped(
+        <WizardShell steps={STEPS} activeStep={1} secondary={{ label: "Cancel", takeFocus: true }}>
+          <p>content</p>
+        </WizardShell>,
+      ),
+    );
+
+    expect(document.activeElement).toBe(button("Cancel"));
+  });
+
+  // @covers app-shell/secondary-action-can-take-keyboard-focus#focus-outside-the-action-bar-is-not-taken
+  it("does not take focus from outside the action bar", () => {
+    const { rerender } = renderWithI18n(
+      <WizardShell steps={STEPS} activeStep={1} secondary={{ label: "Skip" }}>
+        <input aria-label="Field" />
+      </WizardShell>,
+    );
+    const field = screen.getByRole("textbox", { name: "Field" });
+    act(() => field.focus());
+
+    rerender(
+      wrapped(
+        <WizardShell steps={STEPS} activeStep={1} secondary={{ label: "Cancel", takeFocus: true }}>
+          <input aria-label="Field" />
+        </WizardShell>,
+      ),
+    );
+
+    expect(document.activeElement).toBe(field);
+  });
+
+  // @covers app-shell/secondary-action-can-take-keyboard-focus#a-mark-that-stays-does-not-take-focus-again
+  it("does not take focus again while the mark stays", () => {
+    const { rerender } = renderWithI18n(
+      <WizardShell
+        steps={STEPS}
+        activeStep={1}
+        back={{ label: "Back" }}
+        secondary={{ label: "Cancel", takeFocus: true }}
+      >
+        <p>content</p>
+      </WizardShell>,
+    );
+    expect(document.activeElement).toBe(button("Cancel"));
+    act(() => button("Back").focus());
+
+    rerender(
+      wrapped(
+        <WizardShell
+          steps={STEPS}
+          activeStep={1}
+          back={{ label: "Back" }}
+          secondary={{ label: "Stop", takeFocus: true }}
+        >
+          <p>content</p>
+        </WizardShell>,
+      ),
+    );
+
+    expect(document.activeElement).toBe(button("Back"));
   });
 });

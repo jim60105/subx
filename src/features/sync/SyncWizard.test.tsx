@@ -14,6 +14,7 @@ import * as pickers from "../../platform/filePickers";
 import * as previewApi from "./previewApi";
 import * as api from "./syncWizardApi";
 import { resetPreviewQueueForTests } from "./usePreviewSession";
+import { resetPendingCancelForTests } from "./useSyncWizard";
 
 const MEDIA = "/m/episode.mkv";
 const SUBTITLE = "/m/episode.srt";
@@ -118,6 +119,7 @@ beforeEach(async () => {
     overwritten: false,
   });
   resetPreviewQueueForTests();
+  resetPendingCancelForTests();
   vi.mocked(previewApi.loadPreviewCues).mockResolvedValue([]);
   vi.mocked(previewApi.openPreview).mockResolvedValue(PREVIEW_SESSION);
   vi.mocked(previewApi.closePreview).mockResolvedValue(undefined);
@@ -482,7 +484,7 @@ describe("the sync wizard", () => {
     renderWizard();
     await reachDetect(user, false);
     await user.click(primary());
-    await user.click(screen.getByRole("button", { name: "Increase by 50 ms" }));
+    await user.click(screen.getByRole("button", { name: /^\+50 ms/ }));
 
     await user.click(within(actionBar()).getByRole("button", { name: "Back" }));
 
@@ -796,5 +798,38 @@ describe("the offset step preview", () => {
     expect(await screen.findByText("The subtitle file could not be parsed.")).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Play" })).toBeEnabled();
     expect(within(actionBar()).getByRole("button", { name: "Continue" })).toBeEnabled();
+  });
+});
+
+describe("keyboard focus when detection starts", () => {
+  // @covers sync-workflow/starting-detection-keeps-keyboard-focus#start-from-the-primary-position
+  it("moves focus to Cancel when detection starts from the primary position", async () => {
+    const run = deferred<SyncDetectionDto>();
+    vi.mocked(api.detectSyncOffset).mockReturnValue(run.promise);
+    const user = userEvent.setup();
+    renderWizard();
+    await reachDetect(user);
+
+    act(() => primary().focus());
+    await user.keyboard("{Enter}");
+
+    expect(document.activeElement).toBe(within(actionBar()).getByRole("button", { name: "Cancel" }));
+    await act(async () => run.resolve(DETECTION));
+  });
+
+  // @covers sync-workflow/starting-detection-keeps-keyboard-focus#start-from-a-secondary-position
+  it("moves focus to Cancel when detection starts from a secondary position", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachOffset(user);
+    await user.click(within(actionBar()).getByRole("button", { name: "Back" }));
+    const run = deferred<SyncDetectionDto>();
+    vi.mocked(api.detectSyncOffset).mockReturnValue(run.promise);
+
+    act(() => within(actionBar()).getByRole("button", { name: "Start detection" }).focus());
+    await user.keyboard("{Enter}");
+
+    expect(document.activeElement).toBe(within(actionBar()).getByRole("button", { name: "Cancel" }));
+    await act(async () => run.resolve(DETECTION));
   });
 });

@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SyncDetectionDto } from "../../types/ipc";
-import { defaultOutputPath, useSyncWizard } from "./useSyncWizard";
+import { defaultOutputPath, resetPendingCancelForTests, useSyncWizard } from "./useSyncWizard";
 
 vi.mock("./syncWizardApi");
 import * as api from "./syncWizardApi";
@@ -43,6 +43,7 @@ async function withDetection() {
 }
 
 beforeEach(() => {
+  resetPendingCancelForTests();
   vi.mocked(api.getSyncDefaults).mockResolvedValue({
     defaultMethod: "auto",
     vadSensitivity: 40,
@@ -272,5 +273,61 @@ describe("the proposed output path", () => {
 
   it("treats a leading dot as a hidden name, not an extension", () => {
     expect(defaultOutputPath("/media/.srt")).toBe("/media/.srt");
+  });
+});
+
+describe("leaving the wizard", () => {
+  // @covers sync-workflow/leaving-the-wizard-cancels-a-running-detection#navigating-away-mid-detection-cancels-the-run
+  it("cancels a running detection when the wizard is unmounted", async () => {
+    const run = deferred<SyncDetectionDto>();
+    vi.mocked(api.detectSyncOffset).mockReturnValue(run.promise);
+    const errors = vi.spyOn(console, "error");
+    try {
+      const { result, unmount } = await onDetectStep();
+      act(() => result.current.startDetection());
+      await waitFor(() => expect(api.detectSyncOffset).toHaveBeenCalledTimes(1));
+
+      vi.mocked(api.cancelSyncDetection).mockClear();
+      unmount();
+
+      expect(api.cancelSyncDetection).toHaveBeenCalledTimes(1);
+      await act(async () => run.resolve(DETECTION));
+      expect(errors).not.toHaveBeenCalled();
+    } finally {
+      errors.mockRestore();
+    }
+  });
+
+  // @covers sync-workflow/leaving-the-wizard-cancels-a-running-detection#a-new-wizard-waits-for-the-previous-cancel
+  it("makes a newly mounted wizard wait for the previous wizard's cancel", async () => {
+    vi.mocked(api.detectSyncOffset).mockReturnValueOnce(new Promise(() => {}));
+    const first = await onDetectStep();
+    act(() => first.result.current.startDetection());
+    await waitFor(() => expect(api.detectSyncOffset).toHaveBeenCalledTimes(1));
+
+    const cancel = deferred<void>();
+    vi.mocked(api.cancelSyncDetection).mockReturnValueOnce(cancel.promise);
+    vi.mocked(api.cancelSyncDetection).mockClear();
+    first.unmount();
+    expect(api.cancelSyncDetection).toHaveBeenCalledTimes(1);
+
+    const second = await onDetectStep();
+    act(() => second.result.current.startDetection());
+    await act(async () => {});
+    expect(api.detectSyncOffset).toHaveBeenCalledTimes(1);
+
+    await act(async () => cancel.resolve());
+    await waitFor(() => expect(api.detectSyncOffset).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(second.result.current.step).toBe("offset"));
+  });
+
+  // @covers sync-workflow/leaving-the-wizard-cancels-a-running-detection#unmounting-while-idle-sends-nothing
+  it("sends no cancel when the wizard is unmounted with no detection running", async () => {
+    const { unmount } = await onDetectStep();
+
+    vi.mocked(api.cancelSyncDetection).mockClear();
+    unmount();
+
+    expect(api.cancelSyncDetection).not.toHaveBeenCalled();
   });
 });

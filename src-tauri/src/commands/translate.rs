@@ -29,9 +29,9 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, PoisonError};
 
-use subx_core::core::input::{CollectedFiles, InputPathHandler};
 use subx_core::config::ConfigService;
 use subx_core::core::formats::manager::FormatManager;
+use subx_core::core::input::{CollectedFiles, InputPathHandler};
 use subx_core::core::matcher::{FileDiscovery, MediaFileType};
 use subx_core::core::report::{ProgressEvent, Reporter, TranslationPass, TranslationProgress};
 use subx_core::core::translation::{parse_glossary_text, TranslationEngine, TranslationRequest};
@@ -49,7 +49,9 @@ use crate::dto::{
 };
 use crate::error::ErrorDto;
 use crate::paths::{is_portal_document_entry, path_key, WriteGuard, CODE_PORTAL_DOCUMENT_TARGET};
-use crate::state::{AppState, TranslateExecutionInputs, TranslatePlan, TranslatePlanItem, TranslateState};
+use crate::state::{
+    AppState, TranslateExecutionInputs, TranslatePlan, TranslatePlanItem, TranslateState,
+};
 
 // Stable error codes the frontend localizes (design D6). Kept as literals so
 // `backendCodeParity.test.ts` can find them and demand `en`/`zh-TW` strings.
@@ -145,14 +147,18 @@ pub async fn cancel_translation(state: State<'_, AppState>) -> Result<(), ErrorD
 /// outright, unlike `MatchEngine`), so the seam matches the constructor it
 /// feeds rather than mirroring `commands::r#match`'s `Box` verbatim.
 pub trait AiProviderFactory: Send + Sync {
-    fn create_provider(&self, service: &dyn ConfigService) -> Result<Arc<dyn AIProvider>, ErrorDto>;
+    fn create_provider(&self, service: &dyn ConfigService)
+        -> Result<Arc<dyn AIProvider>, ErrorDto>;
 }
 
 /// The production factory: builds the provider from the shared config.
 struct ProductionAiFactory;
 
 impl AiProviderFactory for ProductionAiFactory {
-    fn create_provider(&self, service: &dyn ConfigService) -> Result<Arc<dyn AIProvider>, ErrorDto> {
+    fn create_provider(
+        &self,
+        service: &dyn ConfigService,
+    ) -> Result<Arc<dyn AIProvider>, ErrorDto> {
         // Reload first: the user may have just configured the provider on the
         // Settings screen, and `ProductionConfigService` caches the file.
         service.reload().map_err(ErrorDto::from)?;
@@ -415,7 +421,10 @@ async fn run_batch(
 ) -> Result<TranslationReportDto, ErrorDto> {
     // A plan is translated once; consuming it here drops its `CollectedFiles`
     // when we return, which is what deletes the archive-extraction temp dirs.
-    let plan = translate_state.take_plan_if(plan_id).await.ok_or_else(stale_plan)?;
+    let plan = translate_state
+        .take_plan_if(plan_id)
+        .await
+        .ok_or_else(stale_plan)?;
     let TranslateExecutionInputs {
         target_language,
         source_language,
@@ -453,7 +462,10 @@ async fn run_batch(
         .filter(|item| selected.contains(&item.id))
         .collect();
 
-    let BatchResult { outcomes, cancelled } = translate_batch_off_thread(
+    let BatchResult {
+        outcomes,
+        cancelled,
+    } = translate_batch_off_thread(
         provider,
         config.translation.batch_size,
         config.general.backup_enabled,
@@ -644,7 +656,10 @@ async fn translate_one(
         record.backup_path = Some(backup.display().to_string());
     }
 
-    if let Err(err) = engine.format_manager().save_subtitle(&result.subtitle, &item.output) {
+    if let Err(err) = engine
+        .format_manager()
+        .save_subtitle(&result.subtitle, &item.output)
+    {
         record.status = TranslationStatusDto::Failed;
         record.error = Some(ErrorDto::from(err));
         return record;
@@ -951,17 +966,15 @@ fn attribute_source(path: &Path, sources: &SourceKeys, collected: &CollectedFile
         .iter()
         .find(|(raw, key)| resolved.starts_with(key) || path.starts_with(raw))
         .map(|(raw, _)| raw.to_string_lossy().to_string())
-        .unwrap_or_else(|| {
-            path.parent()
-                .unwrap_or(path)
-                .to_string_lossy()
-                .to_string()
-        })
+        .unwrap_or_else(|| path.parent().unwrap_or(path).to_string_lossy().to_string())
 }
 
 /// The effective target language using CLI > config precedence (design D5),
 /// mirroring `translate_command.rs`'s private `resolve_target_language`.
-fn resolve_target_language(per_run: Option<&str>, default: Option<&str>) -> Result<String, ErrorDto> {
+fn resolve_target_language(
+    per_run: Option<&str>,
+    default: Option<&str>,
+) -> Result<String, ErrorDto> {
     if let Some(value) = per_run {
         let trimmed = value.trim();
         if !trimmed.is_empty() {
@@ -995,7 +1008,10 @@ fn reject_path_like_language(language: &str) -> Result<(), ErrorDto> {
 /// `{stem}.{target-language}.{ext}`, mirroring `translate_command.rs`'s
 /// private `translated_file_name`.
 fn translated_file_name(input: &Path, target_language: &str) -> String {
-    let stem = input.file_stem().and_then(|s| s.to_str()).unwrap_or("subtitle");
+    let stem = input
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("subtitle");
     let ext = input.extension().and_then(|s| s.to_str()).unwrap_or("srt");
     format!("{stem}.{target_language}.{ext}")
 }
@@ -1041,7 +1057,11 @@ fn display_name(path: &Path) -> String {
 }
 
 /// A blank outcome for one item, filled in by the caller.
-fn blank_outcome(item: &TranslatePlanItem, name: &str, status: TranslationStatusDto) -> TranslationOutcomeDto {
+fn blank_outcome(
+    item: &TranslatePlanItem,
+    name: &str,
+    status: TranslationStatusDto,
+) -> TranslationOutcomeDto {
     TranslationOutcomeDto {
         input_name: name.to_string(),
         output_path: item.output.display().to_string(),
@@ -1104,8 +1124,11 @@ fn map_provider_error(err: SubXError) -> ErrorDto {
 }
 
 fn no_subtitles() -> ErrorDto {
-    ErrorDto::new(CODE_NO_SUBTITLES, "the sources hold no translatable subtitles")
-        .with_hint(HINT_NO_SUBTITLES)
+    ErrorDto::new(
+        CODE_NO_SUBTITLES,
+        "the sources hold no translatable subtitles",
+    )
+    .with_hint(HINT_NO_SUBTITLES)
 }
 
 fn no_target_language() -> ErrorDto {
@@ -1130,7 +1153,10 @@ fn stale_plan() -> ErrorDto {
 }
 
 fn translation_in_progress() -> ErrorDto {
-    ErrorDto::new(CODE_TRANSLATION_IN_PROGRESS, "a translation is already running")
+    ErrorDto::new(
+        CODE_TRANSLATION_IN_PROGRESS,
+        "a translation is already running",
+    )
 }
 
 #[cfg(test)]
@@ -1141,12 +1167,15 @@ mod tests {
 
     use async_trait::async_trait;
     use subx_core::config::{TestConfigBuilder, TestConfigService};
-    use subx_core::services::ai::{AnalysisRequest, ConfidenceScore, MatchResult, VerificationRequest};
+    use subx_core::services::ai::{
+        AnalysisRequest, ConfidenceScore, MatchResult, VerificationRequest,
+    };
     use tempfile::TempDir;
 
     use super::*;
 
-    const SRT: &str = "1\n00:00:01,000 --> 00:00:02,000\nhello\n\n2\n00:00:03,000 --> 00:00:04,000\nworld\n\n";
+    const SRT: &str =
+        "1\n00:00:01,000 --> 00:00:02,000\nhello\n\n2\n00:00:03,000 --> 00:00:04,000\nworld\n\n";
 
     // ─── Test doubles and builders ──────────────────────────────────────────
 
@@ -1217,11 +1246,17 @@ mod tests {
             unimplemented!("the translate flow never matches")
         }
 
-        async fn verify_match(&self, _v: VerificationRequest) -> subx_core::Result<ConfidenceScore> {
+        async fn verify_match(
+            &self,
+            _v: VerificationRequest,
+        ) -> subx_core::Result<ConfidenceScore> {
             unimplemented!("the translate flow never verifies")
         }
 
-        async fn chat_completion(&self, messages: Vec<serde_json::Value>) -> subx_core::Result<String> {
+        async fn chat_completion(
+            &self,
+            messages: Vec<serde_json::Value>,
+        ) -> subx_core::Result<String> {
             let prompt = messages
                 .last()
                 .and_then(|m| m.get("content"))
@@ -1243,7 +1278,10 @@ mod tests {
                 .filter(|(index, _)| !self.drop_ids.contains(index))
                 .map(|(_, id)| format!(r#"{{"id":"{id}","text":"[{id}]"}}"#))
                 .collect();
-            Ok(format!(r#"{{"translations":[{}]}}"#, translations.join(",")))
+            Ok(format!(
+                r#"{{"translations":[{}]}}"#,
+                translations.join(",")
+            ))
         }
     }
 
@@ -1251,7 +1289,10 @@ mod tests {
         provider: Arc<ScriptedAi>,
     }
     impl AiProviderFactory for ScriptedAiFactory {
-        fn create_provider(&self, _service: &dyn ConfigService) -> Result<Arc<dyn AIProvider>, ErrorDto> {
+        fn create_provider(
+            &self,
+            _service: &dyn ConfigService,
+        ) -> Result<Arc<dyn AIProvider>, ErrorDto> {
             Ok(self.provider.clone())
         }
     }
@@ -1259,8 +1300,13 @@ mod tests {
     /// A factory that fails exactly as `create_ai_provider` does with no config.
     struct UnconfiguredAiFactory;
     impl AiProviderFactory for UnconfiguredAiFactory {
-        fn create_provider(&self, _service: &dyn ConfigService) -> Result<Arc<dyn AIProvider>, ErrorDto> {
-            Err(map_provider_error(SubXError::config("no provider configured")))
+        fn create_provider(
+            &self,
+            _service: &dyn ConfigService,
+        ) -> Result<Arc<dyn AIProvider>, ErrorDto> {
+            Err(map_provider_error(SubXError::config(
+                "no provider configured",
+            )))
         }
     }
 
@@ -1327,10 +1373,16 @@ mod tests {
         async fn analyze_content(&self, _r: AnalysisRequest) -> subx_core::Result<MatchResult> {
             unimplemented!()
         }
-        async fn verify_match(&self, _v: VerificationRequest) -> subx_core::Result<ConfidenceScore> {
+        async fn verify_match(
+            &self,
+            _v: VerificationRequest,
+        ) -> subx_core::Result<ConfidenceScore> {
             unimplemented!()
         }
-        async fn chat_completion(&self, messages: Vec<serde_json::Value>) -> subx_core::Result<String> {
+        async fn chat_completion(
+            &self,
+            messages: Vec<serde_json::Value>,
+        ) -> subx_core::Result<String> {
             tokio::task::yield_now().await;
             let prompt = last_prompt(&messages);
             let ids = extract_ids(&prompt);
@@ -1352,10 +1404,16 @@ mod tests {
         async fn analyze_content(&self, _r: AnalysisRequest) -> subx_core::Result<MatchResult> {
             unimplemented!()
         }
-        async fn verify_match(&self, _v: VerificationRequest) -> subx_core::Result<ConfidenceScore> {
+        async fn verify_match(
+            &self,
+            _v: VerificationRequest,
+        ) -> subx_core::Result<ConfidenceScore> {
             unimplemented!()
         }
-        async fn chat_completion(&self, messages: Vec<serde_json::Value>) -> subx_core::Result<String> {
+        async fn chat_completion(
+            &self,
+            messages: Vec<serde_json::Value>,
+        ) -> subx_core::Result<String> {
             let ids = extract_ids(&last_prompt(&messages));
             if ids.is_empty() {
                 return Ok(r#"{"terms":[]}"#.to_string());
@@ -1387,8 +1445,10 @@ mod tests {
     }
 
     fn echo(ids: &[String]) -> String {
-        let translations: Vec<String> =
-            ids.iter().map(|id| format!(r#"{{"id":"{id}","text":"[{id}]"}}"#)).collect();
+        let translations: Vec<String> = ids
+            .iter()
+            .map(|id| format!(r#"{{"id":"{id}","text":"[{id}]"}}"#))
+            .collect();
         format!(r#"{{"translations":[{}]}}"#, translations.join(","))
     }
 
@@ -1521,7 +1581,8 @@ mod tests {
     /// Stand-in portal guards: a real one keys off `/run/user/<uid>/doc/…`,
     /// which no test can create, so these name the output instead.
     fn blocks_movie_zh_tw_output(path: &Path) -> bool {
-        path.file_name().is_some_and(|name| name == "movie.zh-TW.srt")
+        path.file_name()
+            .is_some_and(|name| name == "movie.zh-TW.srt")
     }
 
     fn blocks_movie_srt_replace(path: &Path) -> bool {
@@ -1650,7 +1711,10 @@ mod tests {
     }
 
     fn sources_by_name(scan: &TranslateScanResult) -> Vec<(String, String)> {
-        scan.files.iter().map(|f| (f.name.clone(), f.source.clone())).collect()
+        scan.files
+            .iter()
+            .map(|f| (f.name.clone(), f.source.clone()))
+            .collect()
     }
 
     // @covers translate-workflow/multi-source-selection-with-cue-count-preview#each-scan-item-names-its-source
@@ -1665,8 +1729,11 @@ mod tests {
         let archive = dir.path().join("bundle.zip");
         write_zip(&archive, &[("archived.srt", SRT)]);
 
-        let scan = scan_translate_inputs(service().as_ref(), &[loose.clone(), folder.clone(), archive.clone()])
-            .expect("the scan must succeed");
+        let scan = scan_translate_inputs(
+            service().as_ref(),
+            &[loose.clone(), folder.clone(), archive.clone()],
+        )
+        .expect("the scan must succeed");
 
         let text = |path: &Path| path.to_string_lossy().to_string();
         assert_eq!(
@@ -1689,22 +1756,30 @@ mod tests {
         let folder = dir.path().to_path_buf();
         let text = |path: &Path| path.to_string_lossy().to_string();
 
-        let direct_first = scan_translate_inputs(service().as_ref(), &[file.clone(), folder.clone()]).unwrap();
+        let direct_first =
+            scan_translate_inputs(service().as_ref(), &[file.clone(), folder.clone()]).unwrap();
         let mut listed = sources_by_name(&direct_first);
         listed.sort();
         assert_eq!(
             listed,
-            [("one.srt".to_string(), text(&file)), ("two.srt".to_string(), text(&folder))]
+            [
+                ("one.srt".to_string(), text(&file)),
+                ("two.srt".to_string(), text(&folder))
+            ]
         );
 
         // The first source that produced the file wins, so the folder does
         // when it was added first.
-        let folder_first = scan_translate_inputs(service().as_ref(), &[folder.clone(), file.clone()]).unwrap();
+        let folder_first =
+            scan_translate_inputs(service().as_ref(), &[folder.clone(), file.clone()]).unwrap();
         let mut listed = sources_by_name(&folder_first);
         listed.sort();
         assert_eq!(
             listed,
-            [("one.srt".to_string(), text(&folder)), ("two.srt".to_string(), text(&folder))]
+            [
+                ("one.srt".to_string(), text(&folder)),
+                ("two.srt".to_string(), text(&folder))
+            ]
         );
     }
 
@@ -1716,12 +1791,16 @@ mod tests {
         fs::write(dir.path().join("outer.srt"), SRT).unwrap();
         fs::write(inner.join("inner.srt"), SRT).unwrap();
 
-        let scan = scan_translate_inputs(service().as_ref(), &[dir.path().to_path_buf(), inner]).unwrap();
+        let scan =
+            scan_translate_inputs(service().as_ref(), &[dir.path().to_path_buf(), inner]).unwrap();
 
         let mut names: Vec<String> = scan.files.iter().map(|f| f.name.clone()).collect();
         names.sort();
         assert_eq!(names, ["inner.srt", "outer.srt"]);
-        assert!(scan.files.iter().all(|f| f.source == dir.path().to_string_lossy()));
+        assert!(scan
+            .files
+            .iter()
+            .all(|f| f.source == dir.path().to_string_lossy()));
     }
 
     #[tokio::test]
@@ -1859,11 +1938,12 @@ mod tests {
     async fn no_configured_and_no_per_run_target_language_is_rejected() {
         let dir = TempDir::new().unwrap();
         fs::write(dir.path().join("episode.srt"), SRT).unwrap();
-        let service: Arc<dyn ConfigService> = Arc::new(TestConfigService::with_ai_settings_and_key(
-            "openai",
-            "gpt-4.1-mini",
-            "sk-test-value-1234",
-        ));
+        let service: Arc<dyn ConfigService> =
+            Arc::new(TestConfigService::with_ai_settings_and_key(
+                "openai",
+                "gpt-4.1-mini",
+                "sk-test-value-1234",
+            ));
 
         let error = preview(
             &service,
@@ -2049,8 +2129,11 @@ mod tests {
         .await
         .unwrap();
 
-        let runnable: Vec<&TranslateItemDto> =
-            plan.items.iter().filter(|item| item.skip_reason.is_none()).collect();
+        let runnable: Vec<&TranslateItemDto> = plan
+            .items
+            .iter()
+            .filter(|item| item.skip_reason.is_none())
+            .collect();
         assert_eq!(runnable.len(), 1, "one output path, one runnable item");
         let excluded: Vec<&TranslateItemDto> = plan
             .items
@@ -2085,7 +2168,9 @@ mod tests {
         let report = execute_translation_impl(
             Arc::clone(&service),
             Arc::clone(&state),
-            Arc::new(ScriptedAiFactory { provider: ScriptedAi::new() }),
+            Arc::new(ScriptedAiFactory {
+                provider: ScriptedAi::new(),
+            }),
             reporter.clone(),
             &plan.plan_id,
             &all_ids(&plan),
@@ -2098,7 +2183,11 @@ mod tests {
         assert!(!report.cancelled);
         let output = fs::read_to_string(dir.path().join("one.zh-TW.srt")).unwrap();
         assert!(output.contains("00:00:01,000 --> 00:00:02,000"), "{output}");
-        assert_eq!(output.matches("-->").count(), 2, "the cue count must survive");
+        assert_eq!(
+            output.matches("-->").count(),
+            2,
+            "the cue count must survive"
+        );
 
         let progress = reporter.seen();
         // Scan order follows the directory listing, so names are compared as
@@ -2129,7 +2218,10 @@ mod tests {
             progress.last().map(|entry| entry.stage.clone()),
             Some(TranslateStage::Finished)
         );
-        assert!(!state.is_running().await, "the execution slot must be released");
+        assert!(
+            !state.is_running().await,
+            "the execution slot must be released"
+        );
     }
 
     // @covers translate-workflow/translation-options-seeded-from-shared-configuration#glossary-lines-reach-the-translation-request
@@ -2155,7 +2247,9 @@ mod tests {
         execute_translation_impl(
             Arc::clone(&service),
             Arc::clone(&state),
-            Arc::new(ScriptedAiFactory { provider: provider.clone() }),
+            Arc::new(ScriptedAiFactory {
+                provider: provider.clone(),
+            }),
             Arc::new(RecordingReporter::default()),
             &plan.plan_id,
             &all_ids(&plan),
@@ -2165,7 +2259,9 @@ mod tests {
 
         let prompts = provider.terminology_prompts.lock().unwrap();
         assert!(
-            prompts.iter().any(|prompt| prompt.contains("Alice") && prompt.contains("愛麗絲")),
+            prompts
+                .iter()
+                .any(|prompt| prompt.contains("Alice") && prompt.contains("愛麗絲")),
             "the glossary text must reach the terminology prompt: {prompts:?}"
         );
     }
@@ -2198,7 +2294,9 @@ mod tests {
         let report = execute_translation_impl(
             Arc::clone(&service),
             Arc::clone(&state),
-            Arc::new(ScriptedAiFactory { provider: ScriptedAi::new() }),
+            Arc::new(ScriptedAiFactory {
+                provider: ScriptedAi::new(),
+            }),
             Arc::new(RecordingReporter::default()),
             &plan.plan_id,
             &all_ids(&plan),
@@ -2208,14 +2306,20 @@ mod tests {
 
         assert_eq!(report.success_count, 1, "{:?}", report.outcomes);
         let backup = fs::read_to_string(dir.path().join("movie.srt.backup")).unwrap();
-        assert!(backup.contains("hello"), "the backup must hold the original text: {backup}");
+        assert!(
+            backup.contains("hello"),
+            "the backup must hold the original text: {backup}"
+        );
         let replaced = fs::read_to_string(&path).unwrap();
         assert!(
             replaced.contains('['),
             "the replaced file must hold the translated text: {replaced}"
         );
         assert!(
-            report.outcomes[0].backup_path.as_deref().is_some_and(|p| p.ends_with("movie.srt.backup")),
+            report.outcomes[0]
+                .backup_path
+                .as_deref()
+                .is_some_and(|p| p.ends_with("movie.srt.backup")),
             "{:?}",
             report.outcomes[0]
         );
@@ -2234,10 +2338,16 @@ mod tests {
             async fn analyze_content(&self, _r: AnalysisRequest) -> subx_core::Result<MatchResult> {
                 unimplemented!()
             }
-            async fn verify_match(&self, _v: VerificationRequest) -> subx_core::Result<ConfidenceScore> {
+            async fn verify_match(
+                &self,
+                _v: VerificationRequest,
+            ) -> subx_core::Result<ConfidenceScore> {
                 unimplemented!()
             }
-            async fn chat_completion(&self, messages: Vec<serde_json::Value>) -> subx_core::Result<String> {
+            async fn chat_completion(
+                &self,
+                messages: Vec<serde_json::Value>,
+            ) -> subx_core::Result<String> {
                 let prompt = messages
                     .last()
                     .and_then(|m| m.get("content"))
@@ -2251,14 +2361,22 @@ mod tests {
                 if ids.is_empty() {
                     return Ok(r#"{"terms":[]}"#.to_string());
                 }
-                let translations: Vec<String> =
-                    ids.iter().map(|id| format!(r#"{{"id":"{id}","text":"[{id}]"}}"#)).collect();
-                Ok(format!(r#"{{"translations":[{}]}}"#, translations.join(",")))
+                let translations: Vec<String> = ids
+                    .iter()
+                    .map(|id| format!(r#"{{"id":"{id}","text":"[{id}]"}}"#))
+                    .collect();
+                Ok(format!(
+                    r#"{{"translations":[{}]}}"#,
+                    translations.join(",")
+                ))
             }
         }
         struct KeywordFactory;
         impl AiProviderFactory for KeywordFactory {
-            fn create_provider(&self, _s: &dyn ConfigService) -> Result<Arc<dyn AIProvider>, ErrorDto> {
+            fn create_provider(
+                &self,
+                _s: &dyn ConfigService,
+            ) -> Result<Arc<dyn AIProvider>, ErrorDto> {
                 Ok(Arc::new(FailOnKeyword))
             }
         }
@@ -2333,7 +2451,9 @@ mod tests {
         let report = run_batch(
             Arc::clone(&service),
             Arc::clone(&state),
-            Arc::new(ScriptedAiFactory { provider: ScriptedAi::new() }),
+            Arc::new(ScriptedAiFactory {
+                provider: ScriptedAi::new(),
+            }),
             reporter,
             &plan.plan_id,
             &all_ids(&plan),
@@ -2343,13 +2463,20 @@ mod tests {
         .unwrap();
 
         assert!(report.cancelled);
-        assert_eq!(report.success_count, 1, "the first file finishes: {:?}", report.outcomes);
+        assert_eq!(
+            report.success_count, 1,
+            "the first file finishes: {:?}",
+            report.outcomes
+        );
         let cancelled_count = report
             .outcomes
             .iter()
             .filter(|o| o.status == TranslationStatusDto::Cancelled)
             .count();
-        assert_eq!(cancelled_count, 2, "the in-flight and unstarted files are both cancelled");
+        assert_eq!(
+            cancelled_count, 2,
+            "the in-flight and unstarted files are both cancelled"
+        );
         assert_eq!(
             fs::read_dir(dir.path())
                 .unwrap()
@@ -2400,7 +2527,9 @@ mod tests {
         let error = execute_translation_impl(
             service(),
             Arc::clone(&state),
-            Arc::new(ScriptedAiFactory { provider: ScriptedAi::new() }),
+            Arc::new(ScriptedAiFactory {
+                provider: ScriptedAi::new(),
+            }),
             Arc::new(RecordingReporter::default()),
             "translate-does-not-exist",
             &[0],
@@ -2410,7 +2539,10 @@ mod tests {
 
         assert_eq!(error.code, CODE_STALE_PLAN);
         assert_eq!(error.hint_code.as_deref(), Some(HINT_STALE_PLAN));
-        assert!(!state.is_running().await, "a rejected batch must not hold the execution slot");
+        assert!(
+            !state.is_running().await,
+            "a rejected batch must not hold the execution slot"
+        );
     }
 
     /// A second batch must not run alongside the first: they would race over
@@ -2419,12 +2551,17 @@ mod tests {
     #[tokio::test]
     async fn a_second_batch_is_rejected_while_one_is_running() {
         let state = Arc::new(TranslateState::default());
-        state.try_begin_execution().await.expect("the first batch reserves the slot");
+        state
+            .try_begin_execution()
+            .await
+            .expect("the first batch reserves the slot");
 
         let error = execute_translation_impl(
             service(),
             Arc::clone(&state),
-            Arc::new(ScriptedAiFactory { provider: ScriptedAi::new() }),
+            Arc::new(ScriptedAiFactory {
+                provider: ScriptedAi::new(),
+            }),
             Arc::new(RecordingReporter::default()),
             "translate-1",
             &[0],
@@ -2460,7 +2597,9 @@ mod tests {
         let report = execute_translation_impl(
             Arc::clone(&service),
             Arc::clone(&state),
-            Arc::new(ScriptedAiFactory { provider: ScriptedAi::new() }),
+            Arc::new(ScriptedAiFactory {
+                provider: ScriptedAi::new(),
+            }),
             Arc::new(RecordingReporter::default()),
             &plan.plan_id,
             &[excluded_id],
@@ -2501,7 +2640,9 @@ mod tests {
         let report = execute_translation_impl(
             Arc::clone(&service),
             Arc::clone(&state),
-            Arc::new(ScriptedAiFactory { provider: ScriptedAi::dropping_every_cue() }),
+            Arc::new(ScriptedAiFactory {
+                provider: ScriptedAi::dropping_every_cue(),
+            }),
             Arc::new(RecordingReporter::default()),
             &plan.plan_id,
             &all_ids(&plan),
@@ -2527,7 +2668,9 @@ mod tests {
         let (report, progress) = run_recorded(
             service_with_batch_size(100),
             vec![dir.path().to_path_buf()],
-            Arc::new(ScriptedAiFactory { provider: ScriptedAi::new() }),
+            Arc::new(ScriptedAiFactory {
+                provider: ScriptedAi::new(),
+            }),
             None,
         )
         .await;
@@ -2551,9 +2694,9 @@ mod tests {
         });
         expected.push(step(1, Finished, 0, 0, 0));
         assert_eq!(steps(&progress), expected);
-        assert!(progress[..progress.len() - 1].iter().all(|p| p.total_cues == 250
-            && p.batch_size == 100
-            && p.batch_total == 3));
+        assert!(progress[..progress.len() - 1]
+            .iter()
+            .all(|p| p.total_cues == 250 && p.batch_size == 100 && p.batch_total == 3));
     }
 
     // @covers translate-workflow/batch-level-progress-reporting#a-resent-batch-is-flagged
@@ -2561,7 +2704,9 @@ mod tests {
     async fn a_resent_batch_is_flagged_and_does_not_count_as_returned() {
         let dir = TempDir::new().unwrap();
         fs::write(dir.path().join("one.srt"), srt_with(3)).unwrap();
-        let provider: Arc<dyn AIProvider> = Arc::new(UnknownIdOnceAi { sent_bogus: Mutex::new(false) });
+        let provider: Arc<dyn AIProvider> = Arc::new(UnknownIdOnceAi {
+            sent_bogus: Mutex::new(false),
+        });
 
         let (report, progress) = run_recorded(
             service_with_batch_size(2),
@@ -2579,7 +2724,13 @@ mod tests {
             .collect();
         assert_eq!(
             batches,
-            [(1, 0, false), (1, 0, true), (0, 1, false), (2, 1, false), (0, 2, false)],
+            [
+                (1, 0, false),
+                (1, 0, true),
+                (0, 1, false),
+                (2, 1, false),
+                (0, 2, false)
+            ],
             "batch 1 is resent once, and only its resend's return counts"
         );
     }
@@ -2593,13 +2744,17 @@ mod tests {
         let (_, progress) = run_recorded(
             service(),
             vec![dir.path().to_path_buf()],
-            Arc::new(ScriptedAiFactory { provider: ScriptedAi::dropping_every_cue() }),
+            Arc::new(ScriptedAiFactory {
+                provider: ScriptedAi::dropping_every_cue(),
+            }),
             None,
         )
         .await;
 
-        let fill_in: Vec<&TranslateProgress> =
-            progress.iter().filter(|p| p.stage == TranslateStage::FillIn).collect();
+        let fill_in: Vec<&TranslateProgress> = progress
+            .iter()
+            .filter(|p| p.stage == TranslateStage::FillIn)
+            .collect();
         assert!(!fill_in.is_empty(), "{progress:?}");
         for snapshot in &fill_in {
             assert_eq!(snapshot.batch_in_flight, 0);
@@ -2621,10 +2776,16 @@ mod tests {
             async fn analyze_content(&self, _r: AnalysisRequest) -> subx_core::Result<MatchResult> {
                 unimplemented!()
             }
-            async fn verify_match(&self, _v: VerificationRequest) -> subx_core::Result<ConfidenceScore> {
+            async fn verify_match(
+                &self,
+                _v: VerificationRequest,
+            ) -> subx_core::Result<ConfidenceScore> {
                 unimplemented!()
             }
-            async fn chat_completion(&self, messages: Vec<serde_json::Value>) -> subx_core::Result<String> {
+            async fn chat_completion(
+                &self,
+                messages: Vec<serde_json::Value>,
+            ) -> subx_core::Result<String> {
                 let prompt = last_prompt(&messages);
                 if prompt.contains("BREAKME") {
                     return Err(SubXError::ai_service("scripted failure"));
@@ -2639,7 +2800,11 @@ mod tests {
 
         let dir = TempDir::new().unwrap();
         // `a` sorts first, so the failing file is the first of the two.
-        fs::write(dir.path().join("a.srt"), "1\n00:00:01,000 --> 00:00:02,000\nBREAKME\n\n").unwrap();
+        fs::write(
+            dir.path().join("a.srt"),
+            "1\n00:00:01,000 --> 00:00:02,000\nBREAKME\n\n",
+        )
+        .unwrap();
         fs::write(dir.path().join("b.srt"), SRT).unwrap();
 
         let (report, progress) = run_recorded(
@@ -2663,7 +2828,10 @@ mod tests {
                 (TranslateStage::FileDone, Some(TranslationStatusDto::Failed)),
             ]
         );
-        let done = progress.iter().position(|p| p.index == 1 && p.stage == TranslateStage::FileDone).unwrap();
+        let done = progress
+            .iter()
+            .position(|p| p.index == 1 && p.stage == TranslateStage::FileDone)
+            .unwrap();
         assert_eq!(
             (progress[done + 1].index, progress[done + 1].stage.clone()),
             (2, TranslateStage::Terminology)
@@ -2692,8 +2860,13 @@ mod tests {
         .await
         .unwrap();
         let (tx, rx) = watch::channel(false);
-        let reporter = Arc::new(CancelOnSecondFileBatch { tx, seen: Mutex::new(Vec::new()) });
-        let provider = Arc::new(YieldingAi { answered: Mutex::new(Vec::new()) });
+        let reporter = Arc::new(CancelOnSecondFileBatch {
+            tx,
+            seen: Mutex::new(Vec::new()),
+        });
+        let provider = Arc::new(YieldingAi {
+            answered: Mutex::new(Vec::new()),
+        });
 
         let report = run_batch(
             Arc::clone(&service),
@@ -2713,15 +2886,24 @@ mod tests {
             .iter()
             .position(|p| p.index == 2 && p.batch_in_flight == 1)
             .expect("the second file's first batch must have gone in flight");
-        let after: Vec<(u32, TranslateStage, Option<TranslationStatusDto>)> = progress[cancel_at + 1..]
+        let after: Vec<(u32, TranslateStage, Option<TranslationStatusDto>)> = progress
+            [cancel_at + 1..]
             .iter()
             .map(|p| (p.index, p.stage.clone(), p.outcome.clone()))
             .collect();
         assert_eq!(
             after,
             [
-                (2, TranslateStage::FileDone, Some(TranslationStatusDto::Cancelled)),
-                (3, TranslateStage::FileDone, Some(TranslationStatusDto::Cancelled)),
+                (
+                    2,
+                    TranslateStage::FileDone,
+                    Some(TranslationStatusDto::Cancelled)
+                ),
+                (
+                    3,
+                    TranslateStage::FileDone,
+                    Some(TranslationStatusDto::Cancelled)
+                ),
                 (3, TranslateStage::Finished, None),
             ]
         );
@@ -2738,12 +2920,17 @@ mod tests {
         for name in ["a.srt", "b.srt", "c.srt"] {
             fs::write(dir.path().join(name), SRT).unwrap();
         }
-        let paths: Vec<PathBuf> = ["a.srt", "b.srt", "c.srt"].iter().map(|n| dir.path().join(n)).collect();
+        let paths: Vec<PathBuf> = ["a.srt", "b.srt", "c.srt"]
+            .iter()
+            .map(|n| dir.path().join(n))
+            .collect();
 
         let (report, progress) = run_recorded(
             service(),
             paths,
-            Arc::new(ScriptedAiFactory { provider: ScriptedAi::new() }),
+            Arc::new(ScriptedAiFactory {
+                provider: ScriptedAi::new(),
+            }),
             Some(vec![1, 2]),
         )
         .await;
@@ -2754,7 +2941,11 @@ mod tests {
             .filter(|p| p.stage == TranslateStage::Terminology)
             .map(|p| (p.index, p.item_id))
             .collect();
-        assert_eq!(per_file, [(1, 1), (2, 2)], "queue position 1 is plan item 1, not 0");
+        assert_eq!(
+            per_file,
+            [(1, 1), (2, 2)],
+            "queue position 1 is plan item 1, not 0"
+        );
         assert!(progress
             .iter()
             .filter(|p| p.stage != TranslateStage::Finished)
@@ -2782,7 +2973,9 @@ mod tests {
         execute_translation_impl(
             Arc::clone(&service),
             state,
-            Arc::new(ScriptedAiFactory { provider: ScriptedAi::new() }),
+            Arc::new(ScriptedAiFactory {
+                provider: ScriptedAi::new(),
+            }),
             reporter.clone(),
             &plan.plan_id,
             &[excluded],
@@ -2798,7 +2991,11 @@ mod tests {
         assert_eq!(
             stages,
             [
-                (TranslateStage::FileDone, Some(TranslationStatusDto::Skipped), excluded),
+                (
+                    TranslateStage::FileDone,
+                    Some(TranslationStatusDto::Skipped),
+                    excluded
+                ),
                 (TranslateStage::Finished, None, 0),
             ]
         );
@@ -2838,7 +3035,13 @@ mod tests {
             output_exists: false,
             skip_reason: None,
         };
-        tracker.start_file(&FileStart { index: 1, total: 1, name: "a.srt".into(), item: &item, batch_size: 0 });
+        tracker.start_file(&FileStart {
+            index: 1,
+            total: 1,
+            name: "a.srt".into(),
+            item: &item,
+            batch_size: 0,
+        });
         tx.send(true).unwrap();
         reporter.progress(&started);
         tracker.writing();
@@ -2847,7 +3050,10 @@ mod tests {
         let seen = sink.seen();
         assert_eq!(seen.len(), 2, "{seen:?}");
         assert_eq!(seen[0].stage, TranslateStage::Terminology);
-        assert_eq!(seen[0].batch_total, 0, "a zero batch size must not divide by zero");
+        assert_eq!(
+            seen[0].batch_total, 0,
+            "a zero batch size must not divide by zero"
+        );
         assert_eq!(seen[1].stage, TranslateStage::FileDone);
         assert_eq!(seen[1].item_id, 4);
     }
@@ -2861,8 +3067,14 @@ mod tests {
 
     #[test]
     fn backup_path_appends_before_the_extension() {
-        assert_eq!(backup_path(Path::new("movie.srt")), PathBuf::from("movie.srt.backup"));
-        assert_eq!(backup_path(Path::new("movie")), PathBuf::from("movie.backup"));
+        assert_eq!(
+            backup_path(Path::new("movie.srt")),
+            PathBuf::from("movie.srt.backup")
+        );
+        assert_eq!(
+            backup_path(Path::new("movie")),
+            PathBuf::from("movie.backup")
+        );
     }
 
     #[test]
@@ -2871,8 +3083,14 @@ mod tests {
             resolve_target_language(Some("ja"), Some("zh-TW")).unwrap(),
             "ja"
         );
-        assert_eq!(resolve_target_language(None, Some("zh-TW")).unwrap(), "zh-TW");
-        assert_eq!(resolve_target_language(Some("  "), Some("zh-TW")).unwrap(), "zh-TW");
+        assert_eq!(
+            resolve_target_language(None, Some("zh-TW")).unwrap(),
+            "zh-TW"
+        );
+        assert_eq!(
+            resolve_target_language(Some("  "), Some("zh-TW")).unwrap(),
+            "zh-TW"
+        );
         assert!(resolve_target_language(None, None).is_err());
     }
 
@@ -2889,13 +3107,20 @@ mod tests {
             &service(),
             &Arc::new(TranslateState::default()),
             vec![dir.path().to_path_buf()],
-            options(Some("../../elsewhere"), TranslateOutputModeDto::Suffix, false),
+            options(
+                Some("../../elsewhere"),
+                TranslateOutputModeDto::Suffix,
+                false,
+            ),
         )
         .await
         .expect_err("a path-shaped target language must be rejected");
 
         assert_eq!(error.code, CODE_INVALID_TARGET_LANGUAGE);
-        assert_eq!(error.hint_code.as_deref(), Some(HINT_INVALID_TARGET_LANGUAGE));
+        assert_eq!(
+            error.hint_code.as_deref(),
+            Some(HINT_INVALID_TARGET_LANGUAGE)
+        );
     }
 
     #[test]

@@ -16,8 +16,10 @@ use std::sync::Arc;
 use serde_json::{json, Value};
 use subx_core::config::{ConfigService, TestConfigService};
 use tauri::ipc::{CallbackFn, InvokeBody, InvokeResponseBody};
+use tauri::test::{
+    get_ipc_response, mock_builder, mock_context, noop_assets, MockRuntime, INVOKE_KEY,
+};
 use tauri::utils::acl::ExecutionContext;
-use tauri::test::{get_ipc_response, mock_builder, mock_context, noop_assets, MockRuntime, INVOKE_KEY};
 use tauri::webview::InvokeRequest;
 use tauri::{App, WebviewWindow, WebviewWindowBuilder};
 
@@ -81,7 +83,11 @@ fn webview(app: &App<MockRuntime>) -> WebviewWindow<MockRuntime> {
 }
 
 /// Invoke a command exactly as the frontend's `invoke()` would.
-fn invoke(webview: &WebviewWindow<MockRuntime>, command: &str, args: Value) -> Result<Value, Value> {
+fn invoke(
+    webview: &WebviewWindow<MockRuntime>,
+    command: &str,
+    args: Value,
+) -> Result<Value, Value> {
     get_ipc_response(
         webview,
         InvokeRequest {
@@ -173,8 +179,8 @@ fn ping_crosses_the_boundary_with_its_camel_cased_fields() {
 #[test]
 fn build_info_crosses_the_boundary_as_one_dto() {
     let app = app_with(service_with_key());
-    let response = invoke(&webview(&app), "get_build_info", json!({}))
-        .expect("get_build_info must succeed");
+    let response =
+        invoke(&webview(&app), "get_build_info", json!({})).expect("get_build_info must succeed");
 
     assert_eq!(response["version"], env!("CARGO_PKG_VERSION"));
     assert_eq!(response["gitHash"], json!(crate::build_info::git_hash()));
@@ -184,7 +190,8 @@ fn build_info_crosses_the_boundary_as_one_dto() {
 #[test]
 fn get_config_returns_the_masked_dto_the_frontend_declares() {
     let app = app_with(service_with_key());
-    let response = invoke(&webview(&app), "get_config", json!({})).expect("get_config must succeed");
+    let response =
+        invoke(&webview(&app), "get_config", json!({})).expect("get_config must succeed");
 
     let ai = &response["ai"];
     assert_eq!(ai["provider"], "openai");
@@ -327,8 +334,12 @@ fn execute_selected_rejects_an_unknown_plan_over_ipc() {
 fn list_convert_inputs_answers_over_ipc_with_camel_cased_counts() {
     let app = app_with(service_with_key());
 
-    let response = invoke(&webview(&app), "list_convert_inputs", json!({ "paths": [] }))
-        .expect("list_convert_inputs must succeed on empty sources");
+    let response = invoke(
+        &webview(&app),
+        "list_convert_inputs",
+        json!({ "paths": [] }),
+    )
+    .expect("list_convert_inputs must succeed on empty sources");
 
     assert_eq!(response["subtitleCount"], 0);
 }
@@ -401,7 +412,9 @@ fn apply_sync_offset_deserializes_its_arguments_over_ipc() {
     // The arguments were accepted — the failure is the crate's, reported through
     // the shared `core.*` mapping rather than a deserialization complaint.
     assert!(
-        error["code"].as_str().is_some_and(|code| code.starts_with("core.")),
+        error["code"]
+            .as_str()
+            .is_some_and(|code| code.starts_with("core.")),
         "the arguments must deserialize before the crate reports the real failure: {error}"
     );
 }
@@ -434,7 +447,10 @@ fn load_preview_cues_answers_over_ipc_with_camel_cased_cues() {
     )
     .expect("the cues must load");
 
-    assert_eq!(response, json!([{ "startMs": 1000, "endMs": 2500, "text": "Hello" }]));
+    assert_eq!(
+        response,
+        json!([{ "startMs": 1000, "endMs": 2500, "text": "Hello" }])
+    );
 }
 
 /// `open_preview` answers with the camel-cased session, and `close_preview`
@@ -550,8 +566,12 @@ fn detect_sync_offset_deserializes_its_arguments_over_ipc() {
 fn list_translate_inputs_takes_paths_only_and_rejects_empty_sources() {
     let app = app_with(service_with_key());
 
-    let error = invoke(&webview(&app), "list_translate_inputs", json!({ "paths": [] }))
-        .expect_err("sources holding no subtitles must be rejected");
+    let error = invoke(
+        &webview(&app),
+        "list_translate_inputs",
+        json!({ "paths": [] }),
+    )
+    .expect_err("sources holding no subtitles must be rejected");
 
     assert_eq!(error["code"], "translate.no_subtitles");
     assert_eq!(error["hintCode"], "translate.no_subtitles.hint");

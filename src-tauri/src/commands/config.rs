@@ -419,7 +419,8 @@ mod tests {
         env.set_var("SUBX_CONFIG_PATH", path.to_str().unwrap());
         let service = ProductionConfigService::with_env_provider(Arc::new(env)).expect("service");
 
-        let dto = read_config_tolerant(&service).expect("the tolerant read must succeed on a fresh install");
+        let dto = read_config_tolerant(&service)
+            .expect("the tolerant read must succeed on a fresh install");
         let defaults = subx_core::config::Config::default().ai;
 
         assert_eq!(dto.ai.provider, defaults.provider);
@@ -439,11 +440,8 @@ mod tests {
         // file must be serialized from the struct rather than hand-written.
         let mut config = subx_core::config::Config::default();
         config.ai.base_url = "http://localhost:11434/v1".to_string();
-        std::fs::write(
-            &path,
-            toml::to_string_pretty(&config).expect("config file"),
-        )
-        .expect("config file");
+        std::fs::write(&path, toml::to_string_pretty(&config).expect("config file"))
+            .expect("config file");
         let mut env = TestEnvironmentProvider::new();
         env.set_var("SUBX_CONFIG_PATH", path.to_str().unwrap());
         env.set_var("OPENAI_BASE_URL", "https://example.com/v1");
@@ -472,7 +470,10 @@ mod tests {
         env.set_var("OPENAI_BASE_URL", "http://localhost:11434/v1");
         let service = ProductionConfigService::with_env_provider(Arc::new(env)).expect("service");
 
-        assert!(service.reload().is_err(), "the strict read must fail: hosted provider + http URL");
+        assert!(
+            service.reload().is_err(),
+            "the strict read must fail: hosted provider + http URL"
+        );
         let dto = read_config_tolerant(&service).expect("the tolerant read must still succeed");
         let defaults = subx_core::config::Config::default().ai;
         assert_eq!(dto.ai.base_url, defaults.base_url);
@@ -491,7 +492,9 @@ mod tests {
         env.set_var("OPENAI_BASE_URL", "http://localhost:11434/v1");
         let service = ProductionConfigService::with_env_provider(Arc::new(env)).expect("service");
 
-        service.load_for_repair().expect("the tolerant read must succeed");
+        service
+            .load_for_repair()
+            .expect("the tolerant read must succeed");
         assert!(
             service.reload().is_err(),
             "a successful tolerant read must not satisfy the strict gate"

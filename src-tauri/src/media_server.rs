@@ -1186,7 +1186,9 @@ mod tests {
         let file = tempfile::tempfile().expect("a temp file");
         file.set_len(LARGE).expect("sparse");
         let server = MediaServer::start().expect("start");
-        let published = server.publish_file(file, LARGE, "audio/wav").expect("publish");
+        let published = server
+            .publish_file(file, LARGE, "audio/wav")
+            .expect("publish");
         let weak = server.file_of(&published.token).expect("an open file");
 
         let (mut stream, length, before) = start_stream(&server, &published).await;

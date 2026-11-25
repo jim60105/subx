@@ -111,8 +111,9 @@ mod tests {
             "an absent hint must serialize as null, matching `hintCode: string | null`: {json}"
         );
 
-        let hinted = serde_json::to_value(ErrorDto::new("core.test", "d").with_hint("core.test.hint"))
-            .unwrap();
+        let hinted =
+            serde_json::to_value(ErrorDto::new("core.test", "d").with_hint("core.test.hint"))
+                .unwrap();
         assert_eq!(hinted["hintCode"], "core.test.hint");
     }
 }

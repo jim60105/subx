@@ -8,8 +8,8 @@ mod error;
 mod ipc_tests;
 mod media_server;
 mod mp4_timing;
-pub mod platform;
 mod paths;
+pub mod platform;
 mod state;
 
 use std::sync::Arc;
