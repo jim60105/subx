@@ -92,7 +92,7 @@ Only `late.mkv` and `opus.mkv` are committed. Tests read them through `env!("CAR
 
 - [A cancelled job notices the flag only between packets] → its partial file lives until the packet read in progress returns, which a stuck network mount can delay.
 - [Decoding reads the whole container, video packets included, possibly from a slow mount] → the time is unbounded; leaving the step cancels it.
-- [MP4 edit lists are ignored] → corrected or refused by `guard-mp4-preview-audio`, which must land before the player.
+- [MP4 edit lists are ignored] → applied when simple, otherwise refused, by `guard-mp4-preview-audio`, which must land before the player.
 - [The system temporary directory may be in memory] → two hours of 48 kHz mono is about 690 MB there. Writing stops with `core.io` when it is full.
 - [A normal exit does not drop managed state] → the exit hook of `add-sync-media-server` calls `shutdown`, which retires the session. A crash leaves no named file on Unix, except between create and unlink on systems without `O_TMPFILE`; on Windows the OS deletes it when the process's handles close, which a power loss can prevent.
 - Audible output is unverified: the probe behind the design was muted.

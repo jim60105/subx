@@ -29,7 +29,7 @@ None.
 
 ## Known limit
 
-Symphonia 0.5.5 does not apply MP4 edit lists; `guard-mp4-preview-audio` refuses or corrects those files before any screen uses this command. No AC-3, DTS or Opus decoder exists.
+Symphonia 0.5.5 does not apply MP4 edit lists; `guard-mp4-preview-audio` applies simple edit lists and refuses the rest before any screen uses this command. No AC-3, DTS or Opus decoder exists.
 
 ## Batch:
 
