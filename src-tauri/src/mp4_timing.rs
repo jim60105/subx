@@ -799,6 +799,11 @@ pub(crate) mod tests {
             0
         )
         .is_ok());
+        // Another track's fragment at 0 first, then ours late.
+        unsupported(map_of(
+            fragmented(&[moof(3, Some((0, 0))), moof(7, Some((0, 99)))]),
+            0,
+        ));
         // No tfdt counts as 0; later fragments are not checked.
         assert!(map_of(fragmented(&[moof(7, None), moof(7, Some((0, 5)))]), 0).is_ok());
         // No fragment for the track: everything is in moov.

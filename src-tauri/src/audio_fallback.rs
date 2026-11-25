@@ -916,6 +916,32 @@ mod tests {
             "ends with the edit: {}",
             frames.len()
         );
+        let map = read_edit_map(&fixture("late.mp4"), 0).unwrap().unwrap();
+        assert_eq!(Placement::new(&map, 44100).lead, 87142, "exactly");
+    }
+
+    #[test]
+    fn a_hostile_delay_ends_the_decoding() {
+        let error = decoded(&fixture("priming.mp4"), |_, _| {
+            Ok(Some(edit(1000, 44100, u128::from(u64::MAX), 0, None)))
+        })
+        .expect_err("beyond the WAV size limit");
+        assert!(
+            matches!(&error, AudioFallbackError::Unsupported(message) if message.contains("size limit")),
+            "{error:?}"
+        );
+
+        let cancelled = decode_core(
+            &fixture("priming.mp4"),
+            &AtomicBool::new(true),
+            || Ok(Cursor::new(Vec::new())),
+            |_, _| Ok(Some(edit(1000, 44100, 2000, 0, None))),
+        )
+        .expect_err("cancelled");
+        assert!(
+            matches!(cancelled, AudioFallbackError::Cancelled),
+            "{cancelled:?}"
+        );
     }
 
     #[test]
