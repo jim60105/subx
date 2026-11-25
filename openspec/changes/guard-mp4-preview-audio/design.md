@@ -31,9 +31,9 @@ pub fn edit_map<R: Read + Seek>(reader: &mut R, track_index: usize) -> Result<Op
 Rule, for the track at `track_index` among `moov/trak` in file order:
 
 1. No `edts`, no `elst`, or zero entries: nothing empty, trim 0, segment `None`.
-2. Leading entries with `media_time == -1` are empty edits; `empty_ticks` is their sum.
+2. Leading entries with `media_time == -1` are empty edits (their rate is ignored); `empty_ticks` is their sum.
 3. Then exactly one entry with `media_time >= 0` and rate 1.0 (`1`, `0`): `trim_ticks = media_time`, `segment_ticks = segment_duration`, or `None` when it is 0 or `moov/mvex` exists. Trailing empty entries are ignored. Anything else, including only empty edits and `media_time < -1` → `Unsupported`.
-4. With `moov/mvex`: find the first `moof` whose `traf/tfhd` track id equals the track's `tkhd` id. A `tfdt` other than 0 → `Unsupported`; no `tfdt` is 0; no such `moof` is `Malformed`.
+4. With `moov/mvex`: find the first `moof` whose `traf/tfhd` track id equals the track's `tkhd` id. A `tfdt` other than 0 → `Unsupported`; no `tfdt` is 0; no such `moof` means all samples are in `moov` and nothing is checked.
 
 AAC priming without an edit list is not trimmed: the container does not declare it as hidden, so it is part of the presentation. Video edits are not consulted: the selected track's own edits already give its place on the movie timeline, whether or not the video has equal ones.
 
@@ -41,7 +41,7 @@ Media past the segment is dropped because it is not presented; a player honourin
 
 ### D2 Bounded parsing
 
-Boxes are walked with `Seek`; payloads are never loaded whole. Sizes: 32-bit; `1` → 64-bit follows; `0` → to the end of file, top level only. A size below its header or beyond its parent → `Malformed`. At most 100 000 boxes per container and 4096 `trak`s, and 1024 `elst` entries, each limit exceeded → `Malformed`; entry count must fit the box. More than one `moov`, `edts`, `elst`, `mvhd`, `mdhd` or `tkhd` where one belongs, a missing `mvhd`, `mdhd` or `tkhd`, a zero timescale, an unknown version, or an out-of-range `track_index` → `Malformed`. The top-level walk always reaches the end of file for a non-fragmented file, because a second `moov` must be noticed; `mdat` is skipped by seeking. For a fragmented file it also stops at the first matching `moof` after `moov`. Versions 0 and 1 of `mvhd`, `mdhd`, `tkhd`, `elst`, `tfdt` are read.
+Boxes are walked with `Seek`; payloads are never loaded whole. Sizes: 32-bit; `1` → 64-bit follows; `0` → to the end of file, top level only. At top level a trailing remainder under 8 bytes ends the walk, and an `mdat`, `free` or `skip` overrunning the file is clamped to its end, so a truncated but playable file is not refused. A size below its header or beyond its parent → `Malformed`. At most 100 000 boxes per container and 4096 `trak`s, and 1024 `elst` entries, each limit exceeded → `Malformed`; entry count must fit the box. More than one `moov`, `edts`, `elst`, `mvhd`, `mdhd` or `tkhd` where one belongs, a missing `mvhd`, `mdhd` or `tkhd`, a zero media timescale, a zero movie timescale when the `elst` has entries (otherwise it is stored as 1), an unknown version, or an out-of-range `track_index` → `Malformed`. The top-level walk always reaches the end of file for a non-fragmented file, because a second `moov` must be noticed; `mdat` is skipped by seeking. For a fragmented file it also stops at the first matching `moof` after `moov`. Versions 0 and 1 of `mvhd`, `mdhd`, `tkhd`, `elst`, `tfdt` are read.
 
 At most 200 000 boxes are visited in total. Fields, big-endian, offsets after the box header and the 4-byte version/flags:
 
@@ -55,7 +55,7 @@ At most 200 000 boxes are visited in total. Fields, big-endian, offsets after th
 
 ### D3 Use
 
-`decode_with` opens a second `File` in a `BufReader` and calls `edit_map` with `track.id as usize` (the `trak` position, see Context) after choosing the track and before calling `make`. `Malformed` → `AudioFallbackError::Unsupported`; `Io` → `Unreadable`, except `UnexpectedEof`, which is `Malformed`; `Unsupported` → new variant `AudioFallbackError::Timing(String)`, mapped to `preview.audio_timing_unsupported`. `preview.audio_unsupported` would wrongly say the format cannot be decoded.
+`decode_with` opens a second `File` in a `BufReader` and calls `edit_map` with `track.id as usize` (the `trak` position, see Context) after choosing the track and before calling `make`. For tests, `decode_with` delegates to `decode_core(media, cancel, make, map_of)` with `map_of: impl FnOnce(&Path, usize) -> Result<Option<EditMap>, AudioFallbackError>`; production passes the function that calls `edit_map`. `EditMap` does not derive `Default`. `Malformed` → `AudioFallbackError::Unsupported`; `Io` → `Unreadable`, except `UnexpectedEof`, which is `Malformed`; `Unsupported` → new variant `AudioFallbackError::Timing(String)`, mapped to `preview.audio_timing_unsupported`. `preview.audio_unsupported` would wrongly say the format cannot be decoded.
 
 Frames, all `u128`/`i128` integer arithmetic, with `near(a, b)` = round half up of `a / b` for `a >= 0` and the mirrored rule for `a < 0`:
 
@@ -63,15 +63,17 @@ Frames, all `u128`/`i128` integer arithmetic, with `near(a, b)` = round half up 
 - `end = lead + ceil(segment_ticks * rate / movie_timescale)`, or none.
 - Per packet `rel = near((ts - trim_ticks) * rate, media_timescale)`; if negative, drop the first `-rel` decoded frames (all, if there are fewer) and use 0; then `start = lead + rel`.
 
+When `edit_map` is `Some`, also without any edit, this replaces the `calc_time` formula of `add-sync-audio-fallback`; with `None` that formula stays. `end` and `start` saturate to `u64::MAX`, and the size check in `lead_silence` and `push` is done in `u128`, so a hostile value cannot wrap past it.
+
 Each of the two roundings is at most half a sample, so a sample is at most one sample from its presentation time. Trimming happens before the delay is added; otherwise the trimmed frames would land inside the silence.
 
-`TimelineWriter` gains `lead_silence(&mut self, frames: u128, cancel)`, called once before the first packet, and `set_end(Option<u64>)`. `lead_silence` applies the WAV size check to the whole amount first, then writes in chunks of at most 8192 frames checking `cancel` per chunk, and advances `written_frames`. It is explicit because `push` would absorb a delay within the 20 ms jitter tolerance. `push` clips samples and gap silence at `end` and returns `Ok(true)` once `written_frames` reaches it, which ends the packet loop. "No frame written" counts kept decoded frames only, not silence. The order is: `make`, header, `lead_silence`, packets.
+`TimelineWriter` gains `lead_silence(&mut self, frames: u128, cancel)`, called once before the first packet, and `set_end(Option<u64>)`. `lead_silence` applies the WAV size check to the whole amount first, then writes in chunks of at most 8192 frames checking `cancel` per chunk, and advances `written_frames`. It is explicit because `push` would absorb a delay within the 20 ms jitter tolerance. `push` clips samples and gap silence at `end` and returns `Ok(true)` once `written_frames` reaches it, which ends the packet loop. "No frame written" counts kept decoded frames only, not silence. This needs a separate `kept_frames` counter. The order is: `make`, header, `lead_silence`, packets.
 
 A delay cannot be counted twice: Symphonia's MP4 `ts` starts at 0 regardless of edits, `lead` is added to every `start`, and `written_frames` already contains it, so `push` sees the first packet as contiguous. Matroska and the other containers have their delay in `packet.ts`; for them `edit_map` is `None`, `lead` is 0, no end is set, and the mapping of `add-sync-audio-fallback` is unchanged.
 
 ### D4 Fixtures
 
-Same generation rules as `add-sync-audio-fallback` D5: `ffmpeg -i tone.wav -ar 44100 -c:a aac priming.mp4` and `ffmpeg -itsoffset 2 -i tone.wav -ar 44100 -c:a aac late.mp4`, about 5.5 KB each. All other cases are built in memory by a test helper that writes boxes.
+Same generation rules as `add-sync-audio-fallback` D5: `ffmpeg -i tone.wav -ar 44100 -c:a aac priming.mp4` and `ffmpeg -itsoffset 2 -i tone.wav -ar 44100 -c:a aac late.mp4`, about 5.5 KB each, plus `two.mp4` and `video_first.mp4` (`ffmpeg -f lavfi -t 1 -i testsrc=s=32x32:r=10 -itsoffset 2 -i tone.wav -c:v mpeg4 -c:a aac video_first.mp4`; measured: video `trak` first without a delay, audio second with an empty edit of 1872 at movie timescale 1000, rate 8000). All other cases are built in memory by a test helper that writes boxes.
 
 ## Risks / Trade-offs
 

@@ -48,12 +48,12 @@ For MP4 media the audio fallback SHALL place samples by the selected track's own
 
 #### Scenario: Selected track decides
 
-- **WHEN** a second audio track has a delay and the track that is decoded has none
-- **THEN** the WAV has no leading silence
+- **WHEN** only a second audio track has a delay, and then when the decoded audio track follows an undelayed video track and has a delay itself
+- **THEN** the first WAV has no leading silence and the second starts with the audio track's delay
 
 #### Scenario: Complex edit lists are refused
 
-- **WHEN** the edit list has two non-empty edits, an empty edit between or a rate other than 1
+- **WHEN** the edit list has two non-empty edits, an empty edit between two others, or a non-empty edit with a rate other than 1
 - **THEN** preparation fails with `preview.audio_timing_unsupported`
 
 #### Scenario: Both edit list versions and box orders are read
