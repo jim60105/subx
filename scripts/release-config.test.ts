@@ -271,20 +271,24 @@ describe("Linux package media configuration", () => {
     return new RegExp(`(?:^|\\s)${escaped}(?=\\s|\\\\|$)`, "m").test(step);
   }
 
+  // @covers release-pipeline/the-flatpak-bundle-is-granted-audio-output#the-manifest-declares-the-audio-socket
   it("grants the Flatpak access to the PulseAudio socket", () => {
     const finishArgs: string[] = JSON.parse(MANIFEST_RAW)["finish-args"];
     expect(finishArgs).toContain("--socket=pulseaudio");
     expect(finishArgs).not.toContain("--nosocket=pulseaudio");
   });
 
+  // @covers release-pipeline/linux-packages-declare-media-playback-support#appimage-bundles-the-media-framework
   it("bundles the media framework into the AppImage", () => {
     expect(TAURI_CONF.bundle.linux.appimage.bundleMediaFramework).toBe(true);
   });
 
+  // @covers release-pipeline/linux-packages-declare-media-playback-support#deb-recommends-the-plugins
   it("makes the deb recommend the GStreamer playback plugins", () => {
     expect(TAURI_CONF.bundle.linux.deb.recommends).toEqual(expect.arrayContaining(GSTREAMER_PACKAGES));
   });
 
+  // @covers release-pipeline/linux-packages-declare-media-playback-support#release-build-installs-the-plugins
   it("installs the GStreamer plugins in the release build's Linux dependency step", () => {
     // Only the arguments of the apt-get install command (with its backslash
     // continuation lines) count, not a comment or another line in the step.
