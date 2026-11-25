@@ -22,6 +22,14 @@ const MANIFEST_PATH = path.resolve(__dirname, "..", "flatpak", "manifest.json");
 const MANIFEST_RAW = fs.readFileSync(MANIFEST_PATH, "utf8");
 const METAINFO_PATH = path.resolve(__dirname, "..", "flatpak", "subx.metainfo.xml");
 const METAINFO_RAW = fs.readFileSync(METAINFO_PATH, "utf8");
+const TAURI_CONF_PATH = path.resolve(__dirname, "..", "src-tauri", "tauri.conf.json");
+const TAURI_CONF = JSON.parse(fs.readFileSync(TAURI_CONF_PATH, "utf8"));
+
+const GSTREAMER_PACKAGES = [
+  "gstreamer1.0-plugins-base",
+  "gstreamer1.0-plugins-good",
+  "gstreamer1.0-libav",
+];
 
 // The Flatpak assertions are scoped to the build-flatpak job block so a
 // matching fragment in another job (or comment) cannot satisfy them.
@@ -246,5 +254,50 @@ describe("release workflow flatpak bundle", () => {
   it("attests the flatpak bundle with build provenance", () => {
     const job = flatpakJobRaw();
     expect(job).toMatch(/uses:\s*actions\/attest-build-provenance@v4[\s\S]*?subject-path:\s*subx\.flatpak/);
+  });
+});
+
+describe("Linux package media configuration", () => {
+  function linuxDepsStepRaw(): string {
+    const match = WORKFLOW_RAW.match(/- name: Install Linux system dependencies[\s\S]*?(?=\n\s*- name:|$)/);
+    expect(match, "Install Linux system dependencies step must be present").not.toBeNull();
+    return match![0];
+  }
+
+  // A package name must appear as a whole word in the install list, so a longer
+  // package such as `gstreamer1.0-plugins-base-apps` does not satisfy it.
+  function installsPackage(step: string, pkg: string): boolean {
+    const escaped = pkg.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(?:^|\\s)${escaped}(?=\\s|\\\\|$)`, "m").test(step);
+  }
+
+  // @covers release-pipeline/the-flatpak-bundle-is-granted-audio-output#the-manifest-declares-the-audio-socket
+  it("grants the Flatpak access to the PulseAudio socket", () => {
+    const finishArgs: string[] = JSON.parse(MANIFEST_RAW)["finish-args"];
+    expect(finishArgs).toContain("--socket=pulseaudio");
+    expect(finishArgs).not.toContain("--nosocket=pulseaudio");
+  });
+
+  // @covers release-pipeline/linux-packages-declare-media-playback-support#appimage-bundles-the-media-framework
+  it("bundles the media framework into the AppImage", () => {
+    expect(TAURI_CONF.bundle.linux.appimage.bundleMediaFramework).toBe(true);
+  });
+
+  // @covers release-pipeline/linux-packages-declare-media-playback-support#deb-recommends-the-plugins
+  it("makes the deb recommend the GStreamer playback plugins", () => {
+    expect(TAURI_CONF.bundle.linux.deb.recommends).toEqual(expect.arrayContaining(GSTREAMER_PACKAGES));
+  });
+
+  // @covers release-pipeline/linux-packages-declare-media-playback-support#release-build-installs-the-plugins
+  it("installs the GStreamer plugins in the release build's Linux dependency step", () => {
+    // Only the arguments of the apt-get install command (with its backslash
+    // continuation lines) count, not a comment or another line in the step.
+    const install = linuxDepsStepRaw().match(/apt-get install(?:[^\n]*\\\n)*[^\n]*/);
+    expect(install, "the step must run apt-get install").not.toBeNull();
+    for (const pkg of GSTREAMER_PACKAGES) {
+      expect(installsPackage(install![0], pkg), `installs ${pkg}`).toBe(true);
+    }
+    // Negative control: a package that only shares a prefix is not a match.
+    expect(installsPackage("apt-get install -y gstreamer1.0-plugins-base-apps", "gstreamer1.0-plugins-base")).toBe(false);
   });
 });
