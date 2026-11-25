@@ -471,7 +471,7 @@ fn build_plan_dto(
                 subtitle_name: op.subtitle_file.name.clone(),
                 target_path: display_target(op),
                 confidence: (op.confidence.clamp(0.0, 1.0) * 100.0).round() as u32,
-                language: language_detector.get_primary_language(&op.subtitle_file.path),
+                language: operation_language(&language_detector, op),
                 reasoning: op.reasoning.clone(),
             });
         matched_videos.insert(op.video_file.path.clone());
@@ -493,6 +493,69 @@ fn build_plan_dto(
         unmatched_videos: unmatched_names(scanned_videos, &matched_videos),
         unmatched_subtitles: unmatched_names(scanned_subtitles, &matched_subtitles),
     }
+}
+
+/// Tags that fit a language code's shape but never name a language.
+const NON_LANGUAGE_TAGS: [&str; 3] = ["und", "cc", "sdh"];
+
+/// The language an operation is reported under: the tag the engine wrote into
+/// the resulting name (which carries the AI's answer, even on a cached
+/// analysis), else path detection on the source (design D1).
+fn operation_language(detector: &LanguageDetector, op: &MatchOperation) -> Option<String> {
+    language_in_target_name(detector, op)
+        .or_else(|| detector.get_primary_language(&op.subtitle_file.path))
+}
+
+/// The normalized language tag between the video's base name and the
+/// subtitle extension in `new_subtitle_name`, if that tag is a language code.
+fn language_in_target_name(detector: &LanguageDetector, op: &MatchOperation) -> Option<String> {
+    let video = &op.video_file;
+    // The engine's own rule (`generate_subtitle_name`): an upper-case
+    // extension is not stripped, because `extension` is lower-cased at
+    // discovery, and an empty extension strips nothing.
+    let base = if video.extension.is_empty() {
+        video.name.as_str()
+    } else {
+        video
+            .name
+            .strip_suffix(&format!(".{}", video.extension))
+            .unwrap_or(&video.name)
+    };
+    let rest = op.new_subtitle_name.strip_prefix(base)?.strip_prefix('.')?;
+    let (tag, _extension) = rest.rsplit_once('.')?;
+    let raw = detector.normalize(strip_counter(tag))?;
+    let code = match raw.as_str() {
+        "zh-tw" | "zh_tw" | "zh-hk" | "zh_hk" => "tc".to_string(),
+        "zh-cn" | "zh_cn" => "sc".to_string(),
+        _ => raw,
+    };
+    is_language_code(&code).then_some(code)
+}
+
+/// Drops a trailing counter (`tc.2`, `en-2`); a bare number or `tc2` is kept.
+fn strip_counter(tag: &str) -> &str {
+    let head = tag.trim_end_matches(|c: char| c.is_ascii_digit());
+    if head.len() == tag.len() {
+        return tag;
+    }
+    match head.strip_suffix(['.', '-', '_']) {
+        Some(stem) if !stem.is_empty() => stem,
+        _ => tag,
+    }
+}
+
+/// A primary subtag of two or three letters with optional alphanumeric
+/// subtags, other than the tags that never name a language.
+fn is_language_code(code: &str) -> bool {
+    if NON_LANGUAGE_TAGS.contains(&code) {
+        return false;
+    }
+    let mut parts = code.split(['-', '_']);
+    let primary_ok = parts
+        .next()
+        .is_some_and(|p| (2..=3).contains(&p.len()) && p.chars().all(|c| c.is_ascii_alphabetic()));
+    primary_ok
+        && parts.all(|p| (1..=8).contains(&p.len()) && p.chars().all(|c| c.is_ascii_alphanumeric()))
 }
 
 /// Names of scanned files not referenced by any operation (compared by path).
@@ -640,7 +703,10 @@ mod tests {
     /// Pairs every subtitle with the first video, echoing the IDs the engine
     /// assigned at scan time — the seam a static HTTP mock cannot fill, because
     /// those IDs are random and generated inside `match_file_list_with_audit`.
-    struct ScriptedAi;
+    struct ScriptedAi {
+        /// Copied into every `FileMatch::language`.
+        language: Option<&'static str>,
+    }
 
     #[async_trait]
     impl AIProvider for ScriptedAi {
@@ -654,7 +720,7 @@ mod tests {
                     subtitle_file_id: parse_entry_id(entry),
                     confidence: 0.95,
                     match_factors: vec!["scripted".to_string()],
-                    language: None,
+                    language: self.language.map(str::to_string),
                     target_filename_suffix: None,
                 })
                 .collect();
@@ -696,13 +762,18 @@ mod tests {
         }
     }
 
-    struct ScriptedAiFactory;
+    struct ScriptedAiFactory {
+        /// Passed to every `ScriptedAi` it creates.
+        language: Option<&'static str>,
+    }
     impl AiProviderFactory for ScriptedAiFactory {
         fn create_provider(
             &self,
             _service: &dyn ConfigService,
         ) -> Result<Box<dyn AIProvider>, ErrorDto> {
-            Ok(Box::new(ScriptedAi))
+            Ok(Box::new(ScriptedAi {
+                language: self.language,
+            }))
         }
     }
 
@@ -838,7 +909,7 @@ mod tests {
         analyze_sources_impl(
             configured_service(),
             Arc::new(MatchState::default()),
-            Arc::new(ScriptedAiFactory),
+            Arc::new(ScriptedAiFactory { language: None }),
             reporter.clone(),
             vec![dir.path().to_path_buf()],
             RelocationModeDto::Rename,
@@ -867,7 +938,7 @@ mod tests {
         let plan = analyze_sources_impl(
             configured_service(),
             Arc::new(MatchState::default()),
-            Arc::new(ScriptedAiFactory),
+            Arc::new(ScriptedAiFactory { language: None }),
             Arc::new(RecordingReporter::default()),
             vec![dir.path().to_path_buf()],
             RelocationModeDto::Rename,
@@ -889,7 +960,7 @@ mod tests {
                 ("show.en.srt".to_string(), Some("en".to_string())),
                 ("show.tc.srt".to_string(), Some("tc".to_string())),
             ],
-            "each operation carries only the path detector's primary language"
+            "with no AI language, the resulting names carry the path-detected codes"
         );
         assert!(plan.unmatched_videos.is_empty());
         assert!(plan.unmatched_subtitles.is_empty());
@@ -915,6 +986,171 @@ mod tests {
         assert_eq!(plan.videos[0].matches[0].language, None);
     }
 
+    // ─── Operation language ─────────────────────────────────────────────────
+
+    /// Source paths under a directory that names no language: one without a
+    /// marker and one the path detector reads as English.
+    const UNMARKED: &str = "neutral/cue-0123.srt";
+    const ENGLISH: &str = "neutral/cue.en.srt";
+
+    /// The reported language of each `(video, source, resulting name)` operation.
+    fn languages_of(ops: &[(&str, &str, &str)]) -> Vec<Option<String>> {
+        let operations: Vec<MatchOperation> = ops
+            .iter()
+            .map(|(video, source, target)| {
+                rename_op(&Path::new("neutral").join(video), Path::new(source), target)
+            })
+            .collect();
+        let plan = build_plan_dto("plan-l", RelocationModeDto::Rename, &operations, &[], &[]);
+        plan.videos
+            .iter()
+            .flat_map(|video| video.matches.iter().map(|op| op.language.clone()))
+            .collect()
+    }
+
+    fn code(value: &str) -> Option<String> {
+        Some(value.to_string())
+    }
+
+    #[test]
+    fn the_tag_in_the_resulting_name_decides_the_language() {
+        assert_eq!(
+            languages_of(&[("show.mkv", UNMARKED, "show.sc.srt")]),
+            vec![code("sc")]
+        );
+    }
+
+    #[test]
+    fn a_language_the_path_detector_does_not_know_is_reported() {
+        assert_eq!(
+            languages_of(&[("show.mkv", UNMARKED, "show.th.srt")]),
+            vec![code("th")]
+        );
+    }
+
+    #[test]
+    fn the_resulting_name_outranks_the_source_path() {
+        assert_eq!(
+            languages_of(&[("show.mkv", ENGLISH, "show.sc.srt")]),
+            vec![code("sc")]
+        );
+    }
+
+    #[test]
+    fn spellings_of_one_language_share_one_code() {
+        assert_eq!(
+            languages_of(&[
+                ("show.mkv", UNMARKED, "show.CHT.srt"),
+                ("show.mkv", UNMARKED, "show.zh-TW.srt"),
+                ("show.mkv", UNMARKED, "show.tc.2.srt"),
+            ]),
+            vec![code("tc"), code("tc"), code("tc")]
+        );
+    }
+
+    #[test]
+    fn text_belonging_to_the_video_name_is_not_a_language() {
+        assert_eq!(
+            languages_of(&[("show.en.mkv", UNMARKED, "show.en.srt")]),
+            vec![None]
+        );
+    }
+
+    #[test]
+    fn a_suffix_that_is_not_a_language_falls_back_to_the_source_path() {
+        assert_eq!(
+            languages_of(&[
+                ("show.mkv", ENGLISH, "show.2.srt"),
+                ("show.mkv", UNMARKED, "show.forced.srt"),
+            ]),
+            vec![code("en"), None]
+        );
+    }
+
+    #[test]
+    fn excluded_tags_are_not_languages() {
+        assert_eq!(
+            languages_of(&[
+                ("show.mkv", UNMARKED, "show.und.srt"),
+                ("show.mkv", UNMARKED, "show.cc.srt"),
+                ("show.mkv", UNMARKED, "show.sdh.srt"),
+            ]),
+            vec![None, None, None]
+        );
+    }
+
+    #[test]
+    fn resulting_name_tags_are_normalized_or_rejected() {
+        let cases = [
+            ("show.tc2.srt", None),
+            ("other.sc.srt", None),
+            ("show.en-2.srt", code("en")),
+            ("show.chs.srt", code("sc")),
+            ("show.zh-CN.srt", code("sc")),
+            ("show.sc-en.srt", code("sc-en")),
+            ("show.es-419.srt", code("es")),
+        ];
+        for (target, expected) in cases {
+            assert_eq!(
+                languages_of(&[("show.mkv", UNMARKED, target)]),
+                vec![expected],
+                "{target}"
+            );
+        }
+    }
+
+    #[test]
+    fn an_upper_case_video_extension_stays_in_the_base_name() {
+        // Discovery lower-cases `extension`, so the engine cannot strip `.MKV`.
+        let mut op = rename_op(
+            Path::new("neutral/SHOW.MKV"),
+            Path::new(UNMARKED),
+            "SHOW.MKV.sc.srt",
+        );
+        op.video_file.extension = "mkv".to_string();
+        let plan = build_plan_dto("plan-u", RelocationModeDto::Rename, &[op], &[], &[]);
+
+        assert_eq!(plan.videos[0].matches[0].language, code("sc"));
+    }
+
+    #[test]
+    fn an_extensionless_video_keeps_its_whole_name_as_the_base() {
+        // `show.` has an empty extension, so the engine strips nothing and
+        // keeps the trailing dot in the base name.
+        assert_eq!(
+            languages_of(&[("show.", UNMARKED, "show..th.srt")]),
+            vec![code("th")]
+        );
+    }
+
+    #[tokio::test]
+    async fn the_ai_language_reaches_the_operation_through_the_engine() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("show.mkv"), b"v").unwrap();
+        fs::write(dir.path().join("cue-0123.srt"), SRT).unwrap();
+
+        let plan = analyze_sources_impl(
+            configured_service(),
+            Arc::new(MatchState::default()),
+            Arc::new(ScriptedAiFactory {
+                language: Some("th"),
+            }),
+            Arc::new(RecordingReporter::default()),
+            vec![dir.path().to_path_buf()],
+            RelocationModeDto::Rename,
+        )
+        .await
+        .expect("analysis must succeed");
+
+        let operation = &plan.videos[0].matches[0];
+        assert!(
+            operation.target_path.ends_with("show.th.srt"),
+            "{}",
+            operation.target_path
+        );
+        assert_eq!(operation.language, code("th"));
+    }
+
     // @covers match-workflow/multi-source-selection-with-scan-preview-and-relocation-mode#relocation-mode-feeds-the-analysis
     #[tokio::test]
     async fn copy_mode_bakes_targets_into_the_video_directory() {
@@ -929,7 +1165,7 @@ mod tests {
         let plan = analyze_sources_impl(
             configured_service(),
             Arc::new(MatchState::default()),
-            Arc::new(ScriptedAiFactory),
+            Arc::new(ScriptedAiFactory { language: None }),
             Arc::new(RecordingReporter::default()),
             vec![video_dir.clone(), sub_dir],
             RelocationModeDto::Copy,
@@ -979,7 +1215,7 @@ mod tests {
         let error = analyze_sources_impl(
             configured_service(),
             Arc::new(MatchState::default()),
-            Arc::new(ScriptedAiFactory),
+            Arc::new(ScriptedAiFactory { language: None }),
             Arc::new(RecordingReporter::default()),
             vec![dir.path().to_path_buf()],
             RelocationModeDto::Rename,
@@ -1006,7 +1242,7 @@ mod tests {
         let error = analyze_sources_impl(
             configured_service(),
             state.clone(),
-            Arc::new(ScriptedAiFactory),
+            Arc::new(ScriptedAiFactory { language: None }),
             Arc::new(RecordingReporter::default()),
             vec![dir.path().to_path_buf()],
             RelocationModeDto::Rename,
