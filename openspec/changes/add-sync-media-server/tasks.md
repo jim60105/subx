@@ -10,10 +10,10 @@ Boundaries: edit only the files named below. No component, hook or locale file o
 
 ## 2. Session and commands
 
-- [ ] 2.1 Add `PreviewState` to `state.rs` per D4 and the DTOs to `dto.rs` per D5. Verify: `cargo check`.
-- [ ] 2.2 Create `commands/preview.rs` per D5 (add to `commands/mod.rs`), make `sync::load_subtitle` `pub(crate)`, register the three commands in `bindings.rs`, extend `COMMANDS` to 25. In `state.rs` test `open_with` with a check blocked on a channel while `close` and `shutdown` complete within one second. Tests in `commands/preview.rs`: one per scenario of "Preview cues come from the apply loader" and "At most one preview session is open". Add to `ipc_tests.rs` one round trip per command asserting camelCase keys. Verify: `cargo test --manifest-path src-tauri/Cargo.toml`.
-- [ ] 2.3 Add the exit hook of D6. Verify: `cargo check`; a state test asserts that after `shutdown()` the old URL refuses connection or ends and that a later `open` succeeds.
-- [ ] 2.4 `npm run bindings:generate`; re-export `PreviewCueDto` and `PreviewSessionDto` from `src/types/ipc.ts`. Verify: `npx tsc --noEmit`, and with `bindings.ts` staged `npm run bindings:check` passes.
+- [x] 2.1 Add `PreviewState` to `state.rs` per D4 and the DTOs to `dto.rs` per D5. Verify: `cargo check`.
+- [x] 2.2 Create `commands/preview.rs` per D5 (add to `commands/mod.rs`), make `sync::load_subtitle` `pub(crate)`, register the three commands in `bindings.rs`, extend `COMMANDS` to 25. In `state.rs` test `open_with` with a check blocked on a channel while `close` and `shutdown` complete within one second. Tests in `commands/preview.rs`: one per scenario of "Preview cues come from the apply loader" and "At most one preview session is open". Add to `ipc_tests.rs` one round trip per command asserting camelCase keys. Verify: `cargo test --manifest-path src-tauri/Cargo.toml`.
+- [x] 2.3 Add the exit hook of D6. Verify: `cargo check`; a state test asserts that after `shutdown()` the old URL refuses connection or ends and that a later `open` succeeds.
+- [x] 2.4 `npm run bindings:generate`; re-export `PreviewCueDto` and `PreviewSessionDto` from `src/types/ipc.ts`. Verify: `npx tsc --noEmit`, and with `bindings.ts` staged `npm run bindings:check` passes.
 
 ## 3. Policy and codes
 

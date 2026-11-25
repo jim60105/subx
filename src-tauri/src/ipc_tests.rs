@@ -28,7 +28,7 @@ use crate::state::AppState;
 /// `mock_context` starts with an empty ACL, so every command under test has to
 /// be allowed explicitly. `the_allowlist_matches_the_declaration` keeps this
 /// list from drifting away from the builder.
-const COMMANDS: [&str; 22] = [
+const COMMANDS: [&str; 25] = [
     "ping",
     "get_build_info",
     "get_config",
@@ -47,6 +47,9 @@ const COMMANDS: [&str; 22] = [
     "detect_sync_offset",
     "cancel_sync_detection",
     "apply_sync_offset",
+    "load_preview_cues",
+    "open_preview",
+    "close_preview",
     "list_translate_inputs",
     "preview_translation",
     "execute_translation",
@@ -411,6 +414,69 @@ fn cancel_sync_detection_answers_over_ipc() {
         invoke(&webview(&app), "cancel_sync_detection", json!({})).expect("cancel must succeed");
 
     assert_eq!(response, Value::Null);
+}
+
+/// `load_preview_cues` deserializes its camel-cased path and answers with the
+/// camel-cased cue shape the preview draws.
+#[test]
+fn load_preview_cues_answers_over_ipc_with_camel_cased_cues() {
+    let app = app_with(service_with_key());
+    let dir = tempfile::tempdir().expect("a temp dir");
+    let path = dir.path().join("a.srt");
+    std::fs::write(&path, "1\n00:00:01,000 --> 00:00:02,500\nHello\n\n").expect("write");
+
+    let response = invoke(
+        &webview(&app),
+        "load_preview_cues",
+        json!({ "subtitlePath": path.display().to_string() }),
+    )
+    .expect("the cues must load");
+
+    assert_eq!(response, json!([{ "startMs": 1000, "endMs": 2500, "text": "Hello" }]));
+}
+
+/// `open_preview` answers with the camel-cased session, and `close_preview`
+/// takes that id back and resolves with no payload.
+#[test]
+fn open_and_close_preview_answer_over_ipc_with_camel_cased_fields() {
+    let app = app_with(service_with_key());
+    let view = webview(&app);
+    let dir = tempfile::tempdir().expect("a temp dir");
+    let path = dir.path().join("a.mp4");
+    std::fs::write(&path, b"media").expect("write");
+
+    let session = invoke(
+        &view,
+        "open_preview",
+        json!({ "mediaPath": path.display().to_string() }),
+    )
+    .expect("the preview must open");
+    let session_id = session["sessionId"].as_str().expect("a sessionId string");
+    assert!(
+        session["url"]
+            .as_str()
+            .is_some_and(|url| url.starts_with("http://127.0.0.1:")),
+        "a loopback url: {session}"
+    );
+
+    let closed = invoke(&view, "close_preview", json!({ "sessionId": session_id }))
+        .expect("the close must succeed");
+    assert_eq!(closed, Value::Null);
+}
+
+/// An unreadable media path crosses back as the preview's own code.
+#[test]
+fn open_preview_rejects_unreadable_media_over_ipc() {
+    let app = app_with(service_with_key());
+
+    let error = invoke(
+        &webview(&app),
+        "open_preview",
+        json!({ "mediaPath": "/does/not/exist.mkv" }),
+    )
+    .expect_err("a missing file must be rejected");
+
+    assert_eq!(error["code"], "preview.media_unreadable");
 }
 
 /// `detect_sync_offset` deserializes its camel-cased pair and its optional

@@ -4,15 +4,21 @@
 //! their own state (e.g. match plan storage); the frontend references entries
 //! by identifier only.
 
-use std::path::PathBuf;
+use std::io;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, PoisonError};
 
 use subx_core::core::input::CollectedFiles;
 use subx_core::config::ConfigService;
 use subx_core::core::matcher::{MatchEngine, MatchOperation};
 use tokio::sync::{watch, Mutex};
 use tokio::task::AbortHandle;
+
+use crate::commands::preview::{CODE_MEDIA_UNREADABLE, CODE_SERVER_UNAVAILABLE};
+use crate::dto::PreviewSessionDto;
+use crate::error::ErrorDto;
+use crate::media_server::{self, Entry, MediaServer};
 
 /// Application-wide managed state container.
 ///
@@ -23,6 +29,7 @@ pub struct AppState {
     convert_state: Arc<ConvertState>,
     sync_state: Arc<SyncState>,
     translate_state: Arc<TranslateState>,
+    preview_state: Arc<PreviewState>,
 }
 
 impl AppState {
@@ -33,6 +40,7 @@ impl AppState {
             convert_state: Arc::new(ConvertState::default()),
             sync_state: Arc::new(SyncState::default()),
             translate_state: Arc::new(TranslateState::default()),
+            preview_state: Arc::new(PreviewState::default()),
         }
     }
 
@@ -72,6 +80,11 @@ impl AppState {
     /// The translate wizard's backend-owned plan storage.
     pub fn translate_state(&self) -> Arc<TranslateState> {
         Arc::clone(&self.translate_state)
+    }
+
+    /// The sync preview's media server and single open session.
+    pub fn preview_state(&self) -> Arc<PreviewState> {
+        Arc::clone(&self.preview_state)
     }
 }
 
@@ -731,6 +744,230 @@ impl TranslateState {
     #[cfg(test)]
     pub async fn is_running(&self) -> bool {
         self.inner.lock().await.translating
+    }
+}
+
+/// Monotonic source for preview session ids. Like plan ids, a session id only
+/// tells a live session from one a newer `open` replaced; it authorizes
+/// nothing (the media token does), so a counter is enough.
+static NEXT_PREVIEW_ID: AtomicU64 = AtomicU64::new(1);
+
+/// Backend-owned sync preview state: the loopback media server, started on
+/// first use, and at most one open session (design D4).
+///
+/// The mutex is `std::sync::Mutex` and is never held across a file-system or
+/// network call other than binding the loopback socket: a stat stuck on a
+/// network mount must not block `close` or the exit hook.
+#[derive(Default)]
+pub struct PreviewState {
+    inner: std::sync::Mutex<PreviewInner>,
+}
+
+#[derive(Default)]
+struct PreviewInner {
+    server: Option<MediaServer>,
+    session: Option<PreviewSession>,
+}
+
+struct PreviewSession {
+    id: String,
+    // Not read yet: the audio fallback (`add-sync-audio-fallback`) derives its
+    // decoded copy from the session's media.
+    #[allow(dead_code)]
+    media_path: PathBuf,
+    media_token: String,
+}
+
+impl PreviewState {
+    fn lock(&self) -> std::sync::MutexGuard<'_, PreviewInner> {
+        self.inner.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// Publishes `media` and makes it the one open session, replacing (and
+    /// revoking) any previous one. Blocking: run it off the async executor.
+    pub fn open(&self, media: PathBuf) -> Result<PreviewSessionDto, ErrorDto> {
+        self.open_with(media, media_server::check_file)
+    }
+
+    /// [`Self::open`] with the file check injected, the seam that proves the
+    /// check runs without the lock.
+    pub fn open_with(
+        &self,
+        media: PathBuf,
+        check: impl FnOnce(&Path) -> io::Result<()>,
+    ) -> Result<PreviewSessionDto, ErrorDto> {
+        check(&media).map_err(|err| ErrorDto::new(CODE_MEDIA_UNREADABLE, err.to_string()))?;
+
+        let replaced;
+        let dto = {
+            let mut inner = self.lock();
+            if inner.server.is_none() {
+                inner.server = Some(MediaServer::start().map_err(server_unavailable)?);
+            }
+            let server = inner.server.as_ref().expect("started above");
+            let published = server.publish(media.clone()).map_err(server_unavailable)?;
+            let id = format!("preview-{}", NEXT_PREVIEW_ID.fetch_add(1, Ordering::Relaxed));
+            let previous = inner.session.replace(PreviewSession {
+                id: id.clone(),
+                media_path: media,
+                media_token: published.token,
+            });
+            replaced = previous.and_then(|session| revoke(&inner, &session));
+            PreviewSessionDto {
+                session_id: id,
+                url: published.url,
+            }
+        };
+        // Released outside the lock (design D4).
+        drop(replaced);
+        Ok(dto)
+    }
+
+    /// Revokes the session's URL if `session_id` is still the open session;
+    /// a stale or repeated id does nothing.
+    pub fn close(&self, session_id: &str) {
+        let revoked = {
+            let mut inner = self.lock();
+            if inner.session.as_ref().is_some_and(|session| session.id == session_id) {
+                let session = inner.session.take().expect("checked above");
+                revoke(&inner, &session)
+            } else {
+                None
+            }
+        };
+        drop(revoked);
+    }
+
+    /// Drops the session and the server, ending every stream. Meant for
+    /// process exit; a later `open` would start a fresh server.
+    pub fn shutdown(&self) {
+        let (session, server) = {
+            let mut inner = self.lock();
+            (inner.session.take(), inner.server.take())
+        };
+        drop(session);
+        drop(server);
+    }
+}
+
+fn revoke(inner: &PreviewInner, session: &PreviewSession) -> Option<Entry> {
+    inner
+        .server
+        .as_ref()
+        .and_then(|server| server.revoke(&session.media_token))
+}
+
+fn server_unavailable(err: io::Error) -> ErrorDto {
+    ErrorDto::new(CODE_SERVER_UNAVAILABLE, err.to_string())
+}
+
+#[cfg(test)]
+mod preview_state_tests {
+    use std::fs;
+    use std::sync::mpsc;
+    use std::time::{Duration, Instant};
+
+    use super::*;
+    use crate::media_server::test_http;
+
+    fn media(dir: &Path) -> PathBuf {
+        let path = dir.join("a.mp4");
+        fs::write(&path, b"0123456789").expect("write");
+        path
+    }
+
+    /// The check runs before the lock is taken, so a stat stuck on a network
+    /// mount cannot hold up `close` or the exit hook.
+    #[tokio::test(flavor = "multi_thread")]
+    async fn close_and_shutdown_do_not_wait_for_a_blocked_check() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = Arc::new(PreviewState::default());
+        let first = state.open(media(dir.path())).expect("open");
+
+        let (entered_tx, entered_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel::<()>();
+        let runtime = tokio::runtime::Handle::current();
+        let blocked = {
+            let state = Arc::clone(&state);
+            let path = media(dir.path());
+            std::thread::spawn(move || {
+                let _context = runtime.enter();
+                state.open_with(path, |_| {
+                    entered_tx.send(()).expect("signal");
+                    release_rx.recv().expect("release");
+                    Ok(())
+                })
+            })
+        };
+        entered_rx.recv().expect("the check must start");
+
+        let started = Instant::now();
+        state.close(&first.session_id);
+        state.shutdown();
+        assert!(
+            started.elapsed() < Duration::from_secs(1),
+            "close and shutdown must not wait for the check"
+        );
+
+        release_tx.send(()).expect("release");
+        blocked.join().expect("the open thread").expect("the open finishes");
+    }
+
+    /// The exit hook's effect: the old URL stops serving, and a later open
+    /// starts a fresh server.
+    #[tokio::test(flavor = "multi_thread")]
+    async fn shutdown_stops_the_server_and_a_later_open_succeeds() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = PreviewState::default();
+        let before = state.open(media(dir.path())).expect("open");
+        assert_eq!(test_http::get(&before.url).await.map(|reply| reply.status), Some(200));
+
+        state.shutdown();
+        // Refused, reset, or answered without serving: never a success.
+        let status = test_http::get(&before.url).await.map(|reply| reply.status);
+        assert!(
+            !matches!(status, Some(200..=299)),
+            "the old URL must stop serving: {status:?}"
+        );
+
+        let after = state.open(media(dir.path())).expect("a later open");
+        let reply = test_http::get(&after.url).await.expect("the new server answers");
+        assert_eq!(reply.status, 200);
+        assert_eq!(reply.body, b"0123456789");
+    }
+
+    #[test]
+    fn opening_outside_a_runtime_reports_the_server_unavailable() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let error = PreviewState::default()
+            .open(media(dir.path()))
+            .expect_err("no runtime, no server");
+        assert_eq!(error.code, "preview.server_unavailable");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn session_ids_are_distinct() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = PreviewState::default();
+        let first = state.open(media(dir.path())).expect("open");
+        let second = state.open(media(dir.path())).expect("open");
+        assert_ne!(first.session_id, second.session_id);
+        assert!(first.session_id.starts_with("preview-"));
+    }
+
+    /// A poisoned lock must not take the preview down for the rest of the run.
+    #[tokio::test(flavor = "multi_thread")]
+    async fn a_poisoned_lock_is_recovered() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = Arc::new(PreviewState::default());
+        let poisoner = Arc::clone(&state);
+        let _ = std::thread::spawn(move || {
+            let _guard = poisoner.inner.lock().unwrap();
+            panic!("poison the lock");
+        })
+        .join();
+
+        assert!(state.open(media(dir.path())).is_ok());
     }
 }
 

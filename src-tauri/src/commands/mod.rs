@@ -7,6 +7,7 @@ pub mod config;
 pub mod convert;
 // `match` is a keyword; the file is `match.rs` and the module is `r#match`.
 pub mod r#match;
+pub mod preview;
 pub mod sync;
 pub mod system;
 pub mod translate;

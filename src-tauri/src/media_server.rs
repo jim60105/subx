@@ -125,6 +125,8 @@ impl MediaServer {
         })
     }
 
+    // Only the tests need the bound address; production hands out URLs.
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn addr(&self) -> SocketAddr {
         self.addr
     }
