@@ -286,10 +286,12 @@ describe("Linux package media configuration", () => {
   });
 
   it("installs the GStreamer plugins in the release build's Linux dependency step", () => {
-    const step = linuxDepsStepRaw();
-    expect(step).toContain("apt-get install");
+    // Only the arguments of the apt-get install command (with its backslash
+    // continuation lines) count, not a comment or another line in the step.
+    const install = linuxDepsStepRaw().match(/apt-get install(?:[^\n]*\\\n)*[^\n]*/);
+    expect(install, "the step must run apt-get install").not.toBeNull();
     for (const pkg of GSTREAMER_PACKAGES) {
-      expect(installsPackage(step, pkg), `installs ${pkg}`).toBe(true);
+      expect(installsPackage(install![0], pkg), `installs ${pkg}`).toBe(true);
     }
     // Negative control: a package that only shares a prefix is not a match.
     expect(installsPackage("apt-get install -y gstreamer1.0-plugins-base-apps", "gstreamer1.0-plugins-base")).toBe(false);

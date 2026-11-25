@@ -256,8 +256,9 @@ release that changes `flatpak/manifest.json`.
 
 Not a waiver: the automated tests only check the package configuration. Whether
 a package actually produces sound is a human check, run before publishing a
-release that changes the media configuration in `flatpak/manifest.json`,
-`src-tauri/tauri.conf.json` or the release workflow's Linux dependencies.
+release that changes the media configuration or the runtime version in
+`flatpak/manifest.json`, the media configuration in `src-tauri/tauri.conf.json`,
+or the release workflow's Linux dependencies.
 
 1. Run a release workflow dispatch and confirm every build job succeeds. It is
    the only proof that the AppImage still builds with the media framework
