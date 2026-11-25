@@ -37,5 +37,6 @@ Only Linux WebKitGTK was probed, muted. Audible output, Windows, macOS, Flatpak 
 
 depends-on: add-sync-media-server
 depends-on: add-sync-audio-fallback
+depends-on: guard-mp4-preview-audio
 depends-on: rework-sync-detection-flow
 Conflict notes: edits `SyncOffsetStep`, `SyncWizard.tsx`, `sync.json` and the preview harness, as does `add-sync-time-rule`, which follows it.

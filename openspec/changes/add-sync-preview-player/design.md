@@ -4,7 +4,7 @@
 
 Approved design: `docs/superpowers/specs/2026-11-25-sync-preview-design.md`, "Step 3 interface", "Timing rule", "Media states". Layout C (the `rule` layout) of `.superpowers/brainstorm/847440-1795612948/content/sync-preview-v1.html`. Media arrives over loopback HTTP, never the asset protocol (`add-sync-media-server` design D1, https://github.com/tauri-apps/tauri/issues/3725).
 
-Available from earlier changes: `commands.loadPreviewCues`, `openPreview`, `preparePreviewAudio`, `closePreview`; `SyncOffsetStep` with props `{ defaults, detection, offsetMs, offsetExceedsMax, onOffsetChange }`.
+Available from earlier changes: `commands.loadPreviewCues`, `openPreview`, `preparePreviewAudio`, `releasePreviewAudio`, `closePreview`; `SyncOffsetStep` with props `{ defaults, detection, offsetMs, offsetExceedsMax, onOffsetChange }`.
 
 Contradiction with the design document, kept visible: it says saved and previewed times agree within 1 ms. Apply computes in `f32` and does, but the engine then writes ASS in centiseconds (truncated, up to 10 ms) and MicroDVD SUB in whole frames at 25 fps (up to 20 ms). The requirement therefore compares before the format's rounding.
 
@@ -31,7 +31,7 @@ export function plainCueText(text: string): string;
 
 ### D2 `previewApi.ts`
 
-Wrappers over `commands`: `loadPreviewCues(path)`, `openPreview(path)`, `preparePreviewAudio(id)`, `closePreview(id)`. Separate from `syncWizardApi.ts` so that the existing automocks of that module keep working.
+Wrappers over `commands`: `loadPreviewCues(path)`, `openPreview(path)`, `preparePreviewAudio(id)`, `releasePreviewAudio(id)`, `closePreview(id)`. Separate from `syncWizardApi.ts` so that the existing automocks of that module keep working.
 
 ### D3 `usePreviewSession(mediaPath, subtitlePath)`
 
@@ -55,10 +55,10 @@ export interface PreviewSession {
 
 - Session calls go through one module-level promise chain (`let queue: Promise<unknown> = Promise.resolve()`; `enqueue(fn)` runs `fn` after the previous settles, swallowing its rejection for the chain). `openPreview` and `closePreview` are enqueued; `preparePreviewAudio` is not, so `closePreview` can cancel it.
 - Effect on `[mediaPath]`: null → `none`; otherwise `opening`, then enqueue open. If the effect was cleaned up before the open resolved, enqueue nothing further but call `closePreview(id)` inside the same queued function, so it finishes before any newer open. Cleanup with an open session enqueues its close. Close rejections are swallowed. Every state update checks a per-effect `cancelled` flag. This also makes React StrictMode's double mount safe.
-- `onMediaError`: in `video` → `preparing/failed`; in `audio` → `unavailable`; ignored otherwise. Media element errors during `audio` use the error `{ code: "preview.media_unreadable", message: "the media element failed", hintCode: null }`.
+- `onMediaError`: in `video` → `preparing/failed`; in `audio` → `unavailable`, calling `releasePreviewAudio(id)` (rejection swallowed) at once, since returning to video no longer needs the WAV; ignored otherwise. Media element errors during `audio` use the error `{ code: "preview.media_unreadable", message: "the media element failed", hintCode: null }`.
 - `requestAudio`: only in `video` → `preparing/requested`.
 - Preparing: resolve → `audio`; reject → `unavailable`.
-- `returnToVideo`: only with `canReturn`; sets `video` with the session's URL. The player restores position and volume and stays paused.
+- `returnToVideo`: only with `canReturn`; sets `video` with the session's URL. A later `requestAudio` waits for a pending release. The player restores position and volume and stays paused.
 - A `videoPlayable` ref is set when `requestAudio` is accepted and cleared when a new session opens; `canReturn` is its value, in every path to `unavailable`.
 - Preparation is started by the `onMediaError` / `requestAudio` handlers, never by an effect, and is skipped while one is running. Its result is dropped if the session id has changed.
 - Export `resetPreviewQueueForTests()`; tests call it in `beforeEach`. An open that never settles keeps the state `opening`, which blocks neither editing nor Continue.
@@ -93,7 +93,7 @@ Split: `SyncOffsetView` (presentational, takes `session: PreviewSession` plus th
 - [Preparing has no bound on a slow mount] → the message says so implicitly by offering continued editing; leaving the step cancels.
 - [The WebView's default audio track may differ from the track the fallback picks] → accepted by the design; no track switcher.
 - [A silent video cannot be detected portably] → hence the button.
-- [MP4 edit lists are ignored in audio mode] → see `add-sync-audio-fallback`.
+- [MP4 files with a delayed track are refused in audio mode] → `preview.audio_timing_unsupported` is shown like any other preparation failure.
 - [`timeupdate` granularity] → frames drive the position while playing.
 
 ## Human review and manual checks

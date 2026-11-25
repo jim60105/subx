@@ -79,6 +79,11 @@ The offset step SHALL prefer the picture, fall back to decoded audio when the me
 - **WHEN** media loads without a decodable picture
 - **THEN** playback is available and the stage shows the audio mark
 
+#### Scenario: Failed audio playback releases the audio
+
+- **WHEN** the prepared audio itself fails to play
+- **THEN** the session's audio is released while the session stays open, and the preview is unavailable
+
 ### Requirement: Preview playback controls
 
 The player SHALL start paused and unmuted and offer named play/pause, seek and volume controls with position and duration. It SHALL add no global keyboard shortcut. Frames SHALL be requested only while playing; a seek or offset change while paused SHALL redraw without continuous frames.
