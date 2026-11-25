@@ -49,7 +49,7 @@ Scenario IDs below are the `// @covers` values, derived by `scripts/check-spec-c
 
 ## 6. Integration
 
-- [ ] 6.1 Run `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, then `npm run verify`. Expected: both exit 0. That covers tsc, vitest with coverage at or above the 85% floor, Rust coverage, `spec:trace`, bindings unchanged and icons. `git status --short` shows only the files named in tasks 1–5.
+- [x] 6.1 Run `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, then `npm run verify`. Expected: both exit 0. That covers tsc, vitest with coverage at or above the 85% floor, Rust coverage, `spec:trace`, bindings unchanged and icons. `git status --short` shows only the files named in tasks 1–5.
 
 ## Workflow follow-up
 
