@@ -34,7 +34,7 @@ Only Linux WebKitGTK was probed and playback was muted. Audible output, Windows,
 
 ## Batch:
 
-Order: `add-sync-media-server`, `add-sync-audio-fallback`, `rework-sync-detection-flow`, `add-sync-preview-player`, `add-sync-time-rule`, `package-sync-preview-media`.
+Order: `add-sync-media-server`, `add-sync-audio-fallback`, `guard-mp4-preview-audio`, `rework-sync-detection-flow`, `add-sync-preview-player`, `add-sync-time-rule`, `package-sync-preview-media`.
 
 depends-on: none
 Conflict notes: shares `errors.json`, `bindings.ts`, `ipc_tests.rs` and `Cargo.toml` with `add-sync-audio-fallback`; shares `errors.json` with `rework-sync-detection-flow`; shares `tauri.conf.json` (different keys) with `package-sync-preview-media`. Apply serially.

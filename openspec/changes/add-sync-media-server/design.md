@@ -55,7 +55,9 @@ impl MediaServer {
     pub fn addr(&self) -> std::net::SocketAddr;
     /// Registry insert only; no file-system access.
     pub fn publish(&self, path: PathBuf) -> std::io::Result<Published>;
-    pub fn revoke(&self, token: &str);
+    /// Removes the entry; the caller drops the returned value outside any lock.
+    #[must_use]
+    pub fn revoke(&self, token: &str) -> Option<Entry>;
 }
 impl Drop for MediaServer { /* abort the accept loop; dropping the registry's senders ends streams */ }
 
@@ -65,7 +67,7 @@ pub(crate) fn content_type_of(path: &Path) -> &'static str;
 ```
 
 - `start`: `std::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0))`, `set_nonblocking(true)`, `tokio::net::TcpListener::from_std`, then `tokio::spawn` the accept loop. Each connection: `hyper::server::conn::http1::Builder::new().timer(TokioTimer::new())` over `TokioIo`. A connection error is ignored; an accept error is followed by a 50 ms sleep.
-- `Registry`: `std::sync::Mutex<HashMap<String, Entry>>`; `Entry { path, content_type, revoked: tokio::sync::watch::Sender<bool> }`. The registry lives behind the server; connections hold a `Weak<Registry>` so that dropping the server ends every stream. The lock is never held across `.await`. `revoke` removes the entry and calls `send_replace(true)`; a `changed()` error (sender dropped) also counts as revoked.
+- `Registry`: `std::sync::Mutex<HashMap<String, Entry>>`; `Entry { path, content_type, revoked: tokio::sync::watch::Sender<bool> }`. The registry lives behind the server; connections hold a `Weak<Registry>` so that dropping the server ends every stream. The lock is never held across `.await`. `revoke` removes the entry, calls `send_replace(true)` and returns it; a `changed()` error (sender dropped) also counts as revoked.
 - Token: 16 bytes from `getrandom::fill`, lowercase hex (32 characters). URL: `http://127.0.0.1:<port>/<token>`. A `getrandom` failure maps to `io::Error::other`.
 - `pub fn check_file(path: &Path) -> io::Result<()>` (free function, blocking): `File::open` succeeds and its metadata `is_file()`, else `ErrorKind::InvalidInput`. Check metadata before opening, so a FIFO is not opened. `publish` does not touch the file system. Each request reopens the path and re-checks `is_file()`; failure is 404.
 - Check order per request: `Host` must equal `127.0.0.1:<port>` exactly (else 403) → method must be GET or HEAD (else 405 with `Allow: GET, HEAD`) → the path must be `/` plus a known token and there must be no query (else 404) → range.
