@@ -1,7 +1,7 @@
 # Sync Preview — Design
 
 Date: 2026-11-25
-Status: design approved; written spec awaiting owner review
+Status: design approved; written spec awaiting owner review; proposed as OpenSpec changes `add-sync-media-server`, `add-sync-audio-fallback`, `rework-sync-detection-flow`, `add-sync-preview-player`, `add-sync-time-rule` and `package-sync-preview-media`, in that order
 
 ## Goal
 
