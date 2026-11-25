@@ -53,6 +53,7 @@ impl MediaServer {
     /// Must be called inside a tokio runtime.
     pub fn start() -> std::io::Result<Self>;
     pub fn addr(&self) -> std::net::SocketAddr;
+    /// Registry insert only; no file-system access.
     pub fn publish(&self, path: PathBuf) -> std::io::Result<Published>;
     pub fn revoke(&self, token: &str);
 }
@@ -64,14 +65,14 @@ pub(crate) fn content_type_of(path: &Path) -> &'static str;
 ```
 
 - `start`: `std::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0))`, `set_nonblocking(true)`, `tokio::net::TcpListener::from_std`, then `tokio::spawn` the accept loop. Each connection: `hyper::server::conn::http1::Builder::new().timer(TokioTimer::new())` over `TokioIo`. A connection error is ignored; an accept error is followed by a 50 ms sleep.
-- `Registry`: `std::sync::Mutex<HashMap<String, Entry>>`; `Entry { path, content_type, revoked: tokio::sync::watch::Sender<bool> }`. The registry lives behind the server; connections hold a `Weak<Registry>` so that dropping the server ends every stream. The lock is never held across `.await`.
+- `Registry`: `std::sync::Mutex<HashMap<String, Entry>>`; `Entry { path, content_type, revoked: tokio::sync::watch::Sender<bool> }`. The registry lives behind the server; connections hold a `Weak<Registry>` so that dropping the server ends every stream. The lock is never held across `.await`. `revoke` removes the entry and calls `send_replace(true)`; a `changed()` error (sender dropped) also counts as revoked.
 - Token: 16 bytes from `getrandom::fill`, lowercase hex (32 characters). URL: `http://127.0.0.1:<port>/<token>`. A `getrandom` failure maps to `io::Error::other`.
-- `publish` checks `metadata(path)?.is_file()` and refuses anything else with `ErrorKind::InvalidInput`. Each request reopens the path and re-checks `is_file()`; failure is 404.
+- `pub fn check_file(path: &Path) -> io::Result<()>` (free function, blocking): `File::open` succeeds and its metadata `is_file()`, else `ErrorKind::InvalidInput`. Check metadata before opening, so a FIFO is not opened. `publish` does not touch the file system. Each request reopens the path and re-checks `is_file()`; failure is 404.
 - Check order per request: `Host` must equal `127.0.0.1:<port>` exactly (else 403) → method must be GET or HEAD (else 405 with `Allow: GET, HEAD`) → the path must be `/` plus a known token and there must be no query (else 404) → range.
 - `HEAD` ignores `Range` (RFC 9110 defines it for GET) and answers 200.
 - Every success carries `Content-Type`, `Content-Length`, `Accept-Ranges: bytes`, `Cache-Control: no-store`. Every error carries `Cache-Control: no-store` and an empty body. No `Access-Control-*` header is ever sent.
-- `parse_range`: only `bytes=` with one spec, ASCII digits only. `a-b` with `a > b`, a non-digit, an overflow, an empty spec or a comma → `Full`. `a >= len`, or `-0`, or any valid spec on an empty file → `Unsatisfiable`. `b` is clamped to `len - 1`; `-n` with `n > len` is the whole file as `Partial { 0, len - 1 }`.
-- Body: `http_body_util::channel::Channel<Bytes, io::Error>` with capacity 2, fed by a task reading 64 KiB chunks with `tokio::fs`. Each send and each read is raced with `revoked.changed()` in `tokio::select!`; on revocation (or a dropped sender) call `Sender::abort`. A client that goes away ends the task through the send error.
+- `parse_range`: only `bytes=` with one spec, ASCII digits only. `a-b` with `a > b`, a non-digit, an overflow, an empty spec or a comma → `Full`. `a >= len`, or `-0`, or any valid spec on an empty file → `Unsatisfiable`. Treating an overflowing number as `Full` is deliberate. `b` is clamped to `len - 1`; `-n` with `n > len` is the whole file as `Partial { 0, len - 1 }`.
+- Body: `http_body_util::channel::Channel<Bytes, io::Error>` with capacity 2 (use `hyper::body::Bytes`, no direct `bytes` dependency), fed by a task reading 64 KiB chunks with `tokio::fs`. Each send and each read is raced with `revoked.changed()` in `tokio::select!`; on revocation (or a dropped sender) call `Sender::abort`. A client that goes away ends the task through the send error.
 - `content_type_of`, by lowercase extension: `mp4 m4v`→`video/mp4`, `mov`→`video/quicktime`, `mkv`→`video/x-matroska`, `webm`→`video/webm`, `avi`→`video/x-msvideo`, `mp3`→`audio/mpeg`, `m4a`→`audio/mp4`, `aac`→`audio/aac`, `flac`→`audio/flac`, `ogg oga opus`→`audio/ogg`, `wav`→`audio/wav`, else `application/octet-stream`. The URL has no extension, so some WebViews need the type.
 - Neither tokens nor URLs are logged.
 
@@ -92,7 +93,9 @@ impl PreviewState {
 ```
 
 - Id: `preview-<n>` from a module `AtomicU64`.
-- `open`, in this order: start the server if absent (`preview.server_unavailable`), publish the new file (`preview.media_unreadable`), then revoke and replace the old session. A failure therefore leaves an open session untouched.
+- The lock is never held across a file-system or network call other than binding the loopback socket: a stat stuck on a network mount must not block `close` or the exit hook.
+- `open`, in this order: `check_file` without the lock (`preview.media_unreadable`); then under the lock start the server if absent (`preview.server_unavailable`), publish, swap the session, revoke the old token. A failure leaves an open session untouched. Split it as `open` = `open_with(media, check_file)`, where the second argument is `impl FnOnce(&Path) -> io::Result<()>`, as a test seam.
+- `close`, `shutdown` and later accessors only change memory under the lock; anything that deletes a file is moved out of the lock and dropped after it.
 - `open` runs on `tokio::task::spawn_blocking` from the command, because metadata on a network mount can block. `spawn_blocking` threads keep the runtime context, so `MediaServer::start` works there.
 - `close` with a non-matching id does nothing. `shutdown` drops session and server.
 - `AppState` gains `preview_state: Arc<PreviewState>` and the accessor `preview_state()`.
