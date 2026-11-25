@@ -709,11 +709,12 @@ function harnessMedia(): PreviewMedia {
 }
 
 /**
- * Sync step 3 with a fixture preview session: `?media=video|preparing|audio|none|unavailable`,
+ * Sync step 3 inside the wizard frame with a fixture preview session: `?media=video|preparing|audio|none|unavailable`,
  * `?cue-error=1`, `?src=<http url>` for the media to play, and `?ms=` to seed
  * the offset. Without `src` the media element has no source.
  */
 function SyncOffsetHarness() {
+  const { t } = useTranslation("sync");
   const initial = Number(params.get("ms") ?? "750");
   const [offsetMs, setOffsetMs] = useState(Number.isFinite(initial) ? initial : 0);
   const [session] = useState<PreviewSession>(() => ({
@@ -727,15 +728,24 @@ function SyncOffsetHarness() {
     requestAudio: noop,
     returnToVideo: noop,
   }));
+  const exceedsMax = Math.abs(offsetMs) > SYNC_DEFAULTS.maxOffsetMs;
+  // Inside the real wizard frame: the stage's height comes from the panel.
   return (
-    <SyncOffsetView
-      session={session}
-      defaults={SYNC_DEFAULTS}
-      detection={{ offsetMs: 750, confidence: 82, warnings: [] }}
-      offsetMs={offsetMs}
-      offsetExceedsMax={Math.abs(offsetMs) > SYNC_DEFAULTS.maxOffsetMs}
-      onOffsetChange={setOffsetMs}
-    />
+    <WizardShell
+      steps={SYNC_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }))}
+      activeStep={2}
+      back={{ label: t("offset.back"), onClick: noop }}
+      next={{ label: t("offset.continue"), disabled: exceedsMax, onClick: noop }}
+    >
+      <SyncOffsetView
+        session={session}
+        defaults={SYNC_DEFAULTS}
+        detection={{ offsetMs: 750, confidence: 82, warnings: [] }}
+        offsetMs={offsetMs}
+        offsetExceedsMax={exceedsMax}
+        onOffsetChange={setOffsetMs}
+      />
+    </WizardShell>
   );
 }
 
