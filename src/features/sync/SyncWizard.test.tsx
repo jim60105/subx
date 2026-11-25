@@ -151,6 +151,7 @@ describe("the sync wizard", () => {
     ).toBeEnabled();
   });
 
+  // @covers sync-workflow/input-selection-for-a-single-video-subtitle-pair#drops-outside-the-files-step-are-ignored
   it("ignores drops outside the files step", async () => {
     const user = userEvent.setup();
     // A real emitter: unsubscribing removes the listener, so a drop reaches
@@ -233,6 +234,7 @@ describe("the sync wizard", () => {
     expect(api.detectSyncOffset).toHaveBeenCalledWith(MEDIA, SUBTITLE, 75);
   });
 
+  // @covers sync-workflow/method-selection-seeded-from-shared-configuration#configured-manual-method-makes-skipping-primary
   it.each([
     ["manual", ["Start detection", "Skip"]],
     ["auto", ["Skip", "Start detection"]],
@@ -271,6 +273,7 @@ describe("the sync wizard", () => {
     expect(within(actionBar()).getByRole("button", { name: "Continue" })).toBeDisabled();
   });
 
+  // @covers sync-workflow/method-selection-seeded-from-shared-configuration#detected-offset-beyond-the-maximum-can-be-reduced
   it("enters the offset step with a detected offset beyond the maximum, which can be reduced", async () => {
     const user = userEvent.setup();
     vi.mocked(api.detectSyncOffset).mockResolvedValue({ ...DETECTION, offsetMs: 90_000 });
@@ -337,6 +340,7 @@ describe("the sync wizard", () => {
     expect(await screen.findByText("/m/episode_synced.srt")).toBeInTheDocument();
   });
 
+  // @covers sync-workflow/detect-step-states#detecting-shows-elapsed-time-and-cancel
   it("holds the primary slot, disabled, with cancel beside it while detecting", async () => {
     const user = userEvent.setup();
     const pending = deferred<SyncDetectionDto>();
@@ -378,6 +382,7 @@ describe("the sync wizard", () => {
     expect(screen.queryByText("1.500 seconds")).not.toBeInTheDocument();
   });
 
+  // @covers sync-workflow/detect-step-states#failure-offers-retry-and-skip
   it("offers retry and skip when the detection fails", async () => {
     const user = userEvent.setup();
     vi.mocked(api.detectSyncOffset).mockRejectedValueOnce({
@@ -416,6 +421,7 @@ describe("the sync wizard", () => {
     expect(offsetField()).toHaveValue(0);
   });
 
+  // @covers sync-workflow/keep-the-current-offset#keeping-returns-with-the-review-intact
   it("keeps the edited offset and the detection facts when keeping", async () => {
     const user = userEvent.setup();
     vi.mocked(api.detectSyncOffset).mockResolvedValue({
@@ -438,6 +444,7 @@ describe("the sync wizard", () => {
     expect(screen.getByText("The analysis finished with a warning.")).toBeInTheDocument();
   });
 
+  // @covers sync-workflow/keep-the-current-offset#keep-is-primary-when-asked-again
   it("makes keeping primary when the detect step is shown again", async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -462,6 +469,7 @@ describe("the sync wizard", () => {
     expect(primary()).toHaveTextContent("Keep +0.05 s");
   });
 
+  // @covers sync-workflow/keep-the-current-offset#keep-is-offered-after-a-failure
   it("offers keeping beside skip when a detection fails after a review", async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -488,6 +496,7 @@ describe("the sync wizard", () => {
     expect(screen.getByText("82%")).toBeInTheDocument();
   });
 
+  // @covers sync-workflow/offset-reset-rules#skip-resets-the-offset
   it("resets the offset and the detection facts when skipping after a review", async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -501,6 +510,7 @@ describe("the sync wizard", () => {
     expect(screen.queryByText("82%")).not.toBeInTheDocument();
   });
 
+  // @covers sync-workflow/offset-reset-rules#back-from-save-keeps-the-review
   it("keeps the review when returning from the save step", async () => {
     const user = userEvent.setup();
     renderWizard();

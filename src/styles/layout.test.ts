@@ -184,6 +184,7 @@ describe("the sync detect step", () => {
 
   /// The waiting illustration is decorative; under reduced motion it stays
   /// still and the elapsed seconds carry the progress on their own.
+  // @covers sync-workflow/detect-step-states#waiting-illustration-honours-reduced-motion
   it("stops the waiting illustration under reduced motion", () => {
     const block = blockOf(css, "@media (prefers-reduced-motion: reduce)");
 

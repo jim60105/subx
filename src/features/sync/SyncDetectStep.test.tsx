@@ -44,6 +44,7 @@ describe("the detect step", () => {
     expect(screen.getByText(HINT)).toHaveClass("visually-hidden");
   });
 
+  // @covers sync-workflow/detect-step-states#detecting-shows-elapsed-time-and-cancel
   it("shows elapsed seconds as the only progress, beside an illustration hidden from assistive technology", () => {
     const { container } = renderStep("detecting");
 

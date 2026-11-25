@@ -57,6 +57,7 @@ afterEach(() => {
 });
 
 describe("keeping the current offset", () => {
+  // @covers sync-workflow/keep-the-current-offset#keep-is-hidden-without-a-review
   it("is not offered on the first visit, after a file change, or after a restart", async () => {
     const { result } = await onDetectStep();
     expect(result.current.hasReview).toBe(false);
@@ -91,6 +92,7 @@ describe("keeping the current offset", () => {
 });
 
 describe("a detection that does not finish", () => {
+  // @covers sync-workflow/offset-reset-rules#failed-or-cancelled-detection-keeps-the-offset
   it("keeps the offset when it fails", async () => {
     const { result } = await withDetection();
     act(() => result.current.setOffsetMs(1_250));
@@ -104,6 +106,7 @@ describe("a detection that does not finish", () => {
     expect(result.current.step).toBe("detect");
   });
 
+  // @covers sync-workflow/offset-reset-rules#failed-or-cancelled-detection-keeps-the-offset
   it("keeps the offset when it is cancelled, and ignores its late result", async () => {
     const { result } = await withDetection();
     act(() => result.current.setOffsetMs(1_250));
@@ -185,6 +188,7 @@ describe("a detection that does not finish", () => {
 });
 
 describe("changing a file", () => {
+  // @covers sync-workflow/offset-reset-rules#changing-a-file-resets-the-review
   it.each([
     ["a different media file", (w: ReturnType<typeof useSyncWizard>) => w.setMediaPath("/m/other.mkv")],
     ["a different subtitle", (w: ReturnType<typeof useSyncWizard>) => w.setSubtitlePath("/m/other.srt")],

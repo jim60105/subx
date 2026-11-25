@@ -37,7 +37,7 @@ The shell SHALL navigate client-side from the home hub into a feature screen and
 
 ### Requirement: Reusable WizardShell layout
 
-`WizardShell` SHALL be a reusable frontend component rendering a numbered step indicator, a content slot, and a persistent action bar with feature-owned labels and states. It SHALL render on every step outside the scrollable content panel, with three fixed slots: `back` at the inline start, then `secondary` and `next` in the inline-end cluster, `next` last and primary; an undeclared slot SHALL leave the others' positions unchanged. Forward actions SHALL use `next`, non-forward `secondary`.
+`WizardShell` SHALL be a reusable component rendering a numbered step indicator, a content slot, and a persistent action bar with feature-owned labels and states. The bar SHALL render on every step outside the scrollable panel, with fixed slots: `back` at the inline start, then `secondary` and `next` at the inline end, `next` last and primary; an undeclared slot SHALL leave the others in place. `secondary` SHALL hold one or two controls: non-forward or non-primary forward.
 
 #### Scenario: Step indicator reflects progress
 
@@ -58,6 +58,11 @@ The shell SHALL navigate client-side from the home hub into a feature screen and
 
 - **WHEN** a step declares only `back`
 - **THEN** the back control renders at the bar's inline start and the primary inline-end position is left empty, rather than the back control sliding to the inline end
+
+#### Scenario: Secondary holds two controls
+
+- **WHEN** a step declares two secondary actions and a next action
+- **THEN** both render in declared order inside the inline-end cluster before `next`, which stays last
 
 #### Scenario: Scrolling the step body does not move the primary action
 
@@ -113,7 +118,7 @@ Every feature screen SHALL place its primary forward action at the same on-scree
 #### Scenario: Forward actions share one position in every wizard
 
 - **WHEN** any of the Match, Convert, Sync, or Translate wizards is walked from its first step through its terminal report
-- **THEN** every forward action along the way — continue, analyze, execute, start, apply, confirm, retry, finish — is rendered as the action bar's `next` control, and no step renders a forward action inside its content panel
+- **THEN** every primary forward action along the way — continue, analyze, execute, start, skip when primary, apply, confirm, retry, finish — is rendered as the action bar's `next` control, a step offering further forward choices renders the others in `secondary`, and no step renders a forward action inside its content panel
 
 #### Scenario: A running operation keeps the primary slot occupied
 

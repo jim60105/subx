@@ -177,6 +177,7 @@ describe("WizardShell", () => {
     expect(end?.lastElementChild).toHaveClass("wizard__button--primary");
   });
 
+  // @covers app-shell/reusable-wizardshell-layout#secondary-holds-two-controls
   it("renders two secondary actions in declared order before the primary", async () => {
     const user = userEvent.setup();
     const skip = vi.fn();
