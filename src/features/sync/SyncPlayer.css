@@ -79,13 +79,26 @@
   gap: var(--space-2);
   align-items: center;
   justify-content: center;
+  /* A message taller than a short stage scrolls from its top, never past it. */
+  justify-content: safe center;
   padding: var(--space-4);
   overflow-y: auto;
   text-align: center;
 }
 
-/* Covers the element kept behind an error. */
+/*
+ * Covers the element kept behind an error. In the flow rather than over it,
+ * and the stage sized by it, so the notice is never clipped by a short stage.
+ */
+.sync-player[data-status="unavailable"] .sync-player__stage {
+  flex: 0 0 auto;
+}
+
 .sync-player__message--cover {
+  position: relative;
+  z-index: 1;
+  inset: auto;
+  min-height: 6rem;
   background: var(--paper-2);
 }
 

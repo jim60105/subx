@@ -209,8 +209,8 @@ export function SyncPlayer({ session, offsetMs, onPosition }: SyncPlayerProps) {
   };
 
   const playable = media.status === "video" || media.status === "audio";
-  const showSlip = playable || media.status === "preparing";
-  const lines = showSlip
+  // Not while preparing: the element is paused and the band says why.
+  const lines = playable
     ? activeCues(cues, positionMs, offsetMs)
         .map((cue) => ({ cue, text: plainCueText(cue.text) }))
         .filter(({ text }) => text !== "")
