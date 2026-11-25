@@ -46,6 +46,7 @@
     "sync.output_exists": "A file already exists at that path.",
     "sync.output_is_input": "The output would replace the subtitle being synced.",
     "sync.detection_warning": "The analysis finished with a warning.",
+    "preview.audio_timing_unsupported": "The timing of the sound in this media cannot be reproduced, so the sound-only preview is not offered.",
     "preview.audio_unsupported": "The selected media has no audio the preview can play.",
     "preview.cancelled": "The audio preparation was cancelled.",
     "preview.media_unreadable": "The selected media file cannot be read.",

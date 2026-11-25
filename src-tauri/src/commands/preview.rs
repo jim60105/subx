@@ -26,6 +26,9 @@ pub(crate) const CODE_MEDIA_UNREADABLE: &str = "preview.media_unreadable";
 pub(crate) const CODE_SERVER_UNAVAILABLE: &str = "preview.server_unavailable";
 /// The media has no audio the fallback can decode, or its WAV would be too large.
 pub(crate) const CODE_AUDIO_UNSUPPORTED: &str = "preview.audio_unsupported";
+/// The MP4 track's edit list or fragment timing cannot be reproduced, so the
+/// sound would be placed at the wrong time.
+pub(crate) const CODE_AUDIO_TIMING_UNSUPPORTED: &str = "preview.audio_timing_unsupported";
 /// The session is not open, its audio is already being prepared, or the job
 /// was cancelled or superseded.
 pub(crate) const CODE_CANCELLED: &str = "preview.cancelled";
@@ -108,6 +111,7 @@ pub(crate) fn audio_error(err: AudioFallbackError) -> ErrorDto {
     match err {
         AudioFallbackError::Unsupported(detail) => ErrorDto::new(CODE_AUDIO_UNSUPPORTED, detail),
         AudioFallbackError::Unreadable(detail) => ErrorDto::new(CODE_MEDIA_UNREADABLE, detail),
+        AudioFallbackError::Timing(detail) => ErrorDto::new(CODE_AUDIO_TIMING_UNSUPPORTED, detail),
         AudioFallbackError::Cancelled => {
             ErrorDto::new(CODE_CANCELLED, "the audio preparation was cancelled")
         }
@@ -350,8 +354,18 @@ mod tests {
     #[test]
     fn audio_errors_map_to_their_codes() {
         let cases = [
-            (AudioFallbackError::Unsupported("x".into()), "preview.audio_unsupported"),
-            (AudioFallbackError::Unreadable("x".into()), "preview.media_unreadable"),
+            (
+                AudioFallbackError::Unsupported("x".into()),
+                "preview.audio_unsupported",
+            ),
+            (
+                AudioFallbackError::Unreadable("x".into()),
+                "preview.media_unreadable",
+            ),
+            (
+                AudioFallbackError::Timing("x".into()),
+                "preview.audio_timing_unsupported",
+            ),
             (AudioFallbackError::Cancelled, "preview.cancelled"),
             (
                 AudioFallbackError::Io(std::io::Error::other("disk full")),

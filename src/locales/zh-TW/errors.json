@@ -46,6 +46,7 @@
     "sync.output_exists": "該路徑已經有檔案存在。",
     "sync.output_is_input": "輸出路徑會覆蓋正在同步的那份字幕。",
     "sync.detection_warning": "分析完成，但有需要留意的地方。",
+    "preview.audio_timing_unsupported": "無法重現此媒體中聲音的時間位置，因此不提供只有聲音的預覽。",
     "preview.audio_unsupported": "所選媒體沒有預覽可播放的音訊。",
     "preview.cancelled": "已取消準備音訊。",
     "preview.media_unreadable": "無法讀取所選的媒體檔案。",
