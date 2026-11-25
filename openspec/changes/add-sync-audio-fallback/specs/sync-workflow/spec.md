@@ -48,7 +48,7 @@ Audio that has no decodable track, or whose WAV would exceed the format's size l
 #### Scenario: Write failure is reported
 
 - **WHEN** writing the WAV fails
-- **THEN** the job fails with `core.io` and no temporary file remains
+- **THEN** the job fails with `core.io` and no audio URL is returned
 
 #### Scenario: Cancellation deletes the partial file
 
