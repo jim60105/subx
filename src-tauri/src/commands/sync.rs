@@ -635,6 +635,57 @@ mod tests {
         assert_eq!(error.code, "core.audio_processing");
     }
 
+    /// The preview shows each cue at `max(0, t + offset)` in whole
+    /// milliseconds, while apply shifts by an `f32` number of seconds. Before
+    /// the format's own rounding on save, the two must agree within 1 ms, from
+    /// the start of the media to two hours in.
+    #[test]
+    fn applied_times_agree_with_the_preview_rule_within_a_millisecond() {
+        const STARTS_MS: [u64; 4] = [0, 500, 5_000, 7_200_000];
+        const OFFSETS_MS: [i32; 5] = [1, -1, 50, 1_234, 59_999];
+
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("timing.srt");
+        let srt: String = STARTS_MS
+            .iter()
+            .enumerate()
+            .map(|(index, &start)| {
+                format!("{}\n{} --> {}\ncue\n\n", index + 1, srt_time(start), srt_time(start + 1_000))
+            })
+            .collect();
+        fs::write(&path, srt).expect("the fixture must be writable");
+
+        for offset_ms in OFFSETS_MS {
+            let mut subtitle = load_subtitle(&path).expect("the fixture must parse");
+            assert_eq!(subtitle.entries.len(), STARTS_MS.len());
+
+            // Exactly the conversion `apply_sync_offset_impl` performs.
+            shift_subtitle(&mut subtitle, offset_ms as f32 / 1000.0).expect("the shift must succeed");
+
+            for (entry, &start) in subtitle.entries.iter().zip(STARTS_MS.iter()) {
+                for (applied, original) in [(entry.start_time, start), (entry.end_time, start + 1_000)] {
+                    let previewed = (original as i64 + i64::from(offset_ms)).max(0) as f64;
+                    let applied_ms = applied.as_nanos() as f64 / 1_000_000.0;
+                    assert!(
+                        (applied_ms - previewed).abs() <= 1.0,
+                        "offset {offset_ms} ms on {original} ms: applied {applied_ms} ms, previewed {previewed} ms"
+                    );
+                }
+            }
+        }
+    }
+
+    /// `HH:MM:SS,mmm` for a time in milliseconds.
+    fn srt_time(ms: u64) -> String {
+        format!(
+            "{:02}:{:02}:{:02},{:03}",
+            ms / 3_600_000,
+            ms / 60_000 % 60,
+            ms / 1_000 % 60,
+            ms % 1_000
+        )
+    }
+
     // @covers sync-workflow/method-selection-seeded-from-shared-configuration#manual-offset-beyond-the-configured-maximum-is-rejected
     #[test]
     fn an_offset_beyond_the_configured_maximum_is_rejected_at_apply() {

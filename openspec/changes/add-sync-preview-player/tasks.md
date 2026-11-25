@@ -4,8 +4,8 @@ Boundaries: edit only the files named below. No `src-tauri/` file, `OffsetField`
 
 ## 1. Pure modules
 
-- [ ] 1.1 Create `cueTiming.ts` and `cueText.ts` with tests per design D1: one test per timing scenario except "Applied times agree with the preview", and "Markup is removed" plus a 100000-character `{\` and `<` input that finishes in under one second. Verify: `npx vitest run src/features/sync/cueTiming.test.ts src/features/sync/cueText.test.ts`.
-- [ ] 1.2 In the test module of `src-tauri/src/commands/sync.rs` add one test, test code only, calling `shift_subtitle` with the offsets of "Applied times agree with the preview" on cues at 0, 500, 5000 and 7200000 ms and comparing with `max(0, t + offset)` within 1 ms. Verify: `cargo test --manifest-path src-tauri/Cargo.toml commands::sync`.
+- [x] 1.1 Create `cueTiming.ts` and `cueText.ts` with tests per design D1: one test per timing scenario except "Applied times agree with the preview", and "Markup is removed" plus a 100000-character `{\` and `<` input that finishes in under one second. Verify: `npx vitest run src/features/sync/cueTiming.test.ts src/features/sync/cueText.test.ts`.
+- [x] 1.2 In the test module of `src-tauri/src/commands/sync.rs` add one test, test code only, calling `shift_subtitle` with the offsets of "Applied times agree with the preview" on cues at 0, 500, 5000 and 7200000 ms and comparing with `max(0, t + offset)` within 1 ms. Verify: `cargo test --manifest-path src-tauri/Cargo.toml commands::sync`.
 
 ## 2. Session
 
