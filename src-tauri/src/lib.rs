@@ -5,6 +5,7 @@ mod dto;
 mod error;
 #[cfg(test)]
 mod ipc_tests;
+mod media_server;
 pub mod platform;
 mod paths;
 mod state;
@@ -12,6 +13,7 @@ mod state;
 use std::sync::Arc;
 
 use subx_core::config::ProductionConfigService;
+use tauri::Manager;
 
 use state::AppState;
 
@@ -49,6 +51,15 @@ pub fn run() {
             builder.mount_events(app);
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // `App::run` ends the process without dropping managed state, so
+            // the preview's server and streams are stopped here explicitly.
+            if let tauri::RunEvent::Exit = event {
+                if let Some(state) = app.try_state::<AppState>() {
+                    state.preview_state().shutdown();
+                }
+            }
+        });
 }

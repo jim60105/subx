@@ -52,6 +52,12 @@ export const commands = {
 	cancelSyncDetection: () => __TAURI_INVOKE<null>("cancel_sync_detection"),
 	/**  Shifts the subtitle by the reviewed offset and saves it to a new file. */
 	applySyncOffset: (subtitlePath: string, offsetMs: number, outputPath: string | null, overwrite: boolean) => __TAURI_INVOKE<SyncApplyResultDto>("apply_sync_offset", { subtitlePath, offsetMs, outputPath, overwrite }),
+	/**  The subtitle's cues in file order, read by the loader apply uses. */
+	loadPreviewCues: (subtitlePath: string) => __TAURI_INVOKE<PreviewCueDto[]>("load_preview_cues", { subtitlePath }),
+	/**  Publishes the media and returns the one open session, replacing any other. */
+	openPreview: (mediaPath: string) => __TAURI_INVOKE<PreviewSessionDto>("open_preview", { mediaPath }),
+	/**  Revokes the session's URL; a stale or repeated id is ignored. */
+	closePreview: (sessionId: string) => __TAURI_INVOKE<null>("close_preview", { sessionId }),
 	/**
 	 *  Scans the given sources for the Step 1 cue-count preview, and hands back
 	 *  the configured default target language for Step 2 to prefill.
@@ -371,6 +377,27 @@ export type PingResponse = {
 	message: string,
 	/**  The GUI application version. */
 	appVersion: string,
+};
+
+/**
+ *  One subtitle cue for the sync preview, in file order (design D5).
+ * 
+ *  Whole milliseconds, saturated to `u32::MAX` (about 49 days), which no
+ *  media file reaches.
+ */
+export type PreviewCueDto = {
+	startMs: number,
+	endMs: number,
+	text: string,
+};
+
+/**
+ *  An open preview session: the id that closes it and the loopback URL its
+ *  media element loads.
+ */
+export type PreviewSessionDto = {
+	sessionId: string,
+	url: string,
 };
 
 /**

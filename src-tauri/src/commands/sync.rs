@@ -351,7 +351,7 @@ fn detection_method_of(configured: &str) -> SyncMethod {
 /// boxed format handlers that are neither `Send` nor `Sync`, so one held across
 /// the detection `.await` would make the spawned task's future non-`Send` — the
 /// same crate constraint `commands::convert` meets with `spawn_blocking`.
-fn load_subtitle(path: &Path) -> Result<Subtitle, ErrorDto> {
+pub(crate) fn load_subtitle(path: &Path) -> Result<Subtitle, ErrorDto> {
     FormatManager::new()
         .load_subtitle(path)
         .map_err(ErrorDto::from)

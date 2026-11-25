@@ -46,6 +46,8 @@
     "sync.output_exists": "A file already exists at that path.",
     "sync.output_is_input": "The output would replace the subtitle being synced.",
     "sync.detection_warning": "The analysis finished with a warning.",
+    "preview.media_unreadable": "The selected media file cannot be read.",
+    "preview.server_unavailable": "The preview could not be started.",
     "translate.no_subtitles": "No translatable subtitle files were found.",
     "translate.no_target_language": "No target language was provided.",
     "translate.invalid_target_language": "The target language must not contain a path separator.",

@@ -412,6 +412,27 @@ pub struct SyncApplyResultDto {
     pub overwritten: bool,
 }
 
+/// One subtitle cue for the sync preview, in file order (design D5).
+///
+/// Whole milliseconds, saturated to `u32::MAX` (about 49 days), which no
+/// media file reaches.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PreviewCueDto {
+    pub start_ms: u32,
+    pub end_ms: u32,
+    pub text: String,
+}
+
+/// An open preview session: the id that closes it and the loopback URL its
+/// media element loads.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PreviewSessionDto {
+    pub session_id: String,
+    pub url: String,
+}
+
 /// Where a translation run writes its output (design Context, D4).
 ///
 /// `Suffix` is the default: `<stem>.<target-language>.<ext>` beside the input
