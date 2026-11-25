@@ -32,10 +32,12 @@ function directives(csp: string): Map<string, string[]> {
 describe("the content policy admits loopback media only", () => {
   const policy = directives(config.app.security.csp);
 
+  // @covers sync-workflow/the-content-policy-admits-loopback-media-only#policy-lists-loopback-media
   it("lists exactly 'self' and any loopback port under media-src", () => {
     expect(new Set(policy.get("media-src"))).toEqual(new Set(["'self'", "http://127.0.0.1:*"]));
   });
 
+  // @covers sync-workflow/the-content-policy-admits-loopback-media-only#policy-lists-loopback-media
   it("names 127.0.0.1 in no other directive", () => {
     const others = [...policy]
       .filter(([name, sources]) => name !== "media-src" && sources.some((source) => source.includes("127.0.0.1")))
@@ -43,6 +45,7 @@ describe("the content policy admits loopback media only", () => {
     expect(others).toEqual([]);
   });
 
+  // @covers sync-workflow/the-content-policy-admits-loopback-media-only#policy-lists-loopback-media
   it("keeps the asset protocol disabled", () => {
     expect(config.app.security.assetProtocol).toBeUndefined();
   });

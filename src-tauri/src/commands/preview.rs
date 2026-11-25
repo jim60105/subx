@@ -109,6 +109,7 @@ mod tests {
         path
     }
 
+    // @covers sync-workflow/preview-cues-come-from-the-apply-loader#cues-are-returned-in-file-order
     #[tokio::test]
     async fn cues_are_returned_in_file_order() {
         let dir = tempfile::tempdir().expect("a temp dir");
@@ -133,6 +134,7 @@ mod tests {
         assert_eq!(cues[0].text, "Second in time");
     }
 
+    // @covers sync-workflow/preview-cues-come-from-the-apply-loader#unparsable-subtitle-reports-the-loader-error
     #[tokio::test]
     async fn unparsable_subtitle_reports_the_loader_error() {
         let dir = tempfile::tempdir().expect("a temp dir");
@@ -160,6 +162,7 @@ mod tests {
             .status
     }
 
+    // @covers sync-workflow/at-most-one-preview-session-is-open#opening-replaces-the-previous-session
     #[tokio::test(flavor = "multi_thread")]
     async fn opening_replaces_the_previous_session() {
         let dir = tempfile::tempdir().expect("a temp dir");
@@ -177,6 +180,7 @@ mod tests {
         assert_eq!(reply.body, b"second");
     }
 
+    // @covers sync-workflow/at-most-one-preview-session-is-open#stale-close-is-ignored
     #[tokio::test(flavor = "multi_thread")]
     async fn stale_close_is_ignored() {
         let dir = tempfile::tempdir().expect("a temp dir");
@@ -193,6 +197,7 @@ mod tests {
         assert_eq!(status_of(&second.url).await, 200);
     }
 
+    // @covers sync-workflow/at-most-one-preview-session-is-open#closing-is-idempotent
     #[tokio::test(flavor = "multi_thread")]
     async fn closing_is_idempotent() {
         let dir = tempfile::tempdir().expect("a temp dir");
@@ -208,6 +213,7 @@ mod tests {
         assert_eq!(status_of(&session.url).await, 404);
     }
 
+    // @covers sync-workflow/at-most-one-preview-session-is-open#unreadable-media-is-reported
     #[tokio::test(flavor = "multi_thread")]
     async fn unreadable_media_is_reported() {
         let dir = tempfile::tempdir().expect("a temp dir");

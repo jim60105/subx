@@ -706,6 +706,7 @@ mod tests {
         assert!(MediaServer::start().is_err());
     }
 
+    // @covers sync-workflow/preview-media-is-served-over-token-authorized-loopback-http#server-listens-on-loopback-only
     #[tokio::test(flavor = "multi_thread")]
     async fn server_listens_on_loopback_only() {
         let server = MediaServer::start().expect("start");
@@ -737,6 +738,7 @@ mod tests {
         }
     }
 
+    // @covers sync-workflow/preview-media-is-served-over-token-authorized-loopback-http#single-byte-range-is-served
     #[tokio::test(flavor = "multi_thread")]
     async fn single_byte_range_is_served() {
         let content = hundred_bytes();
@@ -769,6 +771,7 @@ mod tests {
         }
     }
 
+    // @covers sync-workflow/preview-media-is-served-over-token-authorized-loopback-http#unsatisfiable-range-is-refused
     #[tokio::test(flavor = "multi_thread")]
     async fn unsatisfiable_range_is_refused() {
         let (server, published, _dir) = serve(&hundred_bytes(), "a.mp4");
@@ -782,6 +785,7 @@ mod tests {
         assert_no_cors(&reply);
     }
 
+    // @covers sync-workflow/preview-media-is-served-over-token-authorized-loopback-http#unusable-range-header-returns-the-whole-file
     #[tokio::test(flavor = "multi_thread")]
     async fn unusable_range_header_returns_the_whole_file() {
         let content = hundred_bytes();
@@ -810,6 +814,7 @@ mod tests {
         assert!(reply.body.is_empty());
     }
 
+    // @covers sync-workflow/preview-media-is-served-over-token-authorized-loopback-http#head-carries-no-body
     #[tokio::test(flavor = "multi_thread")]
     async fn head_carries_no_body() {
         let (server, published, _dir) = serve(&hundred_bytes(), "a.mp4");
@@ -832,6 +837,7 @@ mod tests {
         assert_no_cors(&reply);
     }
 
+    // @covers sync-workflow/preview-media-is-served-over-token-authorized-loopback-http#other-methods-are-refused
     #[tokio::test(flavor = "multi_thread")]
     async fn other_methods_are_refused() {
         let (server, published, _dir) = serve(&hundred_bytes(), "a.mp4");
@@ -853,6 +859,7 @@ mod tests {
         assert_no_cors(&reply);
     }
 
+    // @covers sync-workflow/preview-media-is-served-over-token-authorized-loopback-http#unknown-token-is-refused
     #[tokio::test(flavor = "multi_thread")]
     async fn unknown_token_is_refused() {
         let (server, published, _dir) = serve(&hundred_bytes(), "a.mp4");
@@ -896,6 +903,7 @@ mod tests {
         }
     }
 
+    // @covers sync-workflow/preview-media-is-served-over-token-authorized-loopback-http#foreign-host-is-refused
     #[tokio::test(flavor = "multi_thread")]
     async fn foreign_host_is_refused() {
         let (server, published, _dir) = serve(&hundred_bytes(), "a.mp4");
@@ -940,6 +948,7 @@ mod tests {
         );
     }
 
+    // @covers sync-workflow/preview-media-is-served-over-token-authorized-loopback-http#revocation-stops-a-running-stream
     #[tokio::test(flavor = "multi_thread")]
     async fn revocation_stops_a_running_stream() {
         let dir = tempfile::tempdir().expect("a temp dir");
