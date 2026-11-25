@@ -17,9 +17,9 @@ Boundaries: edit only the files named below. No component, hook or locale file o
 
 ## 3. Policy and codes
 
-- [ ] 3.1 Edit the CSP per D7 and add `scripts/csp-config.test.ts` for "Policy lists loopback media" (split the CSP on `;`, compare the `media-src` source list as a set, assert no other directive contains `127.0.0.1`, assert `app.security.assetProtocol` is undefined). Verify: `npx vitest run scripts/csp-config.test.ts`.
-- [ ] 3.2 Add both codes to `src/locales/{en,zh-TW}/errors.json` and `preview` to the parity pattern. Verify: `npx vitest run src/i18n`.
-- [ ] 3.3 Run `openspec validate add-sync-media-server --strict` and `npm run verify`. Expected: both exit 0.
+- [x] 3.1 Edit the CSP per D7 and add `scripts/csp-config.test.ts` for "Policy lists loopback media" (split the CSP on `;`, compare the `media-src` source list as a set, assert no other directive contains `127.0.0.1`, assert `app.security.assetProtocol` is undefined). Verify: `npx vitest run scripts/csp-config.test.ts`.
+- [x] 3.2 Add both codes to `src/locales/{en,zh-TW}/errors.json` and `preview` to the parity pattern. Verify: `npx vitest run src/i18n`.
+- [x] 3.3 Run `openspec validate add-sync-media-server --strict` and `npm run verify`. Expected: both exit 0.
 
 ## Workflow follow-up
 

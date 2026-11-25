@@ -126,7 +126,7 @@ function backendErrorCodes(): { codes: Set<string>; hints: Set<string> } {
     // Literal codes and hint codes written out in full, e.g.
     // `const CONNECTION_TEST_HINT: &str = "config.connection_test.hint";`
     for (const match of source.matchAll(
-      /"((?:core|config|match|convert|sync|translate|path)\.[a-z_]+(?:\.hint)?)"/g,
+      /"((?:core|config|match|convert|sync|translate|preview|path)\.[a-z_]+(?:\.hint)?)"/g,
     )) {
       (match[1].endsWith(".hint") ? hints : codes).add(match[1]);
     }
@@ -176,6 +176,15 @@ describe("every backend code has translations in both locales", () => {
     for (const resource of [enErrors, zhTWErrors]) {
       expect(Object.keys(resource.codes)).toContain("path.portal_document_target");
       expect(Object.keys(resource.hints)).toContain("path.portal_document_target.hint");
+    }
+  });
+
+  it("scans the preview codes and finds them translated in both locales", () => {
+    for (const code of ["preview.media_unreadable", "preview.server_unavailable"]) {
+      expect(codes).toContain(code);
+      for (const resource of [enErrors, zhTWErrors]) {
+        expect(Object.keys(resource.codes)).toContain(code);
+      }
     }
   });
 
