@@ -9,6 +9,7 @@
     "--share=network",
     "--socket=wayland",
     "--socket=x11",
+    "--socket=pulseaudio",
     "--filesystem=host",
     "--filesystem=xdg-run/gvfs"
   ],

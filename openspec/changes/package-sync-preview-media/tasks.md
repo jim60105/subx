@@ -4,8 +4,8 @@ Boundaries: edit only the files named below. Do not push, dispatch a workflow, o
 
 ## 1. Configuration
 
-- [ ] 1.1 Apply design D1 to D3. In `scripts/release-config.test.ts` add one test per scenario (reuse `MANIFEST_RAW`; read `src-tauri/tauri.conf.json` with `JSON.parse`; scope the workflow assertion to the "Install Linux system dependencies" step). Verify: `npx vitest run scripts/release-config.test.ts scripts/version-consistency.test.ts` and `cargo check --manifest-path src-tauri/Cargo.toml` (parses the configuration).
-- [ ] 1.2 Run the commands of D4 if `flatpak` and network access are available. Expected: both elements print details; record the result or "unverified" in the change report.
+- [x] 1.1 Apply design D1 to D3. In `scripts/release-config.test.ts` add one test per scenario (reuse `MANIFEST_RAW`; read `src-tauri/tauri.conf.json` with `JSON.parse`; scope the workflow assertion to the "Install Linux system dependencies" step). Verify: `npx vitest run scripts/release-config.test.ts scripts/version-consistency.test.ts` and `cargo check --manifest-path src-tauri/Cargo.toml` (parses the configuration).
+- [x] 1.2 Run the commands of D4 if `flatpak` and network access are available. Expected: both elements print details; record the result or "unverified" in the change report.
 
 ## 2. Documentation and integration
 

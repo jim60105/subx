@@ -34,6 +34,18 @@
     "copyright": "Copyright © 2024 SubX Maintainers",
     "shortDescription": "AI-powered subtitle matching, conversion, sync, and translation desktop app",
     "longDescription": "SubX is a cross-platform desktop application for managing, matching, converting, synchronizing, and translating subtitles powered by AI.",
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": true
+      },
+      "deb": {
+        "recommends": [
+          "gstreamer1.0-plugins-base",
+          "gstreamer1.0-plugins-good",
+          "gstreamer1.0-libav"
+        ]
+      }
+    },
     "windows": {
       "nsis": {
         "installerHooks": "nsis/ort-dlls.nsh"
