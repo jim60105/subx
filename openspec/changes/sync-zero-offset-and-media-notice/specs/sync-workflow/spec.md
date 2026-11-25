@@ -71,7 +71,7 @@ The detect step SHALL offer local offline detection and skipping it; the shared 
 
 ### Requirement: Preview session follows the offset step
 
-A preview session SHALL be opened when the offset step is shown with media and closed when it is left for any reason. Session calls SHALL be serialized, and results that arrive after leaving SHALL be closed, not shown. A subtitle that cannot be read SHALL show its error in place of the subtitle while playback and Continue stay available.
+A preview session SHALL be opened when the offset step is shown with media and closed when it is left for any reason. Session calls SHALL be serialized, and results that arrive after leaving SHALL be closed, not shown. A subtitle that cannot be read SHALL show its error in place of the subtitle while playback stays available and Continue is not disabled by the failure.
 
 #### Scenario: Leaving closes the session
 
