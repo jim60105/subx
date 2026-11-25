@@ -54,6 +54,7 @@ afterEach(() => {
 });
 
 describe("usePreviewSession media states", () => {
+  // @covers sync-workflow/preview-media-states#no-media-shows-no-player
   it("opens nothing without media", async () => {
     const { result } = renderSession(null);
 
@@ -74,6 +75,7 @@ describe("usePreviewSession media states", () => {
     expect(result.current.media).toEqual({ status: "video", url: SESSION.url });
   });
 
+  // @covers sync-workflow/preview-media-states#unavailable-preview-does-not-block
   it("is unavailable, without a way back, when opening fails", async () => {
     vi.mocked(api.openPreview).mockRejectedValue(FAILURE);
     const { result } = renderSession();
@@ -83,6 +85,7 @@ describe("usePreviewSession media states", () => {
     );
   });
 
+  // @covers sync-workflow/preview-media-states#media-failure-falls-back-to-audio
   it("prepares audio after a media failure and then plays it", async () => {
     const prepare = deferred<string>();
     vi.mocked(api.preparePreviewAudio).mockReturnValue(prepare.promise);
@@ -131,6 +134,7 @@ describe("usePreviewSession media states", () => {
     expect(result.current.media.status).toBe("unavailable");
   });
 
+  // @covers sync-workflow/preview-media-states#failed-audio-playback-releases-the-audio
   it("releases the audio, keeping the session open, when the audio itself fails", async () => {
     const { result } = await openedSession();
     act(() => result.current.requestAudio());
@@ -206,6 +210,7 @@ describe("usePreviewSession media states", () => {
 });
 
 describe("usePreviewSession lifetime", () => {
+  // @covers sync-workflow/preview-session-follows-the-offset-step#leaving-closes-the-session
   it("closes the open session when unmounted", async () => {
     const { unmount } = await openedSession();
 
@@ -215,6 +220,7 @@ describe("usePreviewSession lifetime", () => {
     expect(api.releasePreviewAudio).not.toHaveBeenCalled();
   });
 
+  // @covers sync-workflow/preview-session-follows-the-offset-step#late-open-is-closed
   it("closes a session whose open resolves after leaving, before opening a newer one", async () => {
     const first = deferred<PreviewSessionDto>();
     vi.mocked(api.openPreview)
@@ -277,6 +283,7 @@ describe("usePreviewSession cues", () => {
     expect(result.current.cues).toEqual(CUES);
   });
 
+  // @covers sync-workflow/preview-session-follows-the-offset-step#subtitle-failure-keeps-playback
   it("reports a failure without touching the media", async () => {
     vi.mocked(api.loadPreviewCues).mockRejectedValue(FAILURE);
     const { result } = renderSession();

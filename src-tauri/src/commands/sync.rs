@@ -639,6 +639,7 @@ mod tests {
     /// milliseconds, while apply shifts by an `f32` number of seconds. Before
     /// the format's own rounding on save, the two must agree within 1 ms, from
     /// the start of the media to two hours in.
+    // @covers sync-workflow/preview-timing-matches-the-applied-shift#applied-times-agree-with-the-preview
     #[test]
     fn applied_times_agree_with_the_preview_rule_within_a_millisecond() {
         const STARTS_MS: [u64; 4] = [0, 500, 5_000, 7_200_000];

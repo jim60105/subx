@@ -680,6 +680,7 @@ describe("the offset step preview", () => {
     expect(await screen.findByText("Save the synced subtitle")).toBeInTheDocument();
   }
 
+  // @covers sync-workflow/preview-media-states#no-media-shows-no-player
   it("opens no session without media, says so, and still edits and continues", async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -691,6 +692,7 @@ describe("the offset step preview", () => {
     await editAndContinue(user);
   });
 
+  // @covers sync-workflow/preview-media-states#media-failure-falls-back-to-audio
   it("falls back to audio when the media element fails, through the same controls", async () => {
     const user = userEvent.setup();
     const prepare = deferred<string>();
@@ -711,6 +713,7 @@ describe("the offset step preview", () => {
     expect(screen.queryByRole("button", { name: "No sound?" })).toBeNull();
   });
 
+  // @covers sync-workflow/preview-media-states#unavailable-preview-does-not-block
   it("shows a failed open and still edits and continues", async () => {
     const user = userEvent.setup();
     vi.mocked(previewApi.openPreview).mockRejectedValue({
@@ -725,6 +728,7 @@ describe("the offset step preview", () => {
     await editAndContinue(user);
   });
 
+  // @covers sync-workflow/preview-media-states#unavailable-preview-does-not-block
   it("shows a failed preparation after a media failure and still edits and continues", async () => {
     const user = userEvent.setup();
     vi.mocked(previewApi.preparePreviewAudio).mockRejectedValue(PREVIEW_FAILURE);
@@ -741,6 +745,7 @@ describe("the offset step preview", () => {
     await editAndContinue(user);
   });
 
+  // @covers sync-workflow/preview-session-follows-the-offset-step#leaving-closes-the-session
   it("closes the session when going back", async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -752,6 +757,7 @@ describe("the offset step preview", () => {
     await waitFor(() => expect(previewApi.closePreview).toHaveBeenCalledWith("s1"));
   });
 
+  // @covers sync-workflow/preview-session-follows-the-offset-step#leaving-closes-the-session
   it("closes the session when continuing", async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -763,6 +769,7 @@ describe("the offset step preview", () => {
     await waitFor(() => expect(previewApi.closePreview).toHaveBeenCalledWith("s1"));
   });
 
+  // @covers sync-workflow/preview-session-follows-the-offset-step#leaving-closes-the-session
   it("closes the session when the wizard is unmounted", async () => {
     const user = userEvent.setup();
     const { unmount } = renderWizard();
@@ -774,6 +781,7 @@ describe("the offset step preview", () => {
     await waitFor(() => expect(previewApi.closePreview).toHaveBeenCalledWith("s1"));
   });
 
+  // @covers sync-workflow/preview-session-follows-the-offset-step#subtitle-failure-keeps-playback
   it("shows a subtitle that cannot be read while playback and Continue stay available", async () => {
     const user = userEvent.setup();
     vi.mocked(previewApi.loadPreviewCues).mockRejectedValue({

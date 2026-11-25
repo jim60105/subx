@@ -132,6 +132,7 @@ describe("formatMediaTime", () => {
 });
 
 describe("the sync player", () => {
+  // @covers sync-workflow/preview-playback-controls#player-starts-paused-and-unmuted
   it("starts paused and unmuted with a named play control", () => {
     renderPlayer(makeSession({ status: "video", url: VIDEO_URL }));
     const element = video();
@@ -165,6 +166,7 @@ describe("the sync player", () => {
     expect(screen.getByRole("slider", { name: "Position" })).toHaveAttribute("aria-valuetext", "1:01.2");
   });
 
+  // @covers sync-workflow/cue-text-is-inert#markup-is-never-interpreted
   it("never interprets markup in cue text", () => {
     const cues = [
       { startMs: 0, endMs: 5_000, text: '<img src="x" onerror="window.hacked = 1">hi <b>there</b>' },
@@ -207,6 +209,7 @@ describe("the sync player", () => {
     expect(screen.getByText("0:00.0 / 0:00.0")).toBeInTheDocument();
   });
 
+  // @covers sync-workflow/preview-media-states#user-switches-a-silent-video-to-audio
   it("continues a silent video in audio from the same place, playing, at the same volume", async () => {
     const user = userEvent.setup();
     const session = makeSession({ status: "video", url: VIDEO_URL });
@@ -241,6 +244,7 @@ describe("the sync player", () => {
     expect(screen.queryByRole("button", { name: "No sound?" })).toBeNull();
   });
 
+  // @covers sync-workflow/preview-media-states#failed-switch-can-return-to-video
   it("returns from a failed switch to the video at the same place, paused", async () => {
     const user = userEvent.setup();
     const { rerender } = renderPlayer(makeSession({ status: "video", url: VIDEO_URL }));
@@ -313,6 +317,7 @@ describe("the sync player", () => {
     expect(document.querySelector("video")).toBeNull();
   });
 
+  // @covers sync-workflow/preview-media-states#sound-without-a-picture-is-not-an-error
   it("treats media without a picture as playable sound with the audio mark", () => {
     const session = makeSession({ status: "video", url: VIDEO_URL });
     renderPlayer(session);
@@ -376,6 +381,7 @@ describe("the sync player", () => {
     expect(screen.getByRole("slider", { name: "Volume" })).toHaveValue("0.25");
   });
 
+  // @covers sync-workflow/preview-playback-controls#offset-change-does-not-disturb-playback
   it("follows an offset change while playing without touching the media", () => {
     const session = makeSession({ status: "video", url: VIDEO_URL });
     const { rerender } = renderPlayer(session, 0);
@@ -395,6 +401,7 @@ describe("the sync player", () => {
     expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
   });
 
+  // @covers sync-workflow/preview-playback-controls#paused-redraw
   it("redraws a seek or an offset change while paused without requesting frames", () => {
     const session = makeSession({ status: "video", url: VIDEO_URL });
     const { rerender } = renderPlayer(session, 0);
@@ -430,6 +437,7 @@ describe("the sync player", () => {
     expect(slipText()).toBe("first");
   });
 
+  // @covers sync-workflow/preview-playback-controls#frames-stop-with-playback
   it.each(["pause", "ended"] as const)("requests no frame once playback stops by %s", (event) => {
     renderPlayer(makeSession({ status: "video", url: VIDEO_URL }));
     const element = video();
@@ -448,6 +456,7 @@ describe("the sync player", () => {
     expect(requestFrame).toHaveBeenCalledTimes(2);
   });
 
+  // @covers sync-workflow/preview-playback-controls#frames-stop-with-playback
   it("requests no frame once the step is left", () => {
     const { unmount } = renderPlayer(makeSession({ status: "video", url: VIDEO_URL }));
     const element = video();

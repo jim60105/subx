@@ -20,6 +20,7 @@ describe("shiftMs", () => {
 });
 
 describe("activeCues", () => {
+  // @covers sync-workflow/preview-timing-matches-the-applied-shift#cue-is-active-from-start-to-before-end
   it("shows a cue from its shifted start to just before its shifted end", () => {
     const cues = [cue(5_000, 7_000)];
 
@@ -29,6 +30,7 @@ describe("activeCues", () => {
     expect(shownAt(cues, 8_000, 1_000)).toEqual([]);
   });
 
+  // @covers sync-workflow/preview-timing-matches-the-applied-shift#negative-shift-clamps-at-zero
   it("clamps a negative shift at zero", () => {
     const cues = [cue(500, 1_500)];
 
@@ -37,6 +39,7 @@ describe("activeCues", () => {
     expect(shownAt(cues, 500, -1_000)).toEqual([]);
   });
 
+  // @covers sync-workflow/preview-timing-matches-the-applied-shift#cue-clamped-to-zero-length-is-not-shown
   it("never shows a cue clamped to zero length", () => {
     const cues = [cue(200, 800)];
 
@@ -45,6 +48,7 @@ describe("activeCues", () => {
     }
   });
 
+  // @covers sync-workflow/preview-timing-matches-the-applied-shift#overlapping-cues-keep-file-order
   it("shows overlapping cues together in file order", () => {
     // The later cue in the file starts first.
     const cues = [cue(2_000, 5_000, "first in file"), cue(1_000, 4_000, "second in file")];

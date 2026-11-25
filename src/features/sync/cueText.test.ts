@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { plainCueText } from "./cueText";
 
 describe("plainCueText", () => {
+  // @covers sync-workflow/cue-text-is-inert#markup-is-removed
   it("removes ASS overrides and HTML-like tags and turns ASS breaks into newlines", () => {
     expect(plainCueText("{\\an8}<i>a</i>\\Nb < c")).toBe("a\nb < c");
   });
