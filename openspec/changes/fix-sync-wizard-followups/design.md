@@ -12,7 +12,7 @@ See proposal.md (Why) for motivation. These facts in the current code (master at
 - While a detection runs, the only way out of the detect step is unmounting the whole wizard: `App.tsx` renders `<SyncScreen />` only while `screen === "sync"`, and the header's Home/Settings controls change `screen`. Back is hidden while detecting, success moves to the offset step (no run left), and `restart` already cancels. So "leaving" in this change means unmounting.
 - `src/main.tsx` wraps the app in `React.StrictMode`, so mount effects run mount → cleanup → mount in development.
 - Nudge buttons (`src/features/sync/OffsetField.tsx`) render `t("offset.nudgeDown"|"offset.nudgeUp", { step })` as text and `t("offset.decrease"|"offset.increase", { step })` as `aria-label`. Both locales have all four keys. `WizardNavAction.accessibleLabel` already documents the "must start with the visible text" convention.
-- `cargo fmt --check` (from `src-tauri/`) lists `src/audio_fallback.rs:43` first, followed by many other files. The request scopes the formatting fix to `audio_fallback.rs` only.
+- `cargo fmt --manifest-path src-tauri/Cargo.toml --check` exits non-zero. It reports diffs in 11 files: `src/audio_fallback.rs` (the `static SILENCE` line), `src/commands/{config,convert,match,sync,translate}.rs`, `src/error.rs`, `src/ipc_tests.rs`, `src/lib.rs`, `src/media_server.rs` and `src/state.rs`. The crate is `edition = "2021"` and has no rustfmt config file. The user requires the whole crate to pass `cargo fmt --check`.
 
 ## Goals / Non-Goals
 
@@ -22,7 +22,7 @@ See proposal.md (Why) for motivation. These facts in the current code (master at
 
 **Non-Goals:**
 
-- Formatting any Rust file other than `src-tauri/src/audio_fallback.rs`. Adding a `cargo fmt` gate to `npm run verify` or CI.
+- Adding a `cargo fmt` gate to `npm run verify` or CI, or adding a rustfmt config file. Any non-formatting edit to Rust code.
 - Focus management on step transitions (for example, detection success moving to the offset step, or the apply step's disabled "Applying…" button). Only the detect step's entry into detecting is in scope.
 - Any change to the backend `cancel_sync_detection` / `detect_sync_offset` commands, IPC bindings or epoch logic.
 - Generic focus restoration inside `WizardShell` (the shell does not guess where focus should go). The behaviour is opt-in per action.
@@ -30,16 +30,22 @@ See proposal.md (Why) for motivation. These facts in the current code (master at
 
 ## Decisions
 
-### D1. Formatting: rustfmt on one file
+### D1. Formatting: rustfmt over the whole crate
 
-Run `rustfmt --edition 2021 src-tauri/src/audio_fallback.rs`. The crate is `edition = "2021"` and has no rustfmt config. The file's only module is an inline `mod tests`, so rustfmt touches no other file. Expected result, replacing line 45:
+Run `cargo fmt --manifest-path src-tauri/Cargo.toml` from the repository root, using the default rustfmt settings (no config file, edition 2021 from `Cargo.toml`). It rewrites only the 11 files listed in Context, all under `src-tauri/src`. Commit the result on its own, before any other task, so the formatting-only diff can be reviewed apart from the behaviour changes. In `audio_fallback.rs`, for example, the `static SILENCE` line becomes:
 
 ```rust
 static SILENCE: [u8; (SILENCE_CHUNK_FRAMES * 2) as usize] =
     [0; (SILENCE_CHUNK_FRAMES * 2) as usize];
 ```
 
-Alternative rejected: `cargo fmt` over the crate. It would reformat a dozen unrelated files, which is outside the request.
+Acceptance:
+- `cargo fmt --manifest-path src-tauri/Cargo.toml --check` exits 0.
+- `cargo test --manifest-path src-tauri/Cargo.toml` (the `test:rust` script) passes.
+
+Later tasks touch no Rust, so the check still passes at the end.
+
+Alternative rejected: formatting only `audio_fallback.rs`. The user decided that the whole crate must pass `cargo fmt --check`.
 
 ### D2. `WizardNavAction.takeFocus` (opt-in, secondary only)
 
@@ -161,4 +167,4 @@ This section is the human-reviewed document for this change. A reviewer listens 
 - [`takeFocus` on a mouse click moves focus to Cancel, which can show a focus ring] → `:focus-visible` heuristics usually suppress the ring after pointer interaction. This is accepted.
 - [Pressing Enter twice quickly, or holding Enter long enough for key auto-repeat, now cancels the run it just started] → Accepted. This follows from putting focus on the only actionable control. Cancel is non-destructive, because the offset is kept (see "Offset reset rules"). No debounce is added.
 - [The new unmount cleanup sends a cancel when RTL's auto-cleanup unmounts a test that ended mid-detection, and that call can be counted in the next test] → Tests that count `cancelSyncDetection` calls clear that mock immediately before the action under test (task 4.3).
-- [Wider `cargo fmt --check` drift stays] → Recorded in the proposal as observed and out of scope. It needs a separate request.
+- [The crate-wide reformat makes `git blame` noisier on 11 files] → It lands in its own formatting-only commit, which can be listed in `.git-blame-ignore-revs` later if wanted.

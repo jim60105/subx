@@ -4,7 +4,10 @@ Scenario IDs below are the `// @covers` values, derived by `scripts/check-spec-c
 
 ## 1. Rust formatting (design D1)
 
-- [ ] 1.1 Run `rustfmt --edition 2021 src-tauri/src/audio_fallback.rs`. Verify: `rustfmt --edition 2021 --check src-tauri/src/audio_fallback.rs` exits 0, `git diff --stat` lists only `src-tauri/src/audio_fallback.rs`, and the diff only splits the `static SILENCE` line into the two lines shown in design D1. Do not run `cargo fmt` on the crate or touch any other `.rs` file.
+- [ ] 1.1 From the repository root, run `cargo fmt --manifest-path src-tauri/Cargo.toml`. Make no manual edits and add no rustfmt config. Verify:
+  - `cargo fmt --manifest-path src-tauri/Cargo.toml --check` exits 0.
+  - `git diff --stat` lists only `.rs` files under `src-tauri/`; the 11 files named in design Context are expected.
+- [ ] 1.2 Run `cargo test --manifest-path src-tauri/Cargo.toml` and verify it passes. Then commit the formatting on its own, with nothing else in the commit, for example `style(tauri): apply rustfmt to the src-tauri crate`.
 
 ## 2. WizardShell `takeFocus` (design D2, spec app-shell)
 
@@ -46,7 +49,7 @@ Scenario IDs below are the `// @covers` values, derived by `scripts/check-spec-c
 
 ## 6. Integration
 
-- [ ] 6.1 Run `npm run verify`. Expected: exit 0. That covers tsc, vitest with coverage at or above the 85% floor, Rust coverage, `spec:trace`, bindings unchanged and icons. `git status --short` shows only the files named in tasks 1–5.
+- [ ] 6.1 Run `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, then `npm run verify`. Expected: both exit 0. That covers tsc, vitest with coverage at or above the 85% floor, Rust coverage, `spec:trace`, bindings unchanged and icons. `git status --short` shows only the files named in tasks 1–5.
 
 ## Workflow follow-up
 
