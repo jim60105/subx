@@ -55,10 +55,13 @@ export interface PreviewSession {
 
 - Session calls go through one module-level promise chain (`let queue: Promise<unknown> = Promise.resolve()`; `enqueue(fn)` runs `fn` after the previous settles, swallowing its rejection for the chain). `openPreview` and `closePreview` are enqueued; `preparePreviewAudio` is not, so `closePreview` can cancel it.
 - Effect on `[mediaPath]`: null → `none`; otherwise `opening`, then enqueue open. If the effect was cleaned up before the open resolved, enqueue nothing further but call `closePreview(id)` inside the same queued function, so it finishes before any newer open. Cleanup with an open session enqueues its close. Close rejections are swallowed. Every state update checks a per-effect `cancelled` flag. This also makes React StrictMode's double mount safe.
-- `onMediaError`: in `video` → `preparing/failed`; in `audio` → `unavailable` with `canReturn: false` unless the video was playable; ignored otherwise. Media element errors during `audio` use the error `{ code: "preview.media_unreadable", message: "the media element failed", hintCode: null }`.
+- `onMediaError`: in `video` → `preparing/failed`; in `audio` → `unavailable`; ignored otherwise. Media element errors during `audio` use the error `{ code: "preview.media_unreadable", message: "the media element failed", hintCode: null }`.
 - `requestAudio`: only in `video` → `preparing/requested`.
-- Preparing: resolve → `audio`; reject → `unavailable`, `canReturn` true only for reason `requested`.
-- `returnToVideo`: only with `canReturn`; sets `video` with the session's URL.
+- Preparing: resolve → `audio`; reject → `unavailable`.
+- `returnToVideo`: only with `canReturn`; sets `video` with the session's URL. The player restores position and volume and stays paused.
+- A `videoPlayable` ref is set when `requestAudio` is accepted and cleared when a new session opens; `canReturn` is its value, in every path to `unavailable`.
+- Preparation is started by the `onMediaError` / `requestAudio` handlers, never by an effect, and is skipped while one is running. Its result is dropped if the session id has changed.
+- Export `resetPreviewQueueForTests()`; tests call it in `beforeEach`. An open that never settles keeps the state `opening`, which blocks neither editing nor Continue.
 - Cues: effect on `[subtitlePath]`, independent of media, cancelled flag as above; an empty list while loading.
 
 ### D4 `SyncPlayer`
@@ -67,7 +70,7 @@ export interface PreviewSession {
 interface SyncPlayerProps { session: PreviewSession; offsetMs: number; onPosition?: (positionMs: number) => void; }
 ```
 
-One `<video>` element, kept mounted in `video`, `preparing` and `audio`, with `src` set from a `lastUrl` ref (so the picture stays until audio is ready), `preload="metadata"`, no `controls`, `autoplay` or `muted`. During `preparing` its transport is hidden and it is paused; before pausing, `resume = { time, playing, volume }` is captured. The player captures the same on any `src` change; on the next `loadedmetadata` it sets `currentTime = Math.min(resume.time, duration)`, `volume`, and calls `play()` if it was playing. A rejected `play()` leaves the control in the paused state; decoding failures arrive as `error` events.
+One `<video>` element, kept mounted whenever `lastUrl` is set (`video`, `preparing`, `audio`, and `unavailable`, where it is covered by the message), with `src` set from a `lastUrl` ref (so the picture stays until audio is ready), `preload="metadata"`, no `controls`, `autoplay` or `muted`. During `preparing` its transport is hidden and it is paused; before pausing, `resume = { time, playing, volume }` is captured. The player captures the same on any `src` change; on the next `loadedmetadata` it sets `currentTime = Math.min(resume.time, duration)`, `volume`, and calls `play()` if it was playing. A rejected `play()` leaves the control in the paused state; decoding failures arrive as `error` events.
 
 - Position: `useState<number>` in ms from `video.currentTime * 1000`. Frame loop: `requestAnimationFrame` started on `playing`/`play`, cancelled on `pause`, `ended`, `error`, source change and unmount. `seeked`, `timeupdate` while paused and `loadedmetadata` each read the position once. An offset change re-renders through props and needs no frame.
 - `error` events are ignored when the element has no `src`.
@@ -83,10 +86,11 @@ Split: `SyncOffsetView` (presentational, takes `session: PreviewSession` plus th
 
 ### D6 Harness
 
-`?view=sync-offset&media=video|preparing|audio|none|unavailable&cue-error=1&src=<http url>` renders `SyncOffsetView` with a fixture session. `src` is any playable URL given by the reviewer; without it the `<video>` has no source. `scripts/preview/` is not shipped.
+`?view=sync-offset&media=video|preparing|audio|none|unavailable&cue-error=1&src=<http url>` renders `SyncOffsetView` with a fixture session. `views.tsx` already has a local `function SyncOffsetView`; rename the local one to `SyncOffsetHarness`. `src` is any playable URL given by the reviewer; without it the `<video>` has no source. `scripts/preview/` is not shipped.
 
 ## Risks / Trade-offs
 
+- [Preparing has no bound on a slow mount] → the message says so implicitly by offering continued editing; leaving the step cancels.
 - [The WebView's default audio track may differ from the track the fallback picks] → accepted by the design; no track switcher.
 - [A silent video cannot be detected portably] → hence the button.
 - [MP4 edit lists are ignored in audio mode] → see `add-sync-audio-fallback`.
