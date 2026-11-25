@@ -93,7 +93,7 @@ Split: `SyncOffsetView` (presentational, takes `session: PreviewSession` plus th
 - [Preparing has no bound on a slow mount] → the message says so implicitly by offering continued editing; leaving the step cancels.
 - [The WebView's default audio track may differ from the track the fallback picks] → accepted by the design; no track switcher.
 - [A silent video cannot be detected portably] → hence the button.
-- [MP4 files with a delayed track are refused in audio mode] → `preview.audio_timing_unsupported` is shown like any other preparation failure.
+- [MP4 files with complex edit lists or a late first fragment are refused in audio mode] → `preview.audio_timing_unsupported` is shown like any other preparation failure.
 - [`timeupdate` granularity] → frames drive the position while playing.
 
 ## Human review and manual checks
