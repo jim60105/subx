@@ -22,7 +22,7 @@ The application includes the following core capabilities:
 
 - **Match wizard**: Match subtitles to video files using AI analysis with a drag-and-drop interface.
 - **Convert wizard**: Perform batch format conversion across SRT, ASS, VTT, and SUB files.
-- **Sync wizard**: Detect how far a subtitle is offset from its video or audio track, or enter the offset manually, review the shift, and save the synced file.
+- **Sync wizard**: Detect how far a subtitle is offset from its video or audio track, or skip detection, then adjust the offset and save the synced file.
 - **Translate wizard**: Batch-translate subtitles with AI, optionally supplying the source language, context, and a glossary, and write a new suffixed file or replace the original.
 - **Settings panel**: Configure AI providers, perform connection testing, adjust theme preferences (light, dark, system), and set language options.
 
