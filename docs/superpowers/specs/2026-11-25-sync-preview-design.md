@@ -245,12 +245,14 @@ the preview wrong. It also holds all samples in memory and cannot be cancelled.
   gaps, with tolerance for timestamp jitter; overlaps are trimmed.
 - Symphonia 0.5.5 ignores MP4 edit lists (measured) and fragment decode times (source), so
   the backend reads the selected track's edit list itself, with bounded parsing.
-  Media before the edit's media time, including AAC priming, is trimmed. A
-  leading empty edit over 40 ms, an edit list that is more than one shift, or a
-  first fragment not starting at 0 is refused with
-  `preview.audio_timing_unsupported`: a wrong preview is worse than none. Up to
-  40 ms of ignored delay remains. Video edits do not change the decision, because
-  WAV time must equal presentation time.
+  Leading empty edits become silence, media before the edit's media time
+  (including AAC priming) is trimmed, and media past the edit is dropped, so WAV
+  time equals presentation time within one sample. The silence is bounded by the
+  WAV size limit and cancellable. An edit list that is more than leading empty
+  edits plus one normal-rate edit, or a first fragment not starting at 0, is
+  refused with `preview.audio_timing_unsupported`: a wrong preview is worse than
+  none. Gaps after the first fragment are not detected. Video edits are not
+  consulted: the audio track's own edits place it on the movie timeline.
 - Downmixes to mono 16-bit at the source rate and streams to an unnamed file in
   the system temporary directory (unlinked at creation on Unix, delete-on-close
   on Windows), served through positioned reads on its handle. It is released as
