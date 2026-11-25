@@ -11,7 +11,7 @@ Boundaries: edit only the files named below; no `src-tauri/`, `usePreviewSession
 ## 2. Offset row
 
 - [x] 2.1 Implement D3: delete `OffsetPreview.tsx/.css` and its tests, update `OffsetField.test.tsx` (the nudge test keeps its `@covers` line; accessible names unchanged; add a test that the direction attribute is absent at first, `up` after increase and `down` after decrease), add `offset.nudgeDown/nudgeUp` to both locales. Verify: `npx vitest run src/features/sync src/i18n` and `grep -rn OffsetPreview src scripts` prints nothing.
-- [ ] 2.2 Implement D4 and add a `src/styles/layout.test.ts` block asserting that the stage has `min-height: 6rem` and `flex: 1 1 0` and that the rule's height is 74px. Update `scripts/preview/views.tsx`. Verify: `npx vitest run src/styles src/features/sync` and `npx tsc --noEmit`.
+- [x] 2.2 Implement D4 and add a `src/styles/layout.test.ts` block asserting that the stage has `min-height: 6rem` and `flex: 1 1 0` and that the rule's height is 74px. Update `scripts/preview/views.tsx`. Verify: `npx vitest run src/styles src/features/sync` and `npx tsc --noEmit`.
 
 ## 3. Documentation and integration
 

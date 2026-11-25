@@ -37,8 +37,10 @@ interface SyncOffsetStepProps extends SyncOffsetFieldsProps {
  * the crate makes no claim about. The configured limit is checked here so the
  * user finds out before saving; the backend repeats it at apply time.
  *
- * The preview above the field plays the media with the shifted subtitle over
- * it. No preview state blocks editing the offset or continuing.
+ * From the top: the player (stage, time rule, transport), then one row of
+ * offset controls ending in the detection facts, then the warnings. The stage
+ * gives up height first. No preview state blocks editing the offset or
+ * continuing.
  */
 export function SyncOffsetStep({ mediaPath, subtitlePath, ...fields }: SyncOffsetStepProps) {
   const session = usePreviewSession(mediaPath, subtitlePath);
@@ -58,31 +60,7 @@ export function SyncOffsetView({
 
   return (
     <div className="sync-offset">
-      <header className="sync-offset__intro">
-        <h2 className="sync-offset__title">{t("offset.title")}</h2>
-        <p className="sync-offset__description">{t("offset.description")}</p>
-      </header>
-
-      {detection !== null && (
-        <dl className="sync-offset__facts">
-          <div className="sync-offset__fact">
-            <dt className="sync-offset__fact-name">{t("offset.detected")}</dt>
-            <dd className="sync-offset__fact-value">
-              {t("offset.seconds", { seconds: (detection.offsetMs / 1000).toFixed(3) })}
-            </dd>
-          </div>
-          <div className="sync-offset__fact">
-            <dt className="sync-offset__fact-name">{t("offset.confidence")}</dt>
-            <dd className="sync-offset__fact-value">
-              {t("offset.confidenceValue", { percent: detection.confidence })}
-            </dd>
-          </div>
-        </dl>
-      )}
-
-      {detection?.warnings.map((warning, index) => (
-        <ErrorNotice key={`${warning.code}-${index}`} error={warning} role="status" />
-      ))}
+      <h2 className="visually-hidden">{t("offset.title")}</h2>
 
       <SyncPlayer session={session} offsetMs={offsetMs} />
 
@@ -93,7 +71,28 @@ export function SyncOffsetView({
         maxOffsetMs={defaults?.maxOffsetMs ?? null}
         exceedsMax={offsetExceedsMax}
         onChange={onOffsetChange}
-      />
+      >
+        {detection !== null && (
+          <dl className="sync-offset__facts">
+            <div className="sync-offset__fact">
+              <dt className="sync-offset__fact-name">{t("offset.detected")}</dt>
+              <dd className="sync-offset__fact-value">
+                {t("offset.seconds", { seconds: (detection.offsetMs / 1000).toFixed(3) })}
+              </dd>
+            </div>
+            <div className="sync-offset__fact">
+              <dt className="sync-offset__fact-name">{t("offset.confidence")}</dt>
+              <dd className="sync-offset__fact-value">
+                {t("offset.confidenceValue", { percent: detection.confidence })}
+              </dd>
+            </div>
+          </dl>
+        )}
+      </OffsetField>
+
+      {detection?.warnings.map((warning, index) => (
+        <ErrorNotice key={`${warning.code}-${index}`} error={warning} role="status" />
+      ))}
     </div>
   );
 }

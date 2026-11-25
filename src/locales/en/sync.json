@@ -60,7 +60,6 @@
   },
   "offset": {
     "title": "Adjust the offset",
-    "description": "The value below is what will be applied. Adjust it if the result is close but not exact.",
     "detected": "Detected offset",
     "confidence": "Confidence",
     "confidenceValue": "{{percent}}%",

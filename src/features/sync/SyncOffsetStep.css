@@ -4,50 +4,35 @@
   display: flex;
   flex: 1 0 auto;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
-.sync-offset__intro {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.sync-offset__title {
-  margin: 0;
-  font-size: var(--text-xl);
-  color: var(--ink);
-}
-
-.sync-offset__description {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--ink-2);
+/* Only the player's stage gives up height. */
+.sync-offset > :not(.sync-player) {
+  flex-shrink: 0;
 }
 
 .sync-offset__facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-5);
-  padding: var(--space-3);
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0 var(--space-3);
   margin: 0;
-  border-bottom: 1px solid var(--hair);
+  font-size: var(--text-sm);
+  white-space: nowrap;
 }
 
+/* Each name and value pair sits on its own line of the grid. */
 .sync-offset__fact {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  display: contents;
 }
 
 .sync-offset__fact-name {
-  font-size: var(--text-xs);
   color: var(--ink-3);
 }
 
 .sync-offset__fact-value {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: var(--text-lg);
   color: var(--ink);
+  text-align: end;
 }

@@ -57,6 +57,7 @@ import type {
   MatchPlanDto,
   MatchStage,
   RelocationModeDto,
+  SyncDetectionDto,
   TranslateOutputModeDto,
   TranslatePlanDto,
   TranslateProgress,
@@ -708,10 +709,30 @@ function harnessMedia(): PreviewMedia {
   }
 }
 
+/** The detection `?detection=` and `?warnings=` ask for. */
+function harnessDetection(): SyncDetectionDto | null {
+  if (params.get("detection") === "0") return null;
+  const count = Math.max(0, Math.min(2, Number(params.get("warnings") ?? "0") || 0));
+  const warnings = [
+    {
+      code: "sync.detection_warning",
+      message: "Detected offset 61.00s exceeds configured maximum value 60.00s",
+      hintCode: null,
+    },
+    {
+      code: "sync.detection_warning",
+      message: "The correlation peak is close to the second best candidate",
+      hintCode: null,
+    },
+  ].slice(0, count);
+  return { offsetMs: 750, confidence: 82, warnings };
+}
+
 /**
  * Sync step 3 inside the wizard frame with a fixture preview session: `?media=video|preparing|audio|none|unavailable`,
- * `?cue-error=1`, `?src=<http url>` for the media to play, and `?ms=` to seed
- * the offset. Without `src` the media element has no source.
+ * `?cue-error=1`, `?src=<http url>` for the media to play, `?ms=` to seed
+ * the offset, `?detection=0` for a skipped detection and `?warnings=2` for
+ * two detection warnings. Without `src` the media element has no source.
  */
 function SyncOffsetHarness() {
   const { t } = useTranslation("sync");
@@ -740,7 +761,7 @@ function SyncOffsetHarness() {
       <SyncOffsetView
         session={session}
         defaults={SYNC_DEFAULTS}
-        detection={{ offsetMs: 750, confidence: 82, warnings: [] }}
+        detection={harnessDetection()}
         offsetMs={offsetMs}
         offsetExceedsMax={exceedsMax}
         onOffsetChange={setOffsetMs}
