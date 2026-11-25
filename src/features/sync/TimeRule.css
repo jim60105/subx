@@ -1,0 +1,75 @@
+.time-rule {
+  position: relative;
+  flex-shrink: 0;
+  height: 74px;
+  overflow: hidden;
+  pointer-events: none;
+  border-block: 1px solid var(--hair);
+}
+
+/* Zero milliseconds sits under the needle at position zero. */
+.time-rule__belt {
+  position: absolute;
+  inset-block: 0;
+  left: 50%;
+}
+
+.time-rule__tick {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 6px;
+  background: var(--ink-3);
+}
+
+.time-rule__bar {
+  position: absolute;
+  box-sizing: border-box;
+  height: 16px;
+}
+
+.time-rule__bar[data-row="original"] {
+  top: 18px;
+  border: 1px solid var(--ink-3);
+}
+
+/* The bars sit on the moving belt, so only an offset change moves them; the
+   global reduced-motion rule makes them jump to place. */
+.time-rule__bar[data-row="shifted"] {
+  top: 42px;
+  background: var(--ink);
+  transition: left var(--motion-base) var(--ease-out);
+}
+
+.time-rule__bar[data-row="shifted"][data-active="true"] {
+  background: var(--accent);
+}
+
+.time-rule__label {
+  position: absolute;
+  left: 0;
+  z-index: 1;
+  width: 4.5rem;
+  padding-inline-end: var(--space-2);
+  font-size: var(--text-xs);
+  line-height: 16px;
+  color: var(--ink-2);
+  background: var(--paper);
+}
+
+.time-rule__label[data-row="original"] {
+  top: 18px;
+}
+
+.time-rule__label[data-row="shifted"] {
+  top: 42px;
+}
+
+.time-rule__needle {
+  position: absolute;
+  inset-block: 0;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--accent);
+}

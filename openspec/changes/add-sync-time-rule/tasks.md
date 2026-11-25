@@ -4,9 +4,9 @@ Boundaries: edit only the files named below; no `src-tauri/`, `usePreviewSession
 
 ## 1. Time rule
 
-- [ ] 1.1 Add `visibleCues` per design D1 with tests for both window edges, a cue visible only by its shifted interval, a clamped cue and 2000 cues. Verify: `npx vitest run src/features/sync/cueTiming.test.ts`.
-- [ ] 1.2 Create `TimeRule.tsx/.css` per D2 with one test per scenario of "Time rule scrolls real cues" except the absence scenario, and the two moved tests ("Preview follows the sign of the offset", "Preview is schematic and hidden from assistive technology") carrying their existing `@covers` lines and asserting the MODIFIED text. Verify: `npx vitest run src/features/sync/TimeRule.test.tsx src/styles`.
-- [ ] 1.3 Render it in `SyncPlayer.tsx`; test "Rule is absent without playable media or cues" for each state. Verify: `npx vitest run src/features/sync/SyncPlayer.test.tsx`.
+- [x] 1.1 Add `visibleCues` per design D1 with tests for both window edges, a cue visible only by its shifted interval, a clamped cue and 2000 cues. Verify: `npx vitest run src/features/sync/cueTiming.test.ts`.
+- [x] 1.2 Create `TimeRule.tsx/.css` per D2 with one test per scenario of "Time rule scrolls real cues" except the absence scenario, and the two moved tests ("Preview follows the sign of the offset", "Preview is schematic and hidden from assistive technology") carrying their existing `@covers` lines and asserting the MODIFIED text. Verify: `npx vitest run src/features/sync/TimeRule.test.tsx src/styles`.
+- [x] 1.3 Render it in `SyncPlayer.tsx`; test "Rule is absent without playable media or cues" for each state. Verify: `npx vitest run src/features/sync/SyncPlayer.test.tsx`.
 
 ## 2. Offset row
 
