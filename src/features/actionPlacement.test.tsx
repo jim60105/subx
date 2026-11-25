@@ -37,11 +37,13 @@ import { TranslateWizard } from "./translate/TranslateWizard";
 vi.mock("./match/matchWizardApi");
 vi.mock("./convert/convertWizardApi");
 vi.mock("./sync/syncWizardApi");
+vi.mock("./sync/previewApi");
 vi.mock("./translate/translateWizardApi");
 vi.mock("../platform/filePickers");
 import * as pickers from "../platform/filePickers";
 import * as convertApi from "./convert/convertWizardApi";
 import * as matchApi from "./match/matchWizardApi";
+import * as previewApi from "./sync/previewApi";
 import * as syncApi from "./sync/syncWizardApi";
 import * as translateApi from "./translate/translateWizardApi";
 
@@ -203,6 +205,11 @@ beforeEach(async () => {
     warnings: [],
   });
   vi.mocked(syncApi.cancelSyncDetection).mockResolvedValue(undefined);
+  vi.mocked(previewApi.loadPreviewCues).mockResolvedValue([]);
+  vi.mocked(previewApi.openPreview).mockResolvedValue({ sessionId: "s1", url: "http://127.0.0.1:9/s1" });
+  vi.mocked(previewApi.closePreview).mockResolvedValue(undefined);
+  vi.mocked(previewApi.releasePreviewAudio).mockResolvedValue(undefined);
+  vi.mocked(previewApi.preparePreviewAudio).mockResolvedValue("http://127.0.0.1:9/s1/audio");
   vi.mocked(syncApi.applySyncOffset).mockResolvedValue({
     outputPath: "/m/episode_synced.srt",
     overwritten: false,

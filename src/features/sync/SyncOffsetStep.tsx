@@ -3,15 +3,28 @@ import { useTranslation } from "react-i18next";
 import { ErrorNotice } from "../../components/ErrorNotice/ErrorNotice";
 import type { SyncDefaultsDto, SyncDetectionDto } from "../../types/ipc";
 import { OffsetField } from "./OffsetField";
+import { SyncPlayer } from "./SyncPlayer";
+import { usePreviewSession } from "./usePreviewSession";
+import type { PreviewSession } from "./usePreviewSession";
 import "./SyncOffsetStep.css";
 
-interface SyncOffsetStepProps {
+interface SyncOffsetFieldsProps {
   defaults: SyncDefaultsDto | null;
   /** The detection behind the offset, or `null` when detection was skipped. */
   detection: SyncDetectionDto | null;
   offsetMs: number;
   offsetExceedsMax: boolean;
   onOffsetChange: (offsetMs: number) => void;
+}
+
+interface SyncOffsetViewProps extends SyncOffsetFieldsProps {
+  session: PreviewSession;
+}
+
+interface SyncOffsetStepProps extends SyncOffsetFieldsProps {
+  /** The media to preview against, or `null` when only a subtitle was chosen. */
+  mediaPath: string | null;
+  subtitlePath: string | null;
 }
 
 /**
@@ -23,14 +36,24 @@ interface SyncOffsetStepProps {
  * shown rather than acted on: a threshold to refuse on would be product policy
  * the crate makes no claim about. The configured limit is checked here so the
  * user finds out before saving; the backend repeats it at apply time.
+ *
+ * The preview above the field plays the media with the shifted subtitle over
+ * it. No preview state blocks editing the offset or continuing.
  */
-export function SyncOffsetStep({
+export function SyncOffsetStep({ mediaPath, subtitlePath, ...fields }: SyncOffsetStepProps) {
+  const session = usePreviewSession(mediaPath, subtitlePath);
+  return <SyncOffsetView session={session} {...fields} />;
+}
+
+/** The step's markup for a given preview session; the review harness renders it with fixtures. */
+export function SyncOffsetView({
+  session,
   defaults,
   detection,
   offsetMs,
   offsetExceedsMax,
   onOffsetChange,
-}: SyncOffsetStepProps) {
+}: SyncOffsetViewProps) {
   const { t } = useTranslation("sync");
 
   return (
@@ -60,6 +83,10 @@ export function SyncOffsetStep({
       {detection?.warnings.map((warning, index) => (
         <ErrorNotice key={`${warning.code}-${index}`} error={warning} role="status" />
       ))}
+
+      <SyncPlayer session={session} offsetMs={offsetMs} />
+
+      {session.cueError !== undefined && <ErrorNotice error={session.cueError} role="status" />}
 
       <OffsetField
         offsetMs={offsetMs}

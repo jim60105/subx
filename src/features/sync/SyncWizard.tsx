@@ -181,6 +181,8 @@ export function SyncWizard() {
       )}
       {wizard.step === "offset" && (
         <SyncOffsetStep
+          mediaPath={wizard.mediaPath}
+          subtitlePath={wizard.subtitlePath}
           defaults={wizard.defaults}
           detection={wizard.detection}
           offsetMs={wizard.offsetMs}

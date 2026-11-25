@@ -8,12 +8,23 @@ import type { SyncDetectionDto } from "../../types/ipc";
 import { SyncWizard } from "./SyncWizard";
 
 vi.mock("./syncWizardApi");
+vi.mock("./previewApi");
 vi.mock("../../platform/filePickers");
 import * as pickers from "../../platform/filePickers";
+import * as previewApi from "./previewApi";
 import * as api from "./syncWizardApi";
+import { resetPreviewQueueForTests } from "./usePreviewSession";
 
 const MEDIA = "/m/episode.mkv";
 const SUBTITLE = "/m/episode.srt";
+
+const PREVIEW_SESSION = { sessionId: "s1", url: "http://127.0.0.1:9/s1" };
+const PREVIEW_AUDIO = "http://127.0.0.1:9/s1/audio";
+const PREVIEW_FAILURE = {
+  code: "preview.audio_unsupported",
+  message: "no audio stream",
+  hintCode: null,
+};
 
 const DETECTION: SyncDetectionDto = {
   offsetMs: 1_500,
@@ -106,10 +117,20 @@ beforeEach(async () => {
     outputPath: "/m/episode_synced.srt",
     overwritten: false,
   });
+  resetPreviewQueueForTests();
+  vi.mocked(previewApi.loadPreviewCues).mockResolvedValue([]);
+  vi.mocked(previewApi.openPreview).mockResolvedValue(PREVIEW_SESSION);
+  vi.mocked(previewApi.closePreview).mockResolvedValue(undefined);
+  vi.mocked(previewApi.releasePreviewAudio).mockResolvedValue(undefined);
+  vi.mocked(previewApi.preparePreviewAudio).mockResolvedValue(PREVIEW_AUDIO);
+  // jsdom plays no media.
+  vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+  vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
 });
 
 afterEach(() => {
   vi.clearAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe("the sync wizard", () => {
@@ -633,5 +654,139 @@ describe("the sync wizard", () => {
 
     expect(screen.getByText("Choose the video and subtitle")).toBeInTheDocument();
     expect(screen.getByText("No subtitle chosen.")).toBeInTheDocument();
+  });
+});
+
+describe("the offset step preview", () => {
+  /** Skips detection on a subtitle-only run, landing on the offset step. */
+  async function reachOffsetWithoutMedia(user: ReturnType<typeof userEvent.setup>) {
+    await reachDetect(user, false);
+    await user.click(within(actionBar()).getByRole("button", { name: "Skip" }));
+    await screen.findByText("Adjust the offset");
+  }
+
+  function mediaElement(): HTMLVideoElement {
+    const element = document.querySelector("video");
+    if (element === null) throw new Error("the step rendered no media element");
+    return element;
+  }
+
+  /** Edits the offset and continues to the save step, proving neither is blocked. */
+  async function editAndContinue(user: ReturnType<typeof userEvent.setup>) {
+    await user.clear(offsetField());
+    await user.type(offsetField(), "900");
+    expect(screen.getByText("0.900 seconds")).toBeInTheDocument();
+    await user.click(within(actionBar()).getByRole("button", { name: "Continue" }));
+    expect(await screen.findByText("Save the synced subtitle")).toBeInTheDocument();
+  }
+
+  it("opens no session without media, says so, and still edits and continues", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachOffsetWithoutMedia(user);
+
+    expect(screen.getByText("No media to preview")).toBeInTheDocument();
+    expect(document.querySelector("video")).toBeNull();
+    expect(previewApi.openPreview).not.toHaveBeenCalled();
+    await editAndContinue(user);
+  });
+
+  it("falls back to audio when the media element fails, through the same controls", async () => {
+    const user = userEvent.setup();
+    const prepare = deferred<string>();
+    vi.mocked(previewApi.preparePreviewAudio).mockReturnValue(prepare.promise);
+    renderWizard();
+    await reachOffset(user);
+    await waitFor(() => expect(mediaElement()).toHaveAttribute("src", PREVIEW_SESSION.url));
+    expect(previewApi.openPreview).toHaveBeenCalledWith(MEDIA);
+
+    fireEvent.error(mediaElement());
+
+    expect(await screen.findByText(/cannot be played here/)).toBeInTheDocument();
+    expect(previewApi.preparePreviewAudio).toHaveBeenCalledWith("s1");
+    await act(async () => prepare.resolve(PREVIEW_AUDIO));
+    expect(mediaElement()).toHaveAttribute("src", PREVIEW_AUDIO);
+    expect(screen.getByRole("button", { name: "Play" })).toBeEnabled();
+    expect(screen.getByRole("slider", { name: "Position" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "No sound?" })).toBeNull();
+  });
+
+  it("shows a failed open and still edits and continues", async () => {
+    const user = userEvent.setup();
+    vi.mocked(previewApi.openPreview).mockRejectedValue({
+      code: "preview.media_unreadable",
+      message: "cannot read",
+      hintCode: null,
+    });
+    renderWizard();
+    await reachOffset(user);
+
+    expect(await screen.findByText("The selected media file cannot be read.")).toBeInTheDocument();
+    await editAndContinue(user);
+  });
+
+  it("shows a failed preparation after a media failure and still edits and continues", async () => {
+    const user = userEvent.setup();
+    vi.mocked(previewApi.preparePreviewAudio).mockRejectedValue(PREVIEW_FAILURE);
+    renderWizard();
+    await reachOffset(user);
+    await waitFor(() => expect(mediaElement()).toHaveAttribute("src", PREVIEW_SESSION.url));
+
+    fireEvent.error(mediaElement());
+
+    expect(
+      await screen.findByText("The selected media has no audio the preview can play."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Back to video" })).toBeNull();
+    await editAndContinue(user);
+  });
+
+  it("closes the session when going back", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachOffset(user);
+    await waitFor(() => expect(mediaElement()).toHaveAttribute("src", PREVIEW_SESSION.url));
+
+    await user.click(within(actionBar()).getByRole("button", { name: "Back" }));
+
+    await waitFor(() => expect(previewApi.closePreview).toHaveBeenCalledWith("s1"));
+  });
+
+  it("closes the session when continuing", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachOffset(user);
+    await waitFor(() => expect(mediaElement()).toHaveAttribute("src", PREVIEW_SESSION.url));
+
+    await user.click(within(actionBar()).getByRole("button", { name: "Continue" }));
+
+    await waitFor(() => expect(previewApi.closePreview).toHaveBeenCalledWith("s1"));
+  });
+
+  it("closes the session when the wizard is unmounted", async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderWizard();
+    await reachOffset(user);
+    await waitFor(() => expect(mediaElement()).toHaveAttribute("src", PREVIEW_SESSION.url));
+
+    unmount();
+
+    await waitFor(() => expect(previewApi.closePreview).toHaveBeenCalledWith("s1"));
+  });
+
+  it("shows a subtitle that cannot be read while playback and Continue stay available", async () => {
+    const user = userEvent.setup();
+    vi.mocked(previewApi.loadPreviewCues).mockRejectedValue({
+      code: "core.subtitle_format",
+      message: "bad subtitle",
+      hintCode: null,
+    });
+    renderWizard();
+    await reachOffset(user);
+
+    await waitFor(() => expect(previewApi.loadPreviewCues).toHaveBeenCalledWith(SUBTITLE));
+    expect(await screen.findByText("The subtitle file could not be parsed.")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Play" })).toBeEnabled();
+    expect(within(actionBar()).getByRole("button", { name: "Continue" })).toBeEnabled();
   });
 });

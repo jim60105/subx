@@ -1,5 +1,8 @@
+/* Claims the panel's height so the stage can take what is left; the panel
+   scrolls when the content does not fit. */
 .sync-offset {
   display: flex;
+  flex: 1 0 auto;
   flex-direction: column;
   gap: var(--space-4);
 }
