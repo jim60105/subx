@@ -22,4 +22,4 @@ Approved design: `docs/superpowers/specs/2026-11-25-sync-preview-design.md`, "Pa
 ## Risks / Trade-offs
 
 - [Bundled plugins and the host's GStreamer may disagree] → the manual check plays a file from the AppImage.
-- [A release dry run is the only proof that the AppImage still builds] → listed in the manual check; a workflow dispatch is the owner's action.
+- [A release dry run is the only proof that the AppImage still builds] → listed in the manual check; a workflow dispatch is the owner's action and a gate before publishing. If it fails in the GStreamer plugin step, the first candidates are `libgstreamer1.0-dev` and `libgstreamer-plugins-base1.0-dev`.

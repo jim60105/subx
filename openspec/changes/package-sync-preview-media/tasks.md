@@ -9,7 +9,7 @@ Boundaries: edit only the files named below. Do not push, dispatch a workflow, o
 
 ## 2. Documentation and integration
 
-- [ ] 2.1 In `docs/verification.md` add "## Manual packaged-preview check" after "Manual Flatpak file-access check", stating that it is not a waiver: install the Flatpak (`flatpak info --show-permissions im.chenj.subx` lists `pulseaudio` under `sockets=`) and run the AppImage; in the sync wizard select a video with sound, skip detection, play it, confirm audible sound and seeking; repeat with a file the WebView cannot play to reach audio mode; on macOS and Windows do the same and record "unverified" when not run. Add a `CHANGELOG.md` entry under `[Unreleased]` / `### Changed`. Verify: the heading exists.
+- [ ] 2.1 In `docs/verification.md` add "## Manual packaged-preview check" after "Manual Flatpak file-access check", stating that it is not a waiver: install the Flatpak (`flatpak info --show-permissions im.chenj.subx` lists `pulseaudio` under `sockets=`) and run the AppImage; in the sync wizard select a video with sound, skip detection, play it, confirm audible sound and seeking; repeat with a file the WebView cannot play to reach audio mode; on macOS and Windows do the same and record "unverified" when not run. Append to the existing `### Changed` under `[Unreleased]` in `CHANGELOG.md`. Verify: the heading exists.
 - [ ] 2.2 Run `openspec validate package-sync-preview-media --strict` and `npm run verify`. Expected: both exit 0.
 
 ## Workflow follow-up
