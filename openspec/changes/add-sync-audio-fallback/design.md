@@ -63,8 +63,8 @@ impl PreviewState {
 ```
 
 - `begin_audio`: unknown session → `preview.cancelled`; `Running` → `preview.cancelled`; `Ready` → its URL; `Empty` → set `Running`.
-- `finish_audio`: session gone, or slot not `Running` with a flag `Arc::ptr_eq` to `job` → drop the file and return `preview.cancelled`; failure → slot back to `Empty` and the mapped error; success → `publish_file(file, len, "audio/wav")` (memory only; `len` is read before the lock), slot `Ready`, URL returned.
-- `release_audio`: unknown session → nothing; otherwise set the flag of a running job, revoke a ready token, slot `Empty`.
+- `finish_audio`: session gone, or slot not `Running` with a flag `Arc::ptr_eq` to `job` → drop the file and return `preview.cancelled`; failure → slot back to `Empty` and the mapped error; success → `publish_file(file, len, "audio/wav")` (memory only; `len` is read before the lock), slot `Ready`, URL returned; if publishing fails, slot `Empty`, file dropped, `core.io`.
+- `release_audio`: unknown session → nothing; otherwise set the flag of a running job, revoke a ready token, slot `Empty`; the revoked entry is dropped after the lock.
 - Closing, replacing or shutting down a session sets the cancel flag of a running job, revokes both tokens, and drops the slot. One private function `retire(server, session)` does this for all three and returns the revoked entries, which the caller drops after releasing the lock. Nothing but a stream being stopped holds the file after that; there is no startup sweep.
 - The frontend issues at most one preparation per session at a time, from an event handler and not from an effect; refusing a second one is the backend's guard.
 
@@ -90,6 +90,7 @@ Only `late.mkv` and `opus.mkv` are committed. Tests read them through `env!("CAR
 
 ## Risks / Trade-offs
 
+- [A cancelled job notices the flag only between packets] → its partial file lives until the packet read in progress returns, which a stuck network mount can delay.
 - [Decoding reads the whole container, video packets included, possibly from a slow mount] → the time is unbounded; leaving the step cancels it.
 - [MP4 edit lists are ignored] → corrected or refused by `guard-mp4-preview-audio`, which must land before the player.
 - [The system temporary directory may be in memory] → two hours of 48 kHz mono is about 690 MB there. Writing stops with `core.io` when it is full.

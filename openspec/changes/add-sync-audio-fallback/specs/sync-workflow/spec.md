@@ -33,27 +33,27 @@ The audio fallback SHALL decode the first track with a sample rate into a mono 1
 
 ### Requirement: Preview audio failures are reported and leave no file
 
-Audio that has no decodable track, or whose WAV would exceed the format's size limit, SHALL fail with `preview.audio_unsupported`; a write failure SHALL be reported rather than truncated. Cancelling SHALL stop the job at the next packet. A failed or cancelled job SHALL delete its file.
+Audio that has no decodable track, or whose WAV would exceed the format's size limit, SHALL fail with `preview.audio_unsupported`; a write failure SHALL be reported rather than truncated. Cancelling SHALL stop the job at the next packet. A failed or cancelled job SHALL release its file.
 
 #### Scenario: Undecodable audio is reported
 
 - **WHEN** audio is prepared for media with no track the decoder supports
-- **THEN** it fails with `preview.audio_unsupported` and no temporary file remains
+- **THEN** it fails with `preview.audio_unsupported` and no file handle remains
 
 #### Scenario: Oversized output is refused
 
 - **WHEN** the WAV would exceed its size limit
-- **THEN** the job fails with `preview.audio_unsupported` before writing past the limit and no temporary file remains
+- **THEN** the job fails with `preview.audio_unsupported` before writing past the limit and no file handle remains
 
 #### Scenario: Write failure is reported
 
 - **WHEN** writing the WAV fails
 - **THEN** the job fails with `core.io` and no audio URL is returned
 
-#### Scenario: Cancellation deletes the partial file
+#### Scenario: Cancellation releases the partial file
 
 - **WHEN** a running job is cancelled
-- **THEN** it fails with `preview.cancelled` and its partial file is deleted
+- **THEN** it fails with `preview.cancelled` and its partial file is released
 
 ### Requirement: Preview audio belongs to its session
 
