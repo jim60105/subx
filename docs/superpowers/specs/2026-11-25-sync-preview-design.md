@@ -1,7 +1,7 @@
 # Sync Preview — Design
 
 Date: 2026-11-25
-Status: design approved; written spec awaiting owner review; proposed as OpenSpec changes `add-sync-media-server`, `add-sync-audio-fallback`, `rework-sync-detection-flow`, `add-sync-preview-player`, `add-sync-time-rule` and `package-sync-preview-media`, in that order
+Status: design approved; written spec awaiting owner review; proposed as OpenSpec changes `add-sync-media-server`, `add-sync-audio-fallback`, `guard-mp4-preview-audio`, `rework-sync-detection-flow`, `add-sync-preview-player`, `add-sync-time-rule` and `package-sync-preview-media`, in that order
 
 ## Goal
 
@@ -75,11 +75,17 @@ Step 2 has three states.
 - **Ask.** Actions: Back, Skip, Start detection. `sync.default_method = manual`
   makes Skip the primary action; otherwise Start detection is primary. The
   method radio group is removed. `WizardShell`'s `secondary` slot may hold the
-  non-primary choice, and its contract comment is updated to say so.
-- **Detecting.** Shown in step 2. Cancel returns to Ask and discards any late
+  non-primary choices, at most two controls; the `app-shell` spec and the
+  component change accordingly. After a visit to step 3 with the same files,
+  Keep (naming the current offset) is primary, and Skip and Start detection are
+  secondary.
+- **Detecting.** Shown in step 2. Cancel is in `secondary` beside a disabled
+  primary action, as `app-shell` requires, not at the inline start as in the
+  mockup. Cancel returns to Ask and discards any late
   result, through the existing epoch guard. Success advances to step 3 with the
   detected offset.
-- **Failed.** Shows the error; Retry and Skip are available.
+- **Failed.** Shows the error; Retry and Skip are available, and Keep after a
+  visit to step 3.
 
 Rules:
 
@@ -87,7 +93,9 @@ Rules:
   is the only forward action and the reason is shown.
 - Going back from step 3 keeps the offset until the user skips (reset to 0) or
   a detection succeeds (overwritten). A failed or cancelled detection leaves it.
-- Changing either file in step 1 resets the offset and detection.
+  Keep returns to step 3 with the offset and detection facts intact.
+- Changing either file in step 1 resets the offset and detection and removes
+  Keep.
 - Offsets beyond `sync.max_offset_seconds` block Continue in step 3. A detected
   offset beyond the limit still enters step 3, where it can be reduced.
 
@@ -104,7 +112,8 @@ From top to bottom:
    shifted times, and the cue under the needle is `--accent`. Only cues in the
    visible window are rendered. It contains no audio data, is hidden from
    assistive technology, and cannot be dragged. It replaces the schematic
-   `OffsetPreview`, which is removed.
+   `OffsetPreview`, which is removed. It is hidden while there is no playable
+   media or no cues.
 3. **Transport.** Play/pause, position and duration, seek bar, volume, and a
    "No sound?" button that switches to audio mode.
 4. **Offset row.** Serif figure, −50 / +50 ms buttons, millisecond field, and
@@ -130,8 +139,10 @@ name in `en` and `zh-TW`.
 `shift(t) = max(0, t + offset_ms)` for both start and end, matching
 `shift_subtitle`. A cue is shown when `shift(start) <= position < shift(end)`.
 Overlapping cues are shown together, in file order, on separate lines. A cue
-clamped to zero length is not shown. Saved and previewed times agree within
-1 ms, because apply computes in `f32` seconds.
+clamped to zero length is not shown. Applied and previewed times agree within
+1 ms before saving, because apply computes in `f32` seconds. Saving then rounds
+to the format: the engine truncates ASS to 10 ms and rounds MicroDVD SUB to
+frames at 25 fps.
 
 The offset is applied in the frontend on each animation frame, so changing it
 does not reload media, seek, or pause playback. Frames are requested only while
@@ -184,10 +195,13 @@ Commands, all in the `COMMANDS` allowlist and the generated bindings:
   in file order, using the same `FormatManager` loader as apply.
 - `open_preview(media_path)` → `{ sessionId, url }`. Replaces any open session.
 - `prepare_preview_audio(session_id)` → `{ url }`.
+- `release_preview_audio(session_id)` → idempotent; gives the WAV up and cancels
+  its job while the session stays open.
 - `close_preview(session_id)` → idempotent; a stale id never closes a newer one.
 
 New error codes: `preview.media_unreadable`, `preview.server_unavailable`,
-`preview.audio_unsupported`, `preview.cancelled`. Each has `en` and `zh-TW` text.
+`preview.audio_unsupported`, `preview.audio_timing_unsupported`,
+`preview.cancelled`. Each has `en` and `zh-TW` text.
 `preview` is added to the code-parity test.
 
 ### Media server
@@ -203,12 +217,12 @@ port, never `0.0.0.0`.
   contains no file path; unknown tokens get 404.
 - `Host` must be `127.0.0.1:<port>` (DNS rebinding), else 403. No CORS headers,
   and `Cache-Control: no-store`.
-- A token maps to one regular file chosen by the command; the server never
-  resolves a path from a request. Tokens are never logged.
-- Closing a session revokes its tokens, stops its streams and deletes its WAV.
-  Leaving step 3, changing files, finishing and unmounting all close it; app
-  exit stops the server. WAVs stranded by a crash are left to the OS temp
-  directory's cleanup.
+- A token maps to one regular file or one open file handle (the WAV) chosen by
+  the command; the server never resolves a path from a request. Tokens are never logged.
+- Closing a session revokes its tokens, stops its streams and releases its WAV.
+  Leaving step 3, changing files, finishing and unmounting all close it. Tauri
+  does not drop managed state at exit, so an explicit `RunEvent::Exit` hook
+  stops the server and releases the WAV.
 
 CSP gains only `media-src 'self' http://127.0.0.1:*`. CSP cannot name a random
 port; the token is what authorizes access. Any local process of any user can
@@ -228,15 +242,27 @@ the preview wrong. It also holds all samples in memory and cannot be cancelled.
 - Picks the first track with a sample rate, like detection does.
 - Maps packet timestamps to the output and inserts silence for a late start or
   gaps, with tolerance for timestamp jitter; overlaps are trimmed.
-- Downmixes to mono 16-bit at the source rate and streams to a file under the
-  system temporary directory. Output that would exceed the WAV size limit is an
+- Symphonia 0.5.5 ignores MP4 edit lists (measured) and fragment decode times (source), so
+  the backend reads the selected track's edit list itself, with bounded parsing.
+  Media before the edit's media time, including AAC priming, is trimmed. A
+  leading empty edit over 40 ms, an edit list that is more than one shift, or a
+  first fragment not starting at 0 is refused with
+  `preview.audio_timing_unsupported`: a wrong preview is worse than none. Up to
+  40 ms of ignored delay remains. Video edits do not change the decision, because
+  WAV time must equal presentation time.
+- Downmixes to mono 16-bit at the source rate and streams to an unnamed file in
+  the system temporary directory (unlinked at creation on Unix, delete-on-close
+  on Windows), served through positioned reads on its handle. It is released as
+  soon as it is unused: close, replacement, leaving step 3, cancel, failed audio
+  playback before a return to video, and exit. There is no startup sweep. Output that would exceed the WAV size limit is an
   error, and a full disk is reported rather than truncated.
 - Runs in `spawn_blocking` with a cancellation flag checked per packet; a
-  cancelled job deletes its partial file. One job per session.
+  cancelled job drops its partial file. One job per session.
 
 ## Packaging
 
-- AppImage: `bundle.linux.appimage.bundleMediaFramework: true`.
+- AppImage: `bundle.linux.appimage.bundleMediaFramework: true`, and the Linux
+  build in `.github/workflows/release.yml` installs the plugins to bundle.
 - deb: recommend `gstreamer1.0-plugins-base`, `-good` and `gstreamer1.0-libav`.
 - Flatpak: add `--socket=pulseaudio`; the manifest grants no audio today. Verify
   H.264 and AAC in GNOME runtime 50 and add the codecs extension if missing.
@@ -247,7 +273,8 @@ the preview wrong. It also holds all samples in memory and cannot be cancelled.
 
 ## Spec changes
 
-The OpenSpec change modifies `sync-workflow`: method selection, detection and
+The OpenSpec changes modify `app-shell` (the `secondary` slot), `release-pipeline`
+(Linux packages) and `sync-workflow`: method selection, detection and
 review, and the schematic-preview requirement; and adds preview requirements.
 Documentation and the changelog are updated with the new flow.
 
