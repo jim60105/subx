@@ -47,4 +47,8 @@ The tests for 3.4 and 4.2 are written but carry no `// @covers` line. `scripts/c
 ## 5. Integration
 
 - [x] 5.1 Run `npm run verify`. Expected: exit 0. This covers `tsc --noEmit`, frontend and Rust coverage at the 85% floor, `spec:trace` resolving all seven new `@covers` ids with no new waiver, bindings and icons.
-- [ ] 5.2 Fill in `openspec/changes/sync-zero-offset-and-media-notice/review.md` from a running app (`npm run dev:app`) in both themes, and record the reviewer and date. Expected state: every checkbox ticked or a finding noted. This is human review, not an automated gate.
+
+## Workflow follow-up
+
+- Owner fills in `openspec/changes/sync-zero-offset-and-media-notice/review.md` from a running app (`npm run dev:app`) in both themes, and records the reviewer and date: every checkbox ticked or a finding noted. This is human review, not an automated gate and not an archive gate.
+- At archive, after `openspec archive sync-zero-offset-and-media-notice --yes`, add `// @covers` lines to the tests listed under "Apply note: deferred `@covers` annotations" with the ids from `npm run spec:trace -- --report`.
