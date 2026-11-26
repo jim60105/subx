@@ -81,6 +81,58 @@ describe("the offset field", () => {
     expect(screen.getByText("Offset in milliseconds")).toHaveClass("visually-hidden");
     expect(screen.getByText("facts").closest(".offset-field__row")).not.toBeNull();
   });
+
+  it("shows a notice as a status and adds it to the field's description", () => {
+    const hint = "A positive value delays the subtitles; a negative one makes them appear sooner.";
+    const { rerender } = renderWithI18n(
+      <OffsetField offsetMs={0} maxOffsetMs={60_000} exceedsMax={false} notice="Reason text" onChange={() => {}} />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("Reason text");
+    expect(field()).toHaveAccessibleDescription(`${hint} Reason text`);
+
+    rerender(<OffsetField offsetMs={0} maxOffsetMs={60_000} exceedsMax={false} onChange={() => {}} />);
+
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(field()).toHaveAccessibleDescription(hint);
+  });
+
+  it("takes focus on arrival with a notice only when focus has nowhere useful to be", () => {
+    const outside = document.createElement("button");
+    document.body.append(outside);
+    try {
+      const first = renderWithI18n(
+        <OffsetField offsetMs={0} maxOffsetMs={60_000} exceedsMax={false} notice="Reason text" onChange={() => {}} />,
+      );
+      expect(field()).toHaveFocus();
+      first.unmount();
+
+      // A disabled control holding focus is as good as nowhere.
+      outside.focus();
+      outside.disabled = true;
+      const second = renderWithI18n(
+        <OffsetField offsetMs={0} maxOffsetMs={60_000} exceedsMax={false} notice="Reason text" onChange={() => {}} />,
+      );
+      expect(field()).toHaveFocus();
+      second.unmount();
+
+      // Focus the user placed on a live control stays there, and so does
+      // focus when the field arrives without a notice.
+      outside.disabled = false;
+      outside.focus();
+      const third = renderWithI18n(
+        <OffsetField offsetMs={0} maxOffsetMs={60_000} exceedsMax={false} notice="Reason text" onChange={() => {}} />,
+      );
+      expect(outside).toHaveFocus();
+      third.unmount();
+
+      outside.blur();
+      renderWithI18n(<OffsetField offsetMs={250} maxOffsetMs={60_000} exceedsMax={false} onChange={() => {}} />);
+      expect(field()).not.toHaveFocus();
+    } finally {
+      outside.remove();
+    }
+  });
 });
 
 describe("the nudge controls' accessible names", () => {

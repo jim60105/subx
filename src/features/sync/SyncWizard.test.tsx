@@ -659,6 +659,110 @@ describe("the sync wizard", () => {
   });
 });
 
+describe("a zero offset", () => {
+  const GENERIC = "An offset of 0 seconds leaves the subtitle unchanged. Change the offset to continue.";
+  const DETECTED =
+    "Detection found no offset: the subtitle already matches the media. Change the offset to save a shifted copy anyway.";
+  const ZERO_DETECTION: SyncDetectionDto = {
+    ...DETECTION,
+    offsetMs: 0,
+    warnings: [{ code: "sync.detection_warning", message: "low energy", hintCode: null }],
+  };
+
+  const continueButton = () => within(actionBar()).getByRole("button", { name: "Continue" });
+
+  /** The reason is found by its text: the step has other status regions. */
+  function expectReason(text: string) {
+    const reason = screen.getByText(text);
+    expect(reason).toHaveAttribute("role", "status");
+    expect(reason).toHaveClass("offset-field__notice");
+  }
+
+  it("enters with Continue disabled and the generic reason after skipping", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachDetect(user);
+    await user.click(within(actionBar()).getByRole("button", { name: "Skip" }));
+
+    expect(offsetField()).toHaveValue(0);
+    expect(continueButton()).toBeDisabled();
+    expectReason(GENERIC);
+    expect(offsetField()).toHaveAccessibleDescription(expect.stringContaining(GENERIC));
+  });
+
+  it("re-enables Continue once the offset changes, and blocks it again when the field is cleared", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachDetect(user);
+    await user.click(within(actionBar()).getByRole("button", { name: "Skip" }));
+
+    await user.click(screen.getByRole("button", { name: /^\+50 ms/ }));
+    expect(continueButton()).toBeEnabled();
+    expect(screen.queryByText(GENERIC)).not.toBeInTheDocument();
+
+    await user.clear(offsetField());
+    expect(continueButton()).toBeDisabled();
+    expectReason(GENERIC);
+  });
+
+  it("holds a detected zero with its facts and warning, and explains that detection found no offset", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.detectSyncOffset).mockResolvedValue(ZERO_DETECTION);
+    renderWizard();
+    await reachOffset(user);
+
+    expect(offsetField()).toHaveValue(0);
+    // The detection fact and the field's hidden seconds echo both read it.
+    expect(screen.getAllByText("0.000 seconds")).toHaveLength(2);
+    expect(screen.getByText("82%")).toBeInTheDocument();
+    expect(screen.getByText("The analysis finished with a warning.")).toBeInTheDocument();
+    expect(continueButton()).toBeDisabled();
+    expectReason(DETECTED);
+    expect(screen.queryByText(GENERIC)).not.toBeInTheDocument();
+  });
+
+  it("shows the generic reason when a non-zero detection is edited to zero", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachOffset(user);
+
+    await user.clear(offsetField());
+    await user.type(offsetField(), "0");
+
+    expect(continueButton()).toBeDisabled();
+    expectReason(GENERIC);
+    expect(screen.queryByText(DETECTED)).not.toBeInTheDocument();
+    expect(screen.getByText("1.500 seconds")).toBeInTheDocument();
+  });
+
+  it("keeps Continue disabled after keeping a detected zero", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.detectSyncOffset).mockResolvedValue(ZERO_DETECTION);
+    renderWizard();
+    await reachOffset(user);
+
+    await user.click(within(actionBar()).getByRole("button", { name: "Back" }));
+    await user.click(within(actionBar()).getByRole("button", { name: /^Keep 0\.00 s/ }));
+
+    expect(offsetField()).toHaveValue(0);
+    expect(screen.getByText("82%")).toBeInTheDocument();
+    expect(continueButton()).toBeDisabled();
+    expectReason(DETECTED);
+  });
+
+  it("hands focus to the offset field when the primary Skip becomes a disabled Continue", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await reachDetect(user, false);
+
+    await user.click(primary());
+
+    expect(primary()).toHaveTextContent("Continue");
+    expect(primary()).toBeDisabled();
+    expect(offsetField()).toHaveFocus();
+  });
+});
+
 describe("the offset step preview", () => {
   /** Skips detection on a subtitle-only run, landing on the offset step. */
   async function reachOffsetWithoutMedia(user: ReturnType<typeof userEvent.setup>) {

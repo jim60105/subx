@@ -36,6 +36,8 @@ export interface SyncWizard {
   offsetMs: number;
   /** True when `offsetMs` is beyond the configured maximum. */
   offsetExceedsMax: boolean;
+  /** True when `offsetMs` is exactly 0: saving would write an unshifted copy. */
+  offsetIsZero: boolean;
   /** True once the offset step has been entered for the current files, which
    * is what makes keeping the current offset a choice on the detect step. */
   hasReview: boolean;
@@ -385,6 +387,7 @@ export function useSyncWizard(): SyncWizard {
 
   const offsetExceedsMax =
     defaults !== null && Math.abs(offsetMs) > defaults.maxOffsetMs;
+  const offsetIsZero = offsetMs === 0;
   const detectPhase: DetectPhase = isDetecting
     ? "detecting"
     : detectError !== undefined
@@ -402,6 +405,7 @@ export function useSyncWizard(): SyncWizard {
     sensitivity: sensitivity ?? defaults?.vadSensitivity ?? null,
     offsetMs,
     offsetExceedsMax,
+    offsetIsZero,
     hasReview,
     detectPhase,
     detection,

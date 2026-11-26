@@ -413,6 +413,23 @@ const SCREENS = [
           }}
           offsetMs={1_250}
           offsetExceedsMax={false}
+          offsetIsZero={false}
+          onOffsetChange={() => {}}
+        />,
+      ),
+  },
+  {
+    name: "SyncOffsetStep (zero offset)",
+    render: () =>
+      renderWithI18n(
+        <SyncOffsetStep
+          mediaPath="/m/episode.mkv"
+          subtitlePath="/m/episode.srt"
+          defaults={SYNC_DEFAULTS}
+          detection={null}
+          offsetMs={0}
+          offsetExceedsMax={false}
+          offsetIsZero
           onOffsetChange={() => {}}
         />,
       ),

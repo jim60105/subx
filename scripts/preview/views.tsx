@@ -709,7 +709,7 @@ function harnessMedia(): PreviewMedia {
   }
 }
 
-/** The detection `?detection=` and `?warnings=` ask for. */
+/** The detection `?detection=`, `?detected=` and `?warnings=` ask for. */
 function harnessDetection(): SyncDetectionDto | null {
   if (params.get("detection") === "0") return null;
   const count = Math.max(0, Math.min(2, Number(params.get("warnings") ?? "0") || 0));
@@ -725,14 +725,15 @@ function harnessDetection(): SyncDetectionDto | null {
       hintCode: null,
     },
   ].slice(0, count);
-  return { offsetMs: 750, confidence: 82, warnings };
+  return { offsetMs: Number(params.get("detected") ?? "750") || 0, confidence: 82, warnings };
 }
 
 /**
  * Sync step 3 inside the wizard frame with a fixture preview session: `?media=video|preparing|audio|none|unavailable`,
  * `?cue-error=1`, `?src=<http url>` for the media to play, `?ms=` to seed
- * the offset, `?detection=0` for a skipped detection and `?warnings=2` for
- * two detection warnings. Without `src` the media element has no source.
+ * the offset, `?detection=0` for a skipped detection, `?detected=` for the
+ * detected offset (`?ms=0&detected=0` is a detection that found none) and
+ * `?warnings=2` for two detection warnings. Without `src` the media element has no source.
  */
 function SyncOffsetHarness() {
   const { t } = useTranslation("sync");
@@ -750,13 +751,14 @@ function SyncOffsetHarness() {
     returnToVideo: noop,
   }));
   const exceedsMax = Math.abs(offsetMs) > SYNC_DEFAULTS.maxOffsetMs;
+  const offsetIsZero = offsetMs === 0;
   // Inside the real wizard frame: the stage's height comes from the panel.
   return (
     <WizardShell
       steps={SYNC_STEPS.map((id) => ({ id, label: t(`steps.${id}`) }))}
       activeStep={2}
       back={{ label: t("offset.back"), onClick: noop }}
-      next={{ label: t("offset.continue"), disabled: exceedsMax, onClick: noop }}
+      next={{ label: t("offset.continue"), disabled: exceedsMax || offsetIsZero, onClick: noop }}
     >
       <SyncOffsetView
         session={session}
@@ -764,6 +766,7 @@ function SyncOffsetHarness() {
         detection={harnessDetection()}
         offsetMs={offsetMs}
         offsetExceedsMax={exceedsMax}
+        offsetIsZero={offsetIsZero}
         onOffsetChange={setOffsetMs}
       />
     </WizardShell>
@@ -1009,6 +1012,7 @@ export const VIEWS: Record<string, () => JSX.Element> = {
       detection={null}
       offsetMs={0}
       offsetExceedsMax={false}
+      offsetIsZero
       onOffsetChange={noop}
     />
   ),
