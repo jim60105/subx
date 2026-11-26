@@ -121,7 +121,7 @@ export function SyncWizard() {
     back = { label: t("offset.back"), onClick: wizard.backToDetect };
     next = {
       label: t("offset.continue"),
-      disabled: wizard.offsetExceedsMax,
+      disabled: wizard.offsetExceedsMax || wizard.offsetIsZero,
       onClick: wizard.toApply,
     };
   } else if (wizard.applyResult !== null) {
@@ -187,6 +187,7 @@ export function SyncWizard() {
           detection={wizard.detection}
           offsetMs={wizard.offsetMs}
           offsetExceedsMax={wizard.offsetExceedsMax}
+          offsetIsZero={wizard.offsetIsZero}
           onOffsetChange={wizard.setOffsetMs}
         />
       )}

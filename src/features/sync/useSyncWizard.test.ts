@@ -57,6 +57,30 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+describe("a zero offset", () => {
+  it("reports a zero offset after skipping and clears it once the offset changes", async () => {
+    const { result } = await onDetectStep();
+
+    act(() => result.current.skipDetection());
+    expect(result.current.offsetIsZero).toBe(true);
+
+    act(() => result.current.setOffsetMs(50));
+    expect(result.current.offsetIsZero).toBe(false);
+
+    act(() => result.current.setOffsetMs(0));
+    expect(result.current.offsetIsZero).toBe(true);
+  });
+
+  it("holds a detection that reported zero and reports the offset as zero", async () => {
+    vi.mocked(api.detectSyncOffset).mockResolvedValue({ ...DETECTION, offsetMs: 0 });
+    const { result } = await withDetection();
+
+    expect(result.current.step).toBe("offset");
+    expect(result.current.detection?.offsetMs).toBe(0);
+    expect(result.current.offsetIsZero).toBe(true);
+  });
+});
+
 describe("keeping the current offset", () => {
   // @covers sync-workflow/keep-the-current-offset#keep-is-hidden-without-a-review
   it("is not offered on the first visit, after a file change, or after a restart", async () => {

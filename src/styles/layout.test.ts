@@ -195,6 +195,28 @@ describe("the sync detect step", () => {
       /\.sync-detect__instrument\[data-listening="true"\] \.sync-detect__bar,\s*\.sync-detect__bar\s*\{[^}]*animation:\s*none/,
     );
   });
+
+  // @covers sync-workflow/sync-caution-notices-use-the-accent-tokens#missing-media-notice-uses-the-accent-tokens
+  it("styles the missing-media notice as a caution", () => {
+    const block = declarationsOf(css, ".sync-detect__needs-media");
+
+    expect(block).toMatch(/color:\s*var\(--accent-ink\)/);
+    expect(block).toMatch(/border-inline-start:\s*2px solid var\(--accent\)/);
+    expect(block).not.toMatch(/--del/);
+  });
+});
+
+describe("the sync offset field", () => {
+  const css = read("features", "sync", "OffsetField.css");
+
+  // @covers sync-workflow/sync-caution-notices-use-the-accent-tokens#zero-offset-reason-uses-the-accent-tokens
+  it("styles the zero-offset reason as a caution", () => {
+    const block = declarationsOf(css, ".offset-field__notice");
+
+    expect(block).toMatch(/color:\s*var\(--accent-ink\)/);
+    expect(block).toMatch(/border-inline-start:\s*2px solid var\(--accent\)/);
+    expect(block).not.toMatch(/--del/);
+  });
 });
 
 describe("the convert source list", () => {

@@ -123,6 +123,7 @@ describe("the time rule", () => {
           detection={null}
           offsetMs={offsetMs}
           offsetExceedsMax={false}
+          offsetIsZero={offsetMs === 0}
           onOffsetChange={() => {}}
         />,
       );
@@ -143,7 +144,7 @@ describe("the time rule", () => {
       );
       expect(hint).toHaveClass("visually-hidden");
       expect(screen.getByRole("spinbutton", { name: "Offset in milliseconds" })).toHaveAccessibleDescription(
-        hint.textContent ?? "",
+        expect.stringContaining(hint.textContent ?? ""),
       );
       unmount();
     }

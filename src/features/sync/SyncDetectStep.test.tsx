@@ -84,6 +84,15 @@ describe("the detect step", () => {
       screen.getByText(/Add a video or audio file in the first step to enable detection/),
     ).toBeInTheDocument();
   });
+
+  // @covers sync-workflow/sync-caution-notices-use-the-accent-tokens#missing-media-notice-uses-the-accent-tokens
+  it("renders the missing-media notice with its caution class", () => {
+    renderStep("ask", false);
+
+    expect(screen.getByText(/Add a video or audio file in the first step to enable detection/)).toHaveClass(
+      "sync-detect__needs-media",
+    );
+  });
 });
 
 /**

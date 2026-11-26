@@ -513,6 +513,7 @@ describe("the time rule in the player", () => {
           detection={{ offsetMs: 750, confidence: 82, warnings: [] }}
           offsetMs={750}
           offsetExceedsMax={false}
+          offsetIsZero={false}
           onOffsetChange={() => {}}
         />
       </I18nextProvider>,

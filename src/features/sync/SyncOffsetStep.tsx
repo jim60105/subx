@@ -14,6 +14,8 @@ interface SyncOffsetFieldsProps {
   detection: SyncDetectionDto | null;
   offsetMs: number;
   offsetExceedsMax: boolean;
+  /** Continue is blocked because the offset is 0. */
+  offsetIsZero: boolean;
   onOffsetChange: (offsetMs: number) => void;
 }
 
@@ -54,9 +56,15 @@ export function SyncOffsetView({
   detection,
   offsetMs,
   offsetExceedsMax,
+  offsetIsZero,
   onOffsetChange,
 }: SyncOffsetViewProps) {
   const { t } = useTranslation("sync");
+  // The reason follows the held detection, not how the offset got to 0: a
+  // detection of 0 stays the true explanation even after nudging back to it.
+  const zeroNotice = offsetIsZero
+    ? t(detection !== null && detection.offsetMs === 0 ? "offset.zeroDetected" : "offset.zero")
+    : undefined;
 
   return (
     <div className="sync-offset">
@@ -70,6 +78,7 @@ export function SyncOffsetView({
         offsetMs={offsetMs}
         maxOffsetMs={defaults?.maxOffsetMs ?? null}
         exceedsMax={offsetExceedsMax}
+        notice={zeroNotice}
         onChange={onOffsetChange}
       >
         {detection !== null && (

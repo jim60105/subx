@@ -69,6 +69,8 @@
     "seconds": "{{seconds}} seconds",
     "hint": "A positive value delays the subtitles; a negative one makes them appear sooner.",
     "exceedsMax": "This is beyond the {{limit}} second limit in your settings. Reduce it to continue.",
+    "zero": "An offset of 0 seconds leaves the subtitle unchanged. Change the offset to continue.",
+    "zeroDetected": "Detection found no offset: the subtitle already matches the media. Change the offset to save a shifted copy anyway.",
     "unit": "s",
     "decrease": "−{{step}} ms, decrease offset",
     "increase": "+{{step}} ms, increase offset",

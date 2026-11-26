@@ -1,10 +1,12 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
+import type { ReactElement } from "react";
+import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { SUPPORTED_LANGUAGES } from "../../i18n/languages";
-import { renderWithI18n, setupI18n } from "../../test/renderWithI18n";
+import { i18n, renderWithI18n, setupI18n } from "../../test/renderWithI18n";
 import { formatSeconds, NUDGE_STEP_MS, OffsetField } from "./OffsetField";
 
 function StatefulOffsetField({ initial = 0 }: { initial?: number }) {
@@ -13,6 +15,9 @@ function StatefulOffsetField({ initial = 0 }: { initial?: number }) {
     <OffsetField offsetMs={offsetMs} maxOffsetMs={60_000} exceedsMax={false} onChange={setOffsetMs} />
   );
 }
+
+/** `rerender` replaces the whole tree, so it needs the provider again to update rather than remount. */
+const withI18n = (ui: ReactElement) => <I18nextProvider i18n={i18n}>{ui}</I18nextProvider>;
 
 const field = () => screen.getByRole("spinbutton", { name: "Offset in milliseconds" });
 const figure = (container: HTMLElement) => container.querySelector(".offset-field__figure");
@@ -80,6 +85,68 @@ describe("the offset field", () => {
 
     expect(screen.getByText("Offset in milliseconds")).toHaveClass("visually-hidden");
     expect(screen.getByText("facts").closest(".offset-field__row")).not.toBeNull();
+  });
+
+  it("shows a notice as a status and adds it to the field's description", () => {
+    const hint = "A positive value delays the subtitles; a negative one makes them appear sooner.";
+    const { rerender } = renderWithI18n(
+      <OffsetField offsetMs={0} maxOffsetMs={60_000} exceedsMax={false} notice="Reason text" onChange={() => {}} />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("Reason text");
+    expect(field()).toHaveAccessibleDescription(`${hint} Reason text`);
+
+    rerender(withI18n(<OffsetField offsetMs={0} maxOffsetMs={60_000} exceedsMax={false} onChange={() => {}} />));
+
+    // The live region stays mounted and empty, so the next notice is announced as a change.
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    expect(screen.getByRole("status")).not.toHaveClass("offset-field__notice");
+    expect(field()).toHaveAccessibleDescription(hint);
+
+    rerender(withI18n(<OffsetField offsetMs={0} maxOffsetMs={60_000} exceedsMax={false} notice="Reason text" onChange={() => {}} />));
+    expect(screen.getByRole("status")).toHaveTextContent("Reason text");
+  });
+
+  it("takes focus on arrival with a notice only when focus has nowhere useful to be", () => {
+    const outside = document.createElement("button");
+    document.body.append(outside);
+    try {
+      const first = renderWithI18n(
+        <OffsetField offsetMs={0} maxOffsetMs={60_000} exceedsMax={false} notice="Reason text" onChange={() => {}} />,
+      );
+      expect(field()).toHaveFocus();
+      first.unmount();
+
+      // A disabled control holding focus is as good as nowhere.
+      outside.focus();
+      outside.disabled = true;
+      const second = renderWithI18n(
+        <OffsetField offsetMs={0} maxOffsetMs={60_000} exceedsMax={false} notice="Reason text" onChange={() => {}} />,
+      );
+      expect(field()).toHaveFocus();
+      second.unmount();
+
+      // Focus the user placed on a live control stays there, and so does
+      // focus when the field arrives without a notice.
+      outside.disabled = false;
+      outside.focus();
+      const third = renderWithI18n(
+        <OffsetField offsetMs={0} maxOffsetMs={60_000} exceedsMax={false} notice="Reason text" onChange={() => {}} />,
+      );
+      expect(outside).toHaveFocus();
+      third.unmount();
+
+      // A notice that appears after mount, while editing, never moves focus.
+      outside.blur();
+      const { rerender } = renderWithI18n(
+        <OffsetField offsetMs={250} maxOffsetMs={60_000} exceedsMax={false} onChange={() => {}} />,
+      );
+      expect(field()).not.toHaveFocus();
+      rerender(withI18n(<OffsetField offsetMs={0} maxOffsetMs={60_000} exceedsMax={false} notice="Reason text" onChange={() => {}} />));
+      expect(field()).not.toHaveFocus();
+    } finally {
+      outside.remove();
+    }
   });
 });
 
