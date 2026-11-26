@@ -85,6 +85,7 @@ describe("the detect step", () => {
     ).toBeInTheDocument();
   });
 
+  // @covers sync-workflow/sync-caution-notices-use-the-accent-tokens#missing-media-notice-uses-the-accent-tokens
   it("renders the missing-media notice with its caution class", () => {
     renderStep("ask", false);
 

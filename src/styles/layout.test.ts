@@ -196,6 +196,7 @@ describe("the sync detect step", () => {
     );
   });
 
+  // @covers sync-workflow/sync-caution-notices-use-the-accent-tokens#missing-media-notice-uses-the-accent-tokens
   it("styles the missing-media notice as a caution", () => {
     const block = declarationsOf(css, ".sync-detect__needs-media");
 
@@ -208,6 +209,7 @@ describe("the sync detect step", () => {
 describe("the sync offset field", () => {
   const css = read("features", "sync", "OffsetField.css");
 
+  // @covers sync-workflow/sync-caution-notices-use-the-accent-tokens#zero-offset-reason-uses-the-accent-tokens
   it("styles the zero-offset reason as a caution", () => {
     const block = declarationsOf(css, ".offset-field__notice");
 

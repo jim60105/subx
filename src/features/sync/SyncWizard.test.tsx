@@ -678,6 +678,7 @@ describe("a zero offset", () => {
     expect(reason).toHaveClass("offset-field__notice");
   }
 
+  // @covers sync-workflow/a-zero-offset-blocks-continuing#skipping-enters-with-continue-disabled
   it("enters with Continue disabled and the generic reason after skipping", async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -690,6 +691,7 @@ describe("a zero offset", () => {
     expect(offsetField()).toHaveAccessibleDescription(expect.stringContaining(GENERIC));
   });
 
+  // @covers sync-workflow/a-zero-offset-blocks-continuing#changing-the-offset-re-enables-continue
   it("re-enables Continue once the offset changes, and blocks it again when the field is cleared", async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -705,6 +707,7 @@ describe("a zero offset", () => {
     expectReason(GENERIC);
   });
 
+  // @covers sync-workflow/a-zero-offset-blocks-continuing#detected-zero-is-held-and-blocks-continue
   it("holds a detected zero with its facts and warning, and explains that detection found no offset", async () => {
     const user = userEvent.setup();
     vi.mocked(api.detectSyncOffset).mockResolvedValue(ZERO_DETECTION);
@@ -721,6 +724,7 @@ describe("a zero offset", () => {
     expect(screen.queryByText(GENERIC)).not.toBeInTheDocument();
   });
 
+  // @covers sync-workflow/a-zero-offset-blocks-continuing#editing-to-zero-after-a-non-zero-detection
   it("shows the generic reason when a non-zero detection is edited to zero", async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -735,6 +739,7 @@ describe("a zero offset", () => {
     expect(screen.getByText("1.500 seconds")).toBeInTheDocument();
   });
 
+  // @covers sync-workflow/a-zero-offset-blocks-continuing#keeping-a-detected-zero-keeps-continue-disabled
   it("keeps Continue disabled after keeping a detected zero", async () => {
     const user = userEvent.setup();
     vi.mocked(api.detectSyncOffset).mockResolvedValue(ZERO_DETECTION);
