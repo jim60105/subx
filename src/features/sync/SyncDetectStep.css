@@ -92,10 +92,14 @@
   }
 }
 
+/* A caution, not a failure: accent ink and the accent marker, never --del. */
 .sync-detect__needs-media {
+  padding-block: var(--space-1);
+  padding-inline-start: var(--space-3);
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--ink-2);
+  color: var(--accent-ink);
+  border-inline-start: 2px solid var(--accent);
 }
 
 .sync-detect__panel {

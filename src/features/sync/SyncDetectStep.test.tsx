@@ -84,6 +84,14 @@ describe("the detect step", () => {
       screen.getByText(/Add a video or audio file in the first step to enable detection/),
     ).toBeInTheDocument();
   });
+
+  it("renders the missing-media notice with its caution class", () => {
+    renderStep("ask", false);
+
+    expect(screen.getByText(/Add a video or audio file in the first step to enable detection/)).toHaveClass(
+      "sync-detect__needs-media",
+    );
+  });
 });
 
 /**
