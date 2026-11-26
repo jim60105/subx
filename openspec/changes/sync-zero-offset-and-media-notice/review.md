@@ -21,3 +21,20 @@ Use the app, or the preview harness offset view: `?ms=0&detection=0` for the ski
 ## Reviewer notes
 
 <!-- name, date, findings -->
+
+### Apply-time visual pass (agent, 2026-11-26; not a substitute for the human sign-off above)
+
+Checked in headless Chromium on the preview harness, not in the Tauri WebKitGTK window, so font metrics may differ slightly. Views: `sync-offset&ms=0&detection=0` (generic reason), `sync-offset&ms=0&detected=0&warnings=1` (detected-zero reason with a warning), `sync-detect&media=0` (missing-media notice). Each view at 1100×720 and 860×600 (`minWidth` is 860), light and dark, en and zh-TW, plus en at 640 wide to force wrapping.
+
+Refined:
+
+- Both notices use `text-wrap: pretty`, so a wrapped sentence does not end on a single orphaned word. At 640 px the English detected-zero reason wraps across two even lines.
+
+Observed, left as is:
+
+- Alignment: the zero reason's 2 px accent rule and text inset line up with the over-limit error and the warning `ErrorNotice` below it, as design D4 intended. In zh-TW at 860 px and in English at 1100 px each reason fits on one line. In English at 860 px the detected-zero reason just fits.
+- Hierarchy: the reason is regular weight. The warning headline below it is 600 weight in `--del`, so the warning still reads as the stronger notice.
+- Hue: `--accent-ink` (caution) and `--del` (failure) are close red-orange hues in both themes, and closest in dark. When the detected-zero reason sits directly above a detection warning, the two can read as one block of red at a glance. The weight difference is all that separates them. This is a token-level matter and outside this change (no token edits). Flagged for the human reviewer to judge under the first Visual checkbox.
+- Focus: on arrival with the reason, keyboard focus moves to the millisecond field (see the report). Its accent focus ring sits directly above the reason, so the field and the explanation read as a pair.
+- Disabled Continue: it renders as the shell's grey fill with lighter text in both themes and reads clearly as unavailable. Its styling belongs to `WizardShell`, which this change does not touch.
+- Missing-media notice: it sits below the waveform hairline with the step's usual gap. In dark theme it reads as a caution next to the muted waveform, not as an error.
