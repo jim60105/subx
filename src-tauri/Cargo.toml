@@ -1,6 +1,6 @@
 [package]
 name = "subx"
-version = "1.0.0"
+version = "1.1.0"
 description = "AI-powered subtitle matching, conversion, sync, and translation desktop app"
 authors = ["Jim Chen <Jim@ChenJ.im>"]
 license = "GPL-3.0-or-later"

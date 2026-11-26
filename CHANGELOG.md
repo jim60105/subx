@@ -7,16 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-26
+
 ### Added
 - Sync: the offset step plays the chosen media with the shifted subtitle over it, with play/pause, position, seek and volume. Changing the offset moves the subtitle at once without interrupting playback. When the picture cannot be shown, or after choosing "No sound?", the sound is decoded and played instead; if neither works the reason is shown. The preview never blocks editing the offset or continuing. A time rule under the picture scrolls the real cues past a fixed needle, hollow at their original times and solid at their shifted times, with the cue being shown marked; it replaces the schematic cue preview. The offset figure, the −50 ms and +50 ms buttons, the millisecond field and the detected offset and confidence share one row, and the figure moves in the direction of each change.
 
 ### Changed
 - Match: clicking anywhere on a pairing in the review step selects or deselects it; the checkbox and the reasoning disclosure keep their own behaviour, and dragging to select text does not change the selection.
 - Sync: the steps are now Files, Detect, Offset and Save. Step 2 asks whether to detect the offset, shows the elapsed seconds while it listens, and offers retry or skip after a failure; step 3 is the only place the offset is edited. After visiting step 3, going back offers to keep the current offset. Changing either file resets the offset, and files dropped on the window are accepted on the first step only.
+- Sync: the offset step will not continue while the offset is exactly 0 ms, which would save a copy with the same timing as the original; the reason appears under the offset row and focus moves to the millisecond field so the value can be corrected. The detect step's notice that a media file is needed is shown as a caution instead of body text.
 - Linux packages: the Flatpak can play sound, the AppImage bundles the GStreamer media framework, and the deb recommends the GStreamer base, good and libav plugins, so the sync preview can play media.
 
 ### Fixed
 - Match: the quick-select language controls and each row's language tag follow the language in the resulting file name (also after a cached analysis) instead of putting every pairing under Other, and a language without a translated name, such as Thai, is labelled with its name in the interface language.
+- Sync: leaving the Sync screen while offset detection is running now cancels that run, so the next attempt starts instead of being refused.
+- Sync: when detection starts, keyboard focus moves to Cancel instead of staying on the now-disabled button or being lost from the action bar.
+- Sync: screen readers announce a reason that appears under the offset field while editing instead of skipping it, and the −50 ms and +50 ms buttons are spoken as the text they show, so voice control can address them by their visible labels.
 
 ## [1.0.0] - 2026-11-16
 
@@ -103,7 +109,8 @@ First stable release. The app gets a new editorial look (paper-and-ink colours, 
 - Pinned primary action controls to fixed positions with dedicated home navigation.
 - Single-sourced application version in `package.json` with strict synchronization tests across Rust crate manifest and lockfile.
 
-[Unreleased]: https://github.com/jim60105/subx/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/jim60105/subx/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/jim60105/subx/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/jim60105/subx/compare/v0.4.0...v1.0.0
 [0.4.0]: https://github.com/jim60105/subx/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jim60105/subx/compare/v0.2.0...v0.3.0
