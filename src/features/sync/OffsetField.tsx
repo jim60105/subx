@@ -122,11 +122,17 @@ export function OffsetField({ offsetMs, maxOffsetMs, exceedsMax, onChange, notic
       <p id={hintId} className="offset-field__hint visually-hidden">
         {t("offset.hint")}
       </p>
-      {notice !== undefined && (
-        <p id={noticeId} className="offset-field__notice" role="status">
-          {notice}
-        </p>
-      )}
+      {/* The status region stays mounted, empty and out of the layout, so a
+          notice that appears while editing is a change to an existing live
+          region, which screen readers announce; a region inserted already
+          filled often is not. */}
+      <p
+        id={noticeId}
+        className={notice === undefined ? "visually-hidden" : "offset-field__notice"}
+        role="status"
+      >
+        {notice}
+      </p>
       {exceedsMax && maxOffsetMs !== null && (
         <p className="offset-field__error" role="alert">
           {t("offset.exceedsMax", { limit: (maxOffsetMs / 1000).toFixed(1) })}
