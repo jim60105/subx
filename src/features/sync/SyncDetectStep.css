@@ -99,6 +99,8 @@
   margin: 0;
   font-size: var(--text-sm);
   color: var(--accent-ink);
+  /* When the sentence wraps, keep its last line from being a lone word. */
+  text-wrap: pretty;
   border-inline-start: 2px solid var(--accent);
 }
 
